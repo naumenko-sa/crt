@@ -1,4 +1,3 @@
-#all_counts = read.delim("annotated_combined.counts", row.names=1, stringsAsFactors=FALSE)
 all_counts = read.csv("~/Desktop/project_muscular/all_counts.txt", sep="", stringsAsFactors=FALSE)
 
 symbol = all_counts[,c(1,8)]
@@ -265,7 +264,6 @@ expression_rpkm_muscle2 = function()
     plot_panel(linkage_region3, rpkms, gtex_rpkm, "3_linkage_region.png","Linkage region part 3 RPKM",breaks)
 }
 
-load
 
 expression_rpkm_sample5 = function()
 {
@@ -517,9 +515,9 @@ init = function()
 {
     library(edgeR)
     library(RColorBrewer)
-    source("~/Desktop/bioscripts/rnaseq.load_rpkm_counts.R")
+    source("~/crt/crt.load_rpkm_counts.R")
     source("~/Desktop/bioscripts/rnaseq.muscular_gene_panels.R")
-    setwd("~/Desktop/project_muscular/")
+    setwd("~/Desktop/work")
     
     gene_lengths = read.delim("~/Desktop/project_muscular/reference/gene_lengths.txt", stringsAsFactors=F, row.names=1)
 }
