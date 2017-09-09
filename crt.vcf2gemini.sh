@@ -23,7 +23,7 @@ gunzip -c $original_vcf | grep -v "^#" | grep PASS | grep -v possible_rnaedit  >
 bgzip $sample.vcf
 tabix $sample.vcf.gz
 
-gemini.decompose.sh $sample.vcf.gz
-gemini.vep.sh $sample.decomposed.vcf.gz
-gemini.vep2gemini.sh $sample.decomposed.vepeffects.vcf.gz
+cre.vt.decompose.sh $sample.vcf.gz
+cre.vep.sh $sample.decomposed.vcf.gz
+cre.gemini_load.sh $sample.decomposed.vepeffects.vcf.gz
 #gemini.gemini2txt.sh $sample.decomposed.vepeffects.db
