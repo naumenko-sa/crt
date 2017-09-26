@@ -1,41 +1,3 @@
-all_counts = read.csv("~/Desktop/project_muscular/all_counts.txt", sep="", stringsAsFactors=FALSE)
-
-symbol = all_counts[,c(1,8)]
-#all_counts = all_counts[,c(1,2,3,4,5,6,7,9,10,11,12,13,14,15)]
-
-#path = "/counts/mh_filtered/"
-get_data = function (samples_file, path)
-{
-    samples = read.table(samples_file, quote="\"", stringsAsFactors=F)
-
-    for (sample in samples[,1])
-    {
-        table_name = paste0(sample,".filtered")
-        file_name = paste0(getwd(),path,sample,".filtered.counts")
-        assign(table_name,read.delim(file_name, stringsAsFactors=F))
-    }
-
-    samples.data = get(paste0(head(samples,1),".filtered"))
-
-    for (sample in tail(samples,-1)[,1])
-    {
-        table_name = paste0(sample,".filtered")
-        table_itself = get(table_name)
-        table_itself$symbol=NULL
-        samples.data = merge(samples.data,get(table_name))
-    }
-    return(samples.data)
-}
-
-mh.samples = get_data("mh.samples.txt","/counts/mh_filtered/")
-muscular.samples = get_data("muscular.samples.txt","/counts/muscular_filtered/")
-all.samples.data = merge(mh.samples,muscular.samples)
-
-all.samples.data$id=NULL
-all.samples.data$symbol=NULL
-all.samples.total_counts = colSums(all.samples.data)
-all.samples.non_zero = colSums(all.samples.data!=0)
-
 png("Fig2.total_counts_after_filtration.png",width=1000)
 op <- par(mar = c(10,4,4,2) + 0.1)
 barplot(all.samples.total_counts,las=2,main="Total counts after filtration")
@@ -144,7 +106,6 @@ write.table(merge(work_counts,lrt$table,by="row.names"),"muscle1_vs_1130_panel.t
 
 expression_unfiltered = function()
 {
-    setwd("~/Desktop/project_muscular/counts/muscular_unfiltered/")
     annotated_combined <- read.delim("~/Desktop/project_muscular/counts/muscular_unfiltered/annotated_combined.counts", row.names=1, stringsAsFactors=FALSE)
     all_genes_lengths <- read.delim("~/Desktop/project_muscular/counts/muscular_unfiltered/all_genes_lengths", row.names=1, stringsAsFactors=FALSE)
     
@@ -177,33 +138,6 @@ expression_unfiltered = function()
              main="Congenital myopaties, RPKM/2, unfiltered",breaks = c(0,10,50,100,500,1000,5000,10000,15000),
              colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(8))
     dev.off()
-}
-
-expression_fibroblasts = function()
-{
-    setwd("~/Desktop/project_muscular/Fibroblasts/")
-    fibroblast5 = load_rpkm_counts("fibroblast5.rpkm")
-    fibroblast6 = load_rpkm_counts("fibroblast6.rpkm")
-    fibroblast7 = load_rpkm_counts("fibroblast7.rpkm")
-    fibroblast8 = load_rpkm_counts("fibroblast8.rpkm")
-    
-    fibroblast6$external_gene_name=NULL
-    fibroblast7$external_gene_name=NULL
-    fibroblast8$external_gene_name=NULL
-    
-    fibroblasts = merge_row_names(fibroblast5,fibroblast6)
-    fibroblasts = merge_row_names(fibroblasts,fibroblast7)
-    fibroblasts = merge_row_names(fibroblasts,fibroblast8)
-    
-    write.table(fibroblasts,"fibroblasts.rpkms.txt",quote=F,sep = "\t")
-    
-    breaks = c(0,5,10,50,100,500,1000)
-    
-    plot_panel(congenital_muscular_dystrophies,fibroblast8,gtex_rpkm,"fibroblast8.congenital_m_dystrophies.png",
-               "Fibroblast8 expr(rpkm), congenital md panel",breaks)
-    
-    plot_panel(congenital_muscular_dystrophies,fibroblasts,gtex_rpkm,"fibroblasts.congenital_m_dystrophies.png",
-               "Fibroblasts expr(rpkm), congenital md panel",breaks)
 }
 
 #2017-02-22: expression of DGKE gene for Hernan and Mathieu
@@ -265,35 +199,8 @@ expression_rpkm_muscle2 = function()
 }
 
 
-expression_rpkm_sample5 = function()
+expression_panels = function()
 {
-    
-    setwd("~/Desktop/project_muscular/counts/muscular_filtered/")
-    
-    samples = read.table("samples.txt", quote="\"", comment.char="", stringsAsFactors=F)
-    counts = read.delim(paste0(samples[1,],".rpkm"), comment.char = "#",stringsAsFactors=F, row.names=1)
-    counts$Chr=NULL
-    counts$Start=NULL
-    counts$End=NULL
-    counts$Strand=NULL
-    counts$Length=NULL  
-  
-    #all samples but 1
-    for (sample in unlist(tail(samples,-1)))
-    {
-        temp = read.delim(paste0(sample,".rpkm"), comment.char = '#',
-                          stringsAsFactors=F, row.names=1)
-        temp$Chr=NULL
-        temp$Start=NULL
-        temp$End=NULL
-        temp$Strand=NULL
-        temp$Length=NULL
-        
-        counts = merge(counts,temp,by.x="row.names",by.y="row.names")
-        row.names(counts)=counts$Row.names
-        counts$Row.names=NULL
-    }
-    
     ensembl_w_description <- read.delim2("~/cre/ensembl_w_description.txt", row.names=1, stringsAsFactors=FALSE)
     counts = merge(counts,ensembl_w_description,by.x="row.names",by.y="row.names")
     row.names(counts)=counts$Row.names
@@ -511,12 +418,115 @@ count_rpkm_for_exons = function()
     gtex.exon_reference$length = gtex.exon_reference$stop - gtex.exon_reference$start + 1
 }
 
+dexpression = function()
+{
+    counts = read.feature_counts_dir(update = F)
+    samples = colnames(counts)
+    n_samples = length(samples)
+    group=factor(c(rep(1,n_samples/2),rep(2,n_samples/2)))
+    filter=0.5 
+    prefix = "family3"
+    
+    #for 3 x 2 experiment
+    group = factor(c(1,1,1,2,2))
+    
+    y=DGEList(counts=counts,group=group,genes=row.names(counts),remove.zeros = T)
+    
+    max_genes = nrow(counts)
+    
+    logcpm = cpm(counts,prior.count=1,log=T)
+    t_cpm = cpm(counts,prior.count=1,log=F)
+    logcpm = logcpm[,samples]
+    t_cpm = t_cpm[,samples]
+    
+    plotMDS(y)
+    
+    keep=rowSums(cpm(y)>filter) >= n_samples/2
+    y=y[keep,,keep.lib.sizes=F]
+    
+    #necessary for goana
+    idfound = y$genes$genes %in% mappedRkeys(org.Hs.egENSEMBL)
+    y = y[idfound,]
+    
+    egENSEMBL=toTable(org.Hs.egENSEMBL)
+    m = match (y$genes$genes,egENSEMBL$ensembl_id)
+    y$genes$EntrezGene = egENSEMBL$gene_id[m]
+    egSYMBOL = toTable(org.Hs.egSYMBOL)
+    m = match (y$genes$EntrezGene,egSYMBOL$gene_id)
+    y$genes$Symbol = egSYMBOL$symbol[m]
+    
+    #remove duplications - just 1 gene in this dataset
+    #first order by counts to remove duplicated names with 0 counts
+    o = order(rowSums(y$counts),decreasing = T)
+    y = y[o,]
+    d = duplicated(y$genes$Symbol)
+    dy = y[d,]$genes
+    y = y[!d,]
+    nrow(y)
+    
+    y$samples$lib.size = colSums(y$counts)
+    rownames(y$counts) = y$genes$EntrezGene 
+    rownames(y$genes) = y$genes$EntrezGene
+    y$genes$EntrezGene = NULL
+    
+    #normalization for RNA composition (2.7.3)
+    y=calcNormFactors(y)
+    
+    #nc=cpm(y,normalized.lib.sizes=F)
+    #write.table(nc,"filtered.normalized_counts.txt",col.names=NA)
+    
+    png(paste0(prefix,".mds.png"),res = 300,width=2000,height=2000)
+    plotMDS(y,las=1)
+    dev.off()
+    
+    design=model.matrix(~group)
+    
+    y=estimateDisp(y,design)
+    
+    fit=glmFit(y,design)
+    lrt=glmLRT(fit)
+    
+    efilename=paste0(prefix,".de_genes.txt")
+    de_results = topTags(lrt,p.value=0.05,n=max_genes,sort.by="logFC")
+    write.table(de_results,efilename,quote=F,row.names=F)
+    
+    de_results = read.csv(efilename, sep="", stringsAsFactors=FALSE)
+    s_rownames = row.names(de_results)
+    #setnames(de_results,"genes","ensembl_gene_id")
+    #de_results = lrt$table
+    
+    gene_descriptions = read.delim2(paste0("~/cre/ensembl_w_description.txt"), stringsAsFactors=FALSE)
+    
+    de_results = merge(de_results,gene_descriptions,by.x="genes",by.y="ensembl_gene_id",all.x=T)
+    #de_results = rename(de_results,c("Row.names"="ensembl_gene_id"))
+    de_results = merge(de_results,counts,by.x = "genes", by.y="row.names",all.x=T)
+    #rownames(de_results) = s_rownames
+    
+    top_genes_cpm = logcpm[de_results$genes,]
+    colnames(top_genes_cpm)=paste0(colnames(top_genes_cpm),".log2cpm")
+    
+    de_results = merge(de_results,top_genes_cpm,by.x = "genes", by.y="row.names",all.x=T)
+    de_results = de_results[order(abs(de_results$logFC),decreasing = T),]
+    
+    colnames(de_results)[1]="Ensembl_gene_id"
+    colnames(de_results)[2]="Gene_name"
+    de_results$external_gene_name = NULL
+    result_file=paste0(prefix,".txt")
+    write.table(de_results,result_file,quote=T,row.names=F)
+    
+    prepare_file_4gsea(counts,samples,prefix)
+    
+    #plot_heatmap_separate (counts,samples,de_results,prefix)
+    plot_heatmap_separate (counts,samples,de_results,paste0(prefix,".top50genes"),50)
+    
+    
+}
+
 init = function()
 {
     library(edgeR)
     library(RColorBrewer)
-    source("~/crt/crt.load_rpkm_counts.R")
-    source("~/Desktop/bioscripts/rnaseq.muscular_gene_panels.R")
+    source("~/crt/crt.utils.R")
     setwd("~/Desktop/work")
     
     gene_lengths = read.delim("~/Desktop/project_muscular/reference/gene_lengths.txt", stringsAsFactors=F, row.names=1)
