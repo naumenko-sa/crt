@@ -4,7 +4,8 @@
 #PBS -d .
 #PBS -l vmem=50g,mem=50g
 
-#generated gemini database and text file from bcbio rna-seq pipeline output
+#prepare bcbio rna-seq variant to cre report generation
+#put 
 
 if [ -z $sample ]
 then

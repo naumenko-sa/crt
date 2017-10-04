@@ -1,0 +1,13 @@
+#!/bin/bash
+
+#PBS -l walltime=10:00:00,nodes=1:ppn=1
+#PBS -joe .
+#PBS -d .
+#PBS -l vmem=20g,mem=20g
+
+#calculates coverage for all bed files in a directory for a sample
+
+for bed in *.bed;
+do
+    ~/cre/cre.coverage.sh sample=$sample $bed
+done

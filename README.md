@@ -10,3 +10,4 @@ clinical research transcriptome helps to interpret RNA-seq in Mendelian diseases
 - crt.bam2rpkm.sh - counts for RPKM calculation in R
 - crt.load_rpkm_counts.R - load counts into R
 - crt.muscular.R - function for muscular project
+
