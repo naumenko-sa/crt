@@ -420,7 +420,7 @@ count_rpkm_for_exons = function()
 
 dexpression = function()
 {
-    counts = read.feature_counts_dir(update = F)
+    counts = read.feature_counts_dir(update = T)
     samples = colnames(counts)
     n_samples = length(samples)
     group=factor(c(rep(1,n_samples/2),rep(2,n_samples/2)))
@@ -529,5 +529,5 @@ init = function()
     source("~/crt/crt.utils.R")
     setwd("~/Desktop/work")
     
-    gene_lengths = read.delim("~/Desktop/project_muscular/reference/gene_lengths.txt", stringsAsFactors=F, row.names=1)
+    #gene_lengths = read.delim("~/Desktop/project_muscular/reference/gene_lengths.txt", stringsAsFactors=F, row.names=1)
 }

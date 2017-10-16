@@ -303,6 +303,7 @@ plot_all_panels = function(rpkms)
     breaks = c(0,1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100,110)
     plot_panel(channelopathies, rpkms, "3_channelopathies.png","Channelopathies RPKM",breaks)
   
+    #remove a second entry of CLN3 from rpm_counts.txt
     breaks = c(0,1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100,200,300,400,500,600,700,800,900,1000,2000,3000)
     plot_panel(vacuolar_and_others, rpkms, "4_vacuolar_and_others.png","Vacuolar and others RPKM",breaks)
   
