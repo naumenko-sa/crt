@@ -18,6 +18,8 @@ then
     original_vcf=$2
 fi
 
+family=$3
+
 gunzip -c $original_vcf | grep "^#"  > $sample.vcf
 gunzip -c $original_vcf | grep -v "^#" | grep PASS | grep -v possible_rnaedit  >> $sample.vcf
 
@@ -28,3 +30,7 @@ cre.vt.decompose.sh $sample.vcf.gz
 cre.vep.sh $sample.decomposed.vcf.gz
 cre.gemini_load.sh $sample.decomposed.vepeffects.vcf.gz
 #gemini.gemini2txt.sh $sample.decomposed.vepeffects.db
+
+mv $sample.decomposed.vepeffects.db ${family}-ensemble.db
+mv $sample.decomposed.vcf.gz ${family}-ensemble-annotated-decomposed.vcf.gz
+
