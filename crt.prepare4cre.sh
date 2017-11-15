@@ -4,6 +4,8 @@
 #PBS -d .
 #PBS -l vmem=50g,mem=50g
 
+#50g is crucial -20,30 crashes sometimes
+
 #prepare bcbio rna-seq variant to cre report generation
 #put 
 
@@ -18,7 +20,10 @@ then
     original_vcf=$2
 fi
 
-family=$3
+if [ -z $family ]
+then
+    family=$3
+fi
 
 gunzip -c $original_vcf | grep "^#"  > $sample.vcf
 gunzip -c $original_vcf | grep -v "^#" | grep PASS | grep -v possible_rnaedit  >> $sample.vcf
@@ -33,4 +38,7 @@ cre.gemini_load.sh $sample.decomposed.vepeffects.vcf.gz
 
 mv $sample.decomposed.vepeffects.db ${family}-ensemble.db
 mv $sample.decomposed.vcf.gz ${family}-ensemble-annotated-decomposed.vcf.gz
+mv $sample.decomposed.vcf.gz.tbi ${family}-ensemble-annotated-decomposed.vcf.gz.tbi
 
+ln -s ${family}-ensemble-annotated-decomposed.vcf.gz ${family}-gatk-haplotype-annotated-decomposed.vcf.gz
+ln -s ${family}-ensemble-annotated-decomposed.vcf.gz.tbi ${family}-gatk-haplotype-annotated-decomposed.vcf.gz.tbi

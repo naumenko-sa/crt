@@ -17,9 +17,10 @@ ls | sed s/.bam// | sed s/.bai// | sed s/"_1.fq.gz"// | sed s/"_2.fq.gz"// | sor
 
 cd ..
 
+#no family is neede for single sample
 while read sample
 do
-    echo $sample","$sample","$family",,," >> $family.csv
+    echo $sample","$sample",,,," >> $family.csv
 done < samples.txt
 
 #default template
