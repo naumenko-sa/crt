@@ -1,3 +1,18 @@
+# crt
+clinical research transcriptome helps to interpret RNA-seq in Mendelian diseases
+
+1. Run bcbio with crt.bcbio.rnaseq.yaml. Don't trim reads to save all data and delete fastq files.
+
+2. Look at mutations 
+
+3. Look at the expression
+
+- crt.bam2rpkm.sh - counts for RPKM calculation in R
+- crt.load_rpkm_counts.R - load counts into R
+- crt.muscular.R - function for muscular project
+
+4. Find pathogenic splice events
+
 # MendelianRNA-seq-DB
 
 ![alt text](./SpliceJunctionSchema.png)
@@ -5,6 +20,7 @@
 ## Modification of [MendelianRNA-seq](https://github.com/berylc/MendelianRNA-seq) for pathogenic splicing events discovery in RNA-seq
 
 * [The original repository of Beryl Cummings](https://github.com/berylc/MendelianRNA-seq)
+* [Modification by Dennis Kao](https://github.com/dennis-kao/MendelianRNA-seq-DB)
 * [Article: Cummings et al. 2017](http://stm.sciencemag.org/content/9/386/eaal5209) 
 * [Manual](https://macarthurlab.org/2017/05/31/improving-genetic-diagnosis-in-mendelian-disease-with-transcriptome-sequencing-a-walk-through/)
 
