@@ -1,0 +1,29 @@
+#!/bin/bash
+
+#PBS -l walltime=10:00:00,nodes=1:ppn=4
+#PBS -joe .
+#PBS -d .
+#PBS -l vmem=10g,mem=10g
+
+MENDELIAN_RNA_SEQ_DB_home='/home/dennis.kao/tools/MendelianRNA-seq-DB'
+
+if [ -z "$transcript_model" ];
+then
+		transcript_model=$home/gencode.comprehensive.splice.junctions.txt
+fi
+
+if [ -z "$processes" ];
+then
+		processes=4
+fi
+
+if [ -z "$transcript_file" ];
+then
+	transcript_file=$home/all-protein-coding-genes-no-patches.list
+fi
+
+module load python/3.5.2
+module load python/3.5.2 sqlite/3.20.0
+
+python3 $home/Analysis/AddJunctionsToDatabase.py --addGencode -transcript_model=$transcript_model
+python3 $home/Analysis/AddJunctionsToDatabase.py --addBAM -transcript_file=$transcript_file -processes=$processes

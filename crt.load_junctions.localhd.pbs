@@ -1,0 +1,44 @@
+#!/bin/bash
+
+#PBS -l walltime=20:00:00,nodes=1:ppn=1
+#PBS -joe .
+#PBS -d .
+#PBS -l vmem=20g,mem=20g
+
+MENDELIAN_RNA_SEQ_DB_HOME='/hpf/largeprojects/ccmbio/naumenko/tools/MendelianRNA-seq-DB'
+
+#sample=`cat bamlist.txt | sed s/.bam//`
+
+#tar cf $sample.tar $sample
+
+
+sample=`cat bamlist.txt | sed s/.bam//`
+
+tar cf $sample.tar $sample
+
+mv $sample.tar /localhd/$PBS_JOBID
+cp bamlist.txt /localhd/$PBS_JOBID
+
+cd /localhd/$PBS_JOBID
+
+tar xf $sample.tar
+
+MENDELIAN_RNA_SEQ_DB_HOME='/hpf/largeprojects/ccmbio/naumenko/tools/MendelianRNA-seq-DB'
+
+transcript_file=$MENDELIAN_RNA_SEQ_DB_HOME/all-protein-coding-genes-no-patches.list
+    
+#multithreading is problematic
+processes=1
+bam_list=bamlist.txt
+
+module load python/3.5.2
+python3 $MENDELIAN_RNA_SEQ_DB_HOME/analysis/AddJunctionsToDatabase.py \
+	--addBAM \
+        -transcript_file=$transcript_file \
+	-processes=$processes \
+	-bamlist=$bam_list \
+	-flank=1
+
+cd -
+mv /localhd/$PBS_JOBID/SpliceJunction.db .
+
