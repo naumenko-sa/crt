@@ -33,9 +33,9 @@ feature_counts2rpkm = function(filename)
 #reads all counts in the current directory
 read.rpkm_counts_dir = function(update=F)
 {
-    if(file.exists("rpkm_counts.txt") && update == F)
+    if(file.exists("rpkms.txt") && update == F)
     {
-        counts = read.table("rpkm_counts.txt")
+        counts = read.table("rpkms.txt")
     }
     else
     {
@@ -52,7 +52,7 @@ read.rpkm_counts_dir = function(update=F)
         counts$Row.names=NULL
         counts$Gene_description=NULL
         
-        write.table(counts,"rpkm_counts.txt",quote=F)
+        write.table(counts,"rpkms.txt",quote=F)
     }
   
     return(counts)
@@ -127,7 +127,7 @@ prepare_file_4gsea = function(counts,samples,prefix)
   #remove rows with 0 expression
   t_cpm = t_cpm[rowSums(t_cpm)>0,]
   
-  #select only protein coding genes
+  #only protein coding genes
   protein_coding_genes = read.delim(paste0(reference_tables_path,"/protein_coding_genes.txt"), row.names=1, stringsAsFactors=F)
   
   t_cpm = merge(protein_coding_genes,t_cpm,by.x='row.names',by.y='row.names',all = F)
@@ -206,30 +206,35 @@ plot_heatmap_separate = function(counts,samples,de_results,prefix,ntop = NULL)
 
 mh_panel=c("CACNA1S","RYR1","STAC3","TRDN","ASPH","JPH2","CASQ1","ATP2A1","ATP2A2","CALM1","FKBP1A")
 
+#panels
+#congenital_myopathy,congenital_muscular_dystrophies,congenital_myastenic_syndromes,channelopathies,
+#vacuolar_and_others,limb_girdle,distal_myopathies,muscular_dystrophies
+
 congenital_myopathy = c("ACTA1","TPM3", "TPM2", "TNNT1", "NEB", "LMOD3", "KBTBD13", "CFL2", 
-                        "KLHL40", "KLHL41", "MYO18B", "RYR1", "CACNAS1", "STAC3", "ORAI1", 
-                        "SITM1", "SEPN1", "CCDC78", "BIN1", "DNM2", "MTM1", "MTMR14", 
-                        "SPEG", "PTPLA", "TTN", "MYH7", "MYH2", "CNTN1", "MEGF10","ZAK")
+                        "KLHL40", "KLHL41", "MYO18B", "RYR1", "CACNA1S", "STAC3", "ORAI1", 
+                        "STIM1", "SEPN1", "CCDC78", "BIN1", "DNM2", "MTM1", "MTMR14", 
+                        "SPEG", "PTPLA", "TTN", "MYH7", "MYH2", "CNTN1", "MEGF10","MLTK")
 
 congenital_muscular_dystrophies=c("LAMA2", "COL6A1", "COL6A2", "COL6A3", 
-                                  "SPEN1", "FHL1", "ITGA7", "DNM2","TCAP", "LMNA", "FKTN", 
-                                  "POMT1", "POMT2", "FKRP", "POMGNT1", "ISPD", "GTDC2", "B3GNT1", 
+                                  "SEPN1", "FHL1", "ITGA7", "DNM2","TCAP", "LMNA", "FKTN", 
+                                  "POMT1", "POMT2", "FKRP", "POMGNT1", "ISPD", "POMGNT2", "B3GNT1", 
                                   "POMGNT1", "GMPPB", "LARGE", "DPM1", "DPM2", "ALG13", "B3GALNT2", 
                                   "TMEM5",  "POMK", "CHKB", "ACTA1", "TRAPPC11")
 
 congenital_myastenic_syndromes = c("CHRNA1", "CHRNB1", "CHRND", "CHRNE", "CHRNA1", "RAPSN", "CHAT", "COLQ", "MUSK", "DOK7", 
-                                   "AGRN", "GFPT1", "DAPGT1", "LAMB2", "SCN4A", "CHRNG", "PLEC", "ALG2", "ALG14", "SYT2", "PREPL")
+                                   "AGRN", "GFPT1", "DPAGT1", "LAMB2", "SCN4A", "CHRNG", "PLEC", "ALG2", "ALG14", "SYT2", "PREPL")
 
-channelopathies = c("DMPK", "ZNF9", "CAV3", "HSPG2", "SERCA1", "CLCN1", "SCN4A", "CACNA1S", "CACNA1A", "KCNE3", "KCNA1", "KCNJ18")
+channelopathies = c("DMPK", "CNBP", "CAV3", "HSPG2", "ATP2A1", "CLCN1", "SCN4A", "CACNA1S", "CACNA1A", "KCNE3", "KCNA1", "KCNJ12")
 
-vacuolar_and_others = c("LAMP2", "VMA21", "CLN3", "PABPN1", "TTN", "PEC1", "GDF8", "ACVR1", "CAV3", "FHL1", "ICSU","MCOLN1")
+vacuolar_and_others = c("LAMP2", "VMA21", "CLN3", "PABPN1", "TTN", "PLEC", "MSTN", "ACVR1", "CAV3", "FHL1", "ISCU","MCOLN1")
 
-limb_girdle = c("MYOT", "LMNA", "CAV3", "DNAJB6", "DES", "TNPO3", "HNRPDL","CAPN3", "DYSF", 
+limb_girdle = c("MYOT", "LMNA", "CAV3", "DNAJB6", "DES", "TNPO3", "HNRNPDL","CAPN3", "DYSF", 
                 "SGCG", "SGCA", "SGCB", "SGCD", "TCAP", "TRIM32", "FKRP", "TTN", "POMT1", "ANO5",
-                "FKTN", "POMT2", "POMGNT1", "PLEC", "DAG1", "TRAPPC11", "GMPPB", "DPM3", "ISPD", "VCP", "LIMS2", "PLEC1", "GAA")
+                "FKTN", "POMT2", "POMGNT1", "PLEC", "DAG1", "TRAPPC11", "GMPPB", "DPM3", "ISPD", 
+                "VCP", "LIMS2","GAA")
 
 distal_myopathies=c("DYSF", "TTN", "GNE", "MYH7", "MATR3", "TIA1", "MYOT", "NEB", "LDB3", "ANO5", "KLHL9", "DNM2", "FLNC", 
-                    "VCP", "CRYAB", "DES", "SPEN1", "LDB3", "FLNC", "BAG3", "TRIM63", "TRIM54")
+                    "VCP", "CRYAB", "DES", "SEPN1", "LDB3", "FLNC", "BAG3", "TRIM63", "TRIM54")
 
 muscular_dystrophies= c("DMD", "EMD", "FHL1", "LMNA", "SYNE1", "SYNE2", "TMEM43", "TOR1AIP1","DUX4", "SMCHD1", "PTRF")
 

@@ -531,3 +531,101 @@ init = function()
     
     #gene_lengths = read.delim("~/Desktop/project_muscular/reference/gene_lengths.txt", stringsAsFactors=F, row.names=1)
 }
+
+expression_sample()
+{
+    setwd("/home/sergey/Desktop/work")
+    read.rpkm_counts_dir()
+    counts = read.table("rpkms.txt")
+    #remove second entry for CLN3
+    counts = counts[setdiff(rownames(counts),"ENSG00000261832"),]
+    #sample = "S12_9.1.M"
+    samples=head(colnames(counts),-1)
+    #not GTEX
+    samples=tail(samples,-10)
+    
+    for (sample in samples)
+    {
+        dir.create(sample)
+        setwd(sample)
+        for (gene_panel_name in c("congenital_myopathy","congenital_muscular_dystrophies","congenital_myastenic_syndromes",
+                         "channelopathies","vacuolar_and_others","limb_girdle","distal_myopathies","muscular_dystrophies"))
+        {
+            gene_panel = get(gene_panel_name)
+            dir.create(gene_panel_name)
+            setwd(gene_panel_name)
+            print(gene_panel_name)
+            expression4gene_in_a_gene_panel(sample,gene_panel,counts)
+            setwd("..")
+        }
+        setwd("..")
+    }
+}
+
+expression4gene_in_a_gene_panel = function(sample,gene_panel,counts)
+{
+    #sample = "S12_9.1.M"
+    #gene_panel = congenital_myopathy
+    for (gene in gene_panel)
+    {
+        expression4gene(gene,sample,counts)
+    }
+}
+
+expression4gene = function(gene,sample,counts)
+{
+    #gene="LAMA2"
+    #sample="S12_9.1.M"
+    print(paste0(gene," ",sample))
+    
+    #https://datascienceplus.com/building-barplots-with-error-bars/
+    gene_expression = subset(counts,external_gene_name == gene)     
+    gene_expression$external_gene_name=NULL
+    v_muscle=as.numeric(gene_expression[1,])
+     
+    se = sd(v_muscle)/sqrt(length(v_muscle))
+     
+    muscle_mean = mean(v_muscle)
+    means = c(muscle_mean,gene_expression[[sample]])
+    ses = c(se,0)
+
+    #significance
+    ttest  = t.test(v_muscle,mu=gene_expression[[sample]])
+     
+    if ((muscle_mean > 0) && (ttest$p.value < 0.01))
+    {
+        if (gene_expression[[sample]]<muscle_mean)
+        {
+            file_name = paste0("_",sample,"_",gene,".png")
+        }
+        else
+        {
+            file_name = paste0(sample,"_",gene,".png")
+        }
+        png(file_name) 
+        par(mar=c(2,3,2,0)+0.1)
+        plotTop = max(mean(v_muscle)+6*se, gene_expression[[sample]]+6*se)
+        barCenters = barplot(
+            height = c(mean(v_muscle),gene_expression[[sample]]),
+            names.arg = c("Mean muscle",sample),
+            beside = F,
+            las = 2,
+            ylim = c(0,plotTop),
+            xaxt = "n",
+            axes=T,
+            main = paste0(sample,",",gene," expression, RPKM"),width=c(1,1))
+     
+        text (x=barCenters,y=par("usr")[3]-1,
+           labels = c("Mean muscle",sample),xpd=T)
+     
+     
+        segments (barCenters,means-ses*2,barCenters,means+ses*2,lwd=1.5)
+        arrows (barCenters,means-ses*2,barCenters,means+ses*2,lwd=1.5,angle=90,
+             code=3,length=0.05)
+     
+        text(x = barCenters, y = means, label = round(means,2), 
+            pos = 2, col = "red")
+     
+         dev.off()
+     }
+}
