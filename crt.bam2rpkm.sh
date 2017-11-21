@@ -13,9 +13,14 @@ then
     bam=$1
 fi
 
+if [ -z $gtf ]
+then
+    gtf=/hpf/largeprojects/ccmbio/naumenko/tools/bcbio/genomes/Hsapiens/GRCh37/rnaseq/ref-transcripts.gtf
+fi
+
 featureCounts -T 8 \
 	-g gene_id \
 	-C \
 	--largestOverlap \
-	-a /hpf/largeprojects/ccmbio/naumenko/tools/bcbio/genomes/Hsapiens/GRCh37/rnaseq/ref-transcripts.gtf \
+	-a $gtf \
 	-o $bam.rpkm_counts.txt $bam
