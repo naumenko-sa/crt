@@ -37,8 +37,8 @@ cre.gemini_load.sh $sample.decomposed.vepeffects.vcf.gz
 #gemini.gemini2txt.sh $sample.decomposed.vepeffects.db
 
 mv $sample.decomposed.vepeffects.db ${family}-ensemble.db
-mv $sample.decomposed.vcf.gz ${family}-ensemble-annotated-decomposed.vcf.gz
-mv $sample.decomposed.vcf.gz.tbi ${family}-ensemble-annotated-decomposed.vcf.gz.tbi
+mv $sample.decomposed.vepeffects.vcf.gz ${family}-ensemble-annotated-decomposed.vcf.gz
+mv $sample.decomposed.vepeffects.vcf.gz.tbi ${family}-ensemble-annotated-decomposed.vcf.gz.tbi
 
 ln -s ${family}-ensemble-annotated-decomposed.vcf.gz ${family}-gatk-haplotype-annotated-decomposed.vcf.gz
 ln -s ${family}-ensemble-annotated-decomposed.vcf.gz.tbi ${family}-gatk-haplotype-annotated-decomposed.vcf.gz.tbi
