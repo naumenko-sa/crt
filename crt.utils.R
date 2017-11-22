@@ -1,6 +1,53 @@
 library(pheatmap)
 library(RColorBrewer)
 
+
+# Loads coverage from bam.coverage_bamstats05.sh
+# loads gene (exonic) lengths
+# calculates RPKMs
+# returns EXON_ID, rpkm
+coverage2rpkm = function(filename)
+{
+    #test:
+    #filename="S08_5-1-F.bam.coverage"
+    library(edgeR)   
+    #first line in the file is a comment
+    counts = read.delim(filename, stringsAsFactors=F)
+    Gene_lengths = counts$length
+    counts = subset(counts, select=c("gene","mean"))
+    row.names(counts)=counts$gene
+    counts$gene = NULL
+    
+    counts = rpkm(counts,Gene_lengths)
+  
+    colnames(counts) = gsub(".bam.coverage","",filename)
+  
+    return(counts)
+}
+
+read.coverage2counts_dir = function(update=F)
+{
+  if(file.exists("rpkms.txt") && update == F)
+  {
+      counts = read.table("rpkms.txt")
+  }
+  else
+  {
+    files = list.files(".","*coverage")
+    counts = coverage2rpkm(files[1])
+    for (file in tail(files,-1))
+    {
+      counts_buf = coverage2rpkm(file)
+      counts = merge_row_names(counts,counts_buf)
+    }
+    
+    write.table(counts,"rpkms.txt",quote=F)
+  }
+  
+  return(counts)
+}
+
+
 # Loads a file with counts from feature_counts
 # loads gene lengths
 # loads gene names
@@ -207,8 +254,8 @@ plot_heatmap_separate = function(counts,samples,de_results,prefix,ntop = NULL)
 mh_panel=c("CACNA1S","RYR1","STAC3","TRDN","ASPH","JPH2","CASQ1","ATP2A1","ATP2A2","CALM1","FKBP1A")
 
 #panels
-#congenital_myopathy,congenital_muscular_dystrophies,congenital_myastenic_syndromes,channelopathies,
-#vacuolar_and_others,limb_girdle,distal_myopathies,muscular_dystrophies
+panel_list = c("congenital_myopathy","congenital_muscular_dystrophies","congenital_myastenic_syndromes",
+               "channelopathies", "vacuolar_and_others","limb_girdle","distal_myopathies","muscular_dystrophies")
 
 congenital_myopathy = c("ACTA1","TPM3", "TPM2", "TNNT1", "NEB", "LMOD3", "KBTBD13", "CFL2", 
                         "KLHL40", "KLHL41", "MYO18B", "RYR1", "CACNA1S", "STAC3", "ORAI1", 
@@ -237,6 +284,7 @@ distal_myopathies=c("DYSF", "TTN", "GNE", "MYH7", "MATR3", "TIA1", "MYOT", "NEB"
                     "VCP", "CRYAB", "DES", "SEPN1", "LDB3", "FLNC", "BAG3", "TRIM63", "TRIM54")
 
 muscular_dystrophies= c("DMD", "EMD", "FHL1", "LMNA", "SYNE1", "SYNE2", "TMEM43", "TOR1AIP1","DUX4", "SMCHD1", "PTRF")
+
 
 #gene panels for linkage region on chr19
 linkage_region1 = c("GAMT", "DAZAP1", "RPS15", "APC2", "C19orf25", "PCSk4", "REEP6","ADAMTSL5","PLK5","MEX3D", 
