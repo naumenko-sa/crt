@@ -9,10 +9,12 @@
 #https://github.com/alexdobin/STAR/blob/master/doc/STARmanual.pdf
 # len = mate lengths - 1
 
-len=`zcat $sample_1.fq.gz | head -n 2| tail -n1 | awk '{print length}'`
+len=`zcat ${sample}_1.fq.gz | head -n 2| tail -n1 | awk '{print length-1}'`
+
+echo "Overhang length:"$len
 
 STAR --genomeDir /hpf/largeprojects/ccmbio/naumenko/tools/bcbio/genomes/Hsapiens/GRCh37/star/ \
-    --readFilesIn $sample_1.fq.gz $sample_2.fq.gz \
+    --readFilesIn ${sample}_1.fq.gz ${sample}_2.fq.gz \
     --twopassMode Basic \
      --runThreadN 10 \
      --outFileNamePrefix $sample \
@@ -24,4 +26,14 @@ STAR --genomeDir /hpf/largeprojects/ccmbio/naumenko/tools/bcbio/genomes/Hsapiens
      --sjdbGTFfile /hpf/largeprojects/ccmbio/naumenko/tools/bcbio/genomes/Hsapiens/GRCh37/rnaseq/ref-transcripts.gtf \
      --sjdbOverhang $len  --readFilesCommand zcat  --outSAMattrRGline ID:$sample PL:illumina PU:$sample SM:ID  \
      | samtools sort -@ 5 -m 1G  -T . \
-     -o $sample.bam /dev/stdin
+     -o $sample.star.bam /dev/stdin
+
+picard -Xmx20g MarkDuplicates \
+    I=$sample.star.bam \
+    O=$sample.bam \
+    M=marked_dup_metrics.txt
+
+samtools index $sample.bam
+
+#rm $sample.star.bam
+
