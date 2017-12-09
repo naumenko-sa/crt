@@ -87,7 +87,7 @@ AddJunctionsToDatabase.py is much faster and likely takes minutes to an hour for
 1. Discover junctions, submit a torque job:
 
 - `qsub [path-to-crt]/crt.splice_junction_discovery.pbs -v bam=file.bam`
-- or `qsub [path-to-crt]/crt.splice_junction_discovery.pbs -v genes=my_gene_panel.bed,bam=file.bam
+- or `qsub [path-to-crt]/crt.splice_junction_discovery.pbs -v genes=my_gene_panel.bed,bam=file.bam`
 - or `python3 [path-to-crt]/SpliceJunctionDiscovery.py -bam=file.bam`
 
 2. Load GENCODE junctions to the database
@@ -100,17 +100,13 @@ result: SpliceJunctions.db
 
 3. Load junctions from the samples to the SpliceJunctions.db database (load controls once, and copy SpliceJunctions.db for every analysis).
 
-    4.1 Run a torque job:
-`qsub [path-to-MendelianRNA-seq-db]/analysis/crt.load_junctions.pbs`
+- `qsub [path-to-MendelianRNA-seq-db]/analysis/crt.load_junctions.pbs`
+- or `python3 [path-to-crt]/analysis/AddJunctionsToDatabase.py -addBAM -transcript_file [path-to-MendelianRNA-seq-db]/all-protein-coding-genes-no-patches.txt -bamlist bamlist.list -flank 1`
+-flank is a parameter which specifies a flanking region for transcript_model annotation. If flank was set to 1, a gencode junction was 1:100-300 and a junction in a sample was 1:99-301, the sample junction would be considered BOTH annotated. This is because both the start and stop positions fall within a +/- 1 range of that of a transcript_model's junction.
 
-    4.2 or run locally:
-`python3 [path-to-MendelianRNA-seq-db]/analysis/AddJunctionsToDatabase.py -addBAM -transcript_file [path-to-MendelianRNA-seq-db]/all-protein-coding-genes-no-patches.txt -processes 4 -bamlist bamlist.list -flank 1`
+result: junctions from a bam file (files) added to SpliceJunctions.db
 
-    -flank is a parameter which specifies a flanking region for transcript_model annotation. If flank was set to 1, a gencode junction was 1:100-300 and a junction in a sample was 1:99-301, the sample junction would be considered BOTH annotated. This is because both the start and stop positions fall within a +/- 1 range of that of a transcript_model's junction.
-
-    4.3 result: junctions from a bam file (files) added to SpliceJunctions.db
-
-5. Filter junctions: a case vs controls.
+4. Filter junctions: a case vs controls.
 
 To print out splice sites only seen in a "disease" sample and not in any GTEx sample use:
 
