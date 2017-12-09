@@ -24,12 +24,11 @@ clinical research transcriptome helps to interpret RNA-seq in Mendelian diseases
 * [Article: Cummings et al. 2017](http://stm.sciencemag.org/content/9/386/eaal5209) 
 * [Manual](https://macarthurlab.org/2017/05/31/improving-genetic-diagnosis-in-mendelian-disease-with-transcriptome-sequencing-a-walk-through/)
 
-MendelianRNA-seq-DB supports storing junction information in a database and uses multiple threads to process data.
-The use of the database confers a few benefits:
+MendelianRNA-seq-DB supports stores junctions in a database, it allows:
 
-1. Control BAM files (GTEX controls)  only have to be processed once through SpliceJunctionDiscovery, and results from previous computations can be reused.
-2. The ability to utilize a very high number of controls, possibly up to the thousands.
-3. Lowered RAM use since junction positions are being stored on hard drive.
+1. to process control BAM files (GTEX controls) once and reuse the database;
+2. increase the number of controls;
+3. decrease RAM usage.
 
 ## Methodology to discovering a pathogenic splicing event
 
