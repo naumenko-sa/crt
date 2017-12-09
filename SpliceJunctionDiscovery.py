@@ -108,195 +108,81 @@ def parseCIGARForIntrons(cigar):
 
 	return offset, matchedExon, intronLength
 
-def intronDiscovery(poolArguement):
-
+def getJunctionsForAGene(bam,gene,chrom,start,end):
 	"""
-	The function a worker process goes through. Produces a file containing junction
+	Produces a file containing junction
 	positions and their read counts for each gene:
-
 		E.x. NPHS1.txt
 			1	200	300	5
 			1	344	355	2
-
-	Each worker is assigned a single gene region to work on. The worker loops through each BAM file,
-	counts the number of alignments and produces a single gene text file in the corresponding BAM folder. 
-
-	Args:
-		poolArguement, the single argument for each worker process, which can be broken down
-		in to these components:
-
-			bamFiles, a list of each bam file, this is used to access the corresponding sample folder
-			gene, the gene the worker must process
-			chrom, the chromosome the gene lies on
-			start and stop, the 3' and 5' locations on a chromosome in which samtools should begin looking for alignments in
-			cwd, path to the current working directory. This is used to create the path of a sample folder and a gene text file
-
-	Returns:
-	    None
-
-	Raises:
-	    None
 	"""
+	pos = ''.join([chrom, ':', start, '-', end])
 
-	bamFiles, gene, chrom, start, stop, cwd = poolArguement
+	spliceDict = {}
+	geneFilePath = (bam + ".junctions.txt")
 
-	print ('processing ' + gene)
+	try:
+		exitcode, stdout, stderr = run(' '.join(['samtools view', bam, pos]))
+	except Exception as e:
+		print ('Exception message: ' + str(e))
+		print ("Exception occured while running \"samtools view\" on " + bam + " for position " + pos + " Skipping.")
 
-	pos = ''.join([chrom, ':', start, '-', stop])
+	for line in stdout.splitlines():
+		elems = line.decode().split()
 
-	for bam in bamFiles:
+		alignmentStart = int(elems[3])
+		cigar = str(elems[5])
+		alignmentScore = int(elems[1])
+ 
+		if 'N' not in cigar:  	#only get introns
+			continue
 
-		spliceDict = {}
-		geneFilePath = (cwd + "/" + bam[:-4] + "/" + gene + ".txt")
+		if (alignmentScore >= 256):  	#only primary alignments
+			continue
+
+		if not ((alignmentStart > int(start)) and (alignmentStart < int(end))):  	#check if alignment start is after known junction start but before known junction end 
+			continue
 
 		try:
-			exitcode, stdout, stderr = run(' '.join(['samtools view', bam, pos]))
+			offset, matchedExon, intronLength = parseCIGARForIntrons(cigar)
 		except Exception as e:
-			print ('Exception message: ' + str(e))
-			print ("Exception occured while running \"samtools view\" on " + bam + " for position " + pos + " Skipping.")
+			print ('Error message: ' + str(e))
+			print ('Error trying to parse CIGAR string: ' + cigar +  ' with the bam file ' + bam +  ' and the position: ' + pos + ' Skipping.')
 			continue
 
-		if not stdout:
-			#print ('No introns found for ' + gene + ' at ' + pos + ' in ' + bam)
-			continue
+		junctionStart = alignmentStart + matchedExon + offset
+		junctionEnd = junctionStart + intronLength
 
-		for line in stdout.splitlines():
+		# Beryl Cummings' Code, taken from makeUniqSpliceDict()
+		# uniqueSplice = ':'.join([chrom, str(junctionStart), str(junctionEnd)])
+		uniqueSplice = (chrom, str(junctionStart), str(junctionEnd))
+		
+		if uniqueSplice not in spliceDict:
+			spliceDict[uniqueSplice] = 1
+		else:
+			spliceDict[uniqueSplice] += 1
 
-			elems = line.decode().split()
+	del stdout # saves ram in between samtool calls
+	if spliceDict:
+		printSplices(geneFilePath, spliceDict)
+		del spliceDict
 
-			alignmentStart = int(elems[3])
-			cigar = str(elems[5])
-			alignmentScore = int(elems[1])
- 
-			if 'N' not in cigar:  	#only get introns
-				continue
-
-			if (alignmentScore >= 256):  	#only primary alignments
-				continue
-
-			if not ((alignmentStart > int(start)) and (alignmentStart < int(stop))):  	#check if alignment start is after known junction start but before known junction end 
-				continue
-
-			try:
-				offset, matchedExon, intronLength = parseCIGARForIntrons(cigar)
-			except Exception as e:
-				print ('Error message: ' + str(e))
-				print ('Error trying to parse CIGAR string: ' + cigar +  ' with the bam file ' + bam +  ' and the position: ' + pos + ' Skipping.')
-				continue
-
-			junctionStart = alignmentStart + matchedExon + offset
-			junctionEnd = junctionStart + intronLength
-
-			# Beryl Cummings' Code, taken from makeUniqSpliceDict()
-			# uniqueSplice = ':'.join([chrom, str(junctionStart), str(junctionEnd)])
-			uniqueSplice = (chrom, str(junctionStart), str(junctionEnd))
-			
-			if uniqueSplice not in spliceDict:
-				spliceDict[uniqueSplice] = 1
-			else:
-				spliceDict[uniqueSplice] += 1
-
-		del stdout # saves ram in between samtool calls
-
-		if spliceDict:
-			printSplices(geneFilePath, spliceDict)
-			del spliceDict
-
-	print ('finished ' + gene)
-
-def makeBamListAndDirectories(bamList):
-
-	"""
-	Makes a list of bam files for each worker process to use and
-	the directories in which each gene file will reside in
-
-	Args:
-		bamList, text file containing the names of all .bam files
-		each on a seperate line
-
-	Returns:
-	    bamFiles, a list of bamFiles to be processed
-
-	Raises:
-	    None
-	"""
-
-	bamFiles = []
-
-	with open(bamList) as bl:
-		for i in bl:
-
-			i = i.strip()
-
-			bamLocation = os.getcwd() + '/' + i
-			if not os.path.isfile(bamLocation):
-				print ('bam file: ' + i + ' does not exist in CWD! Skipping.')
-				continue
-
-			outputDirectory = bamLocation[:-4]
-
-			os.system("mkdir " + outputDirectory)
-			bamFiles.append(i)
-
-	return bamFiles
-
-def processGenesInParallel(transcriptFile, bamList, numProcesses):
-
-	"""
-	Sets up the parameters for each worker process and then runs them.
-
-	Args:
-		transcriptFile, path to a file which contains a list of genes and locations of investigation
-		bamList, a list of bam files you want to discover splice sites in
-		numProcesses, the number of worker processes to run at a given time
-
-	Returns:
-	    None
-
-	Raises:
-	    None
-	"""
-
-	cwd = os.getcwd()
-	bamFiles = makeBamListAndDirectories(bamList)
-	poolArguements = []
-
-	with open(transcriptFile) as tf:
+def getJunctions(genes, bam):
+	with open(genes) as tf:
 		for line in tf:
-
 			elems = line.strip().split()
-			try:
-				gene, gene2, plus, chrom, start, stop, gene_type = elems #edit the transcript file so that you only deal with junction coordinates
-			except Exception as e:
-				print ('Error while parsing transcript file named: ' + str(transcriptFile) + "\n" + 'Error message: ' + str(e) + "\nExiting.")
-				exit (3)
+			chrom, start, end, gene = elems #edit the transcript file so that you only deal with junction coordinates
+			getJunctionsForAGene(bam, gene, chrom, start, end)
 
-			poolArguements.append((bamFiles, gene, chrom, start, stop, cwd))
-
-	print ("Creating a pool with " + str(numProcesses) + " processes")
-	pool = multiprocessing.Pool(int(numProcesses))
-	print ('pool: ' + str(pool))
-
-	pool.map(intronDiscovery, poolArguements) # run the worker processes
-	pool.close()
-	pool.join()
-	
 if __name__=="__main__":
-
 	print ('SpliceJunctionDiscover.py started on ' + datetime.now().strftime("%Y-%m-%d_%H:%M:%S.%f"))
-
-	parser = argparse.ArgumentParser(description = 'Discover splice junctions from a list of bam files')
-	parser.add_argument('-transcript_file',help="A list of positions that you want to discover junctions in",action='store',
-			    default = "/hpf/largeprojects/ccmbio/naumenko/tools/MendelianRNA-seq-DB/all-protein-coding-genes-no-patches.list")
-	parser.add_argument('-bam_list',help='A text file containing the names of bam files you want to discover splice junctions in each on a seperate line',default='bamlist.txt')
-	parser.add_argument('-processes',help='number of processes to run multiple instances of: "samtools view", default=10',default=10)
+	parser = argparse.ArgumentParser(description = 'Discover splice junctions in a bam file')
+	parser.add_argument('-genes',help="A bed file of gene coordinates to discover junctions in",action='store',
+			    default = "/home/naumenko/crt/genes.bed")
+	parser.add_argument('-bam',help='A bam file')
 	args=parser.parse_args()
 
-	print ('Working in directory' + str(os.getcwd()))
-	print ('Transcript file is ' + str(args.transcript_file))
-	print ('Identifying splice junction is ' + str(args.bam_list))
-
-	processGenesInParallel(args.transcript_file, args.bam_list, args.processes)
+	getJunctions(args.genes, args.bam)
 	
 	# transcriptFile = str(args.transcriptFile).rsplit('/')[-1] #remove paths
 

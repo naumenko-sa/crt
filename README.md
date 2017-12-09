@@ -24,18 +24,14 @@ clinical research transcriptome helps to interpret RNA-seq in Mendelian diseases
 * [Article: Cummings et al. 2017](http://stm.sciencemag.org/content/9/386/eaal5209) 
 * [Manual](https://macarthurlab.org/2017/05/31/improving-genetic-diagnosis-in-mendelian-disease-with-transcriptome-sequencing-a-walk-through/)
 
-MendelianRNA-seq-DB supports stores junctions in a database, it allows:
-
-1. to process control BAM files (GTEX controls) once and reuse the database;
-2. increase the number of controls;
-3. decrease RAM usage.
+MendelianRNA-seq-DB supports stores junctions in a database, it allows to process control BAM files (GTEX controls) once and reuse the database.
 
 ## Methodology to discovering a pathogenic splicing event
 
 1. Generate 2 sets of splice junction positions from a collection of .bam files. One set is considered to be "healthy" and the other is considered to be "disease"
 2. Remove any shared splice junction positions from the "disease" set since variants causitive for disease are likely not present in a "healthy" population (keep in mind we are dealing with rare diseases)
 3. Remove splice sites from the "disease" set which have a low number of read counts and/or normalized read counts and thus can considered as noise
-4. Priortize and analyze remaining junctions which reside in genes related to this disease
+4. Prioritize and analyze remaining junctions which reside in genes related to this disease
 
 ## The number of controls
 
@@ -66,33 +62,21 @@ AddJunctionsToDatabase.py is much faster and likely takes minutes to an hour for
 
 1. .bam (and .bai) files produced from an RNA-seq pipeline - All control or "healthy" .bams need to have the phrase 'GTEX' in their file name for read count logic to work properly. You need a sufficient number of high quality control BAMs so that you can filter out more splice junctions and discover those that are specific to a diseased sample. The [GTEx project](https://www.gtexportal.org/home/) is what I used for control BAMs. All BAM files in the database should be from the same tissue due to tissue specific expression.
 
-2. transcript_file - A text file containing a list of genes and their spanning chromosome positions that you want to discover junctions in:
+2. genes - A bed file with gene coordinates
 	```
-	GENE	ENSG	STRAND	CHROM	START	STOP	GENE_TYPE
+	CHROM	START	STOP	GENE
 	```
 	You can use [genes.R](https://github.com/naumenko-sa/bioscripts/blob/master/genes.R) for that, or convert an existing .bed file using this bash line:
 	```
-	cat kidney.glomerular.genes.bed | awk '{print $4"\t"$4"\t+\t"$1"\t"$2"\t"$3"\tNEXONS"}' >> gene.list
-	```
-	There is an included file which contains [all protein coding regions](all-protein-coding-genes-no-patches.list).
+	genes.bed is a list of all protein coding genes.
 	
-3. bamlist.list - A file containing the names of all the bams you want to discover junctions in. The file should quite simply be:
-	
-	
-		G65693.GTEX.8TY6-5R5T.2.bam
-		G55612.GTEX.7G54-3GS8.1.bam
-		G09321.GTEX.0EYJ-9E12.3.bam
-		PATIENT.bam
-	
-	An easy way to generate this file would be to navigate to a directory containing the .bam files you want to use and running this line: ```ls *.bam | grep '' > bamlist.list```
+3. transcript_model - A text file containing a list of known canonical splice junctions. These will be used to evaluate a junction's annotation (none, start, stop, both, exon_skip). You can use your own, or use the [included file](gencode.comprehensive.splice.junctions.txt). This file contains junctions from gencode v19.
 
-4. transcript_model - A text file containing a list of known canonical splice junctions. These will be used to evaluate a junction's annotation (none, start, stop, both, exon_skip). You can use your own, or use the [included file](gencode.comprehensive.splice.junctions.txt). This file contains junctions from gencode v19.
+4. [Python 3.5.2](https://www.python.org/downloads/) or higher
 
-5. [Python 3.5.2](https://www.python.org/downloads/) or higher
+5. Python [CIGAR string library](https://pypi.python.org/pypi/cigar/0.1.3) by Brent Pedersen
 
-6. Python [CIGAR string library](https://pypi.python.org/pypi/cigar/0.1.3) by Brent Pedersen
-
-7. sqlite3 Python library based off of SQLite3 version 3.11.0 or higher. You can check your library's version with:
+6. sqlite3 Python library based off of SQLite3 version 3.11.0 or higher. You can check your library's version with:
 	```
 	import sqlite3
 	print (sqlite3.sqlite_version_info)
@@ -100,35 +84,21 @@ AddJunctionsToDatabase.py is much faster and likely takes minutes to an hour for
 	
 ## Steps
 
-1. Create a list of bam files
-```ls *.bam > bamlist.txt```
+1. Discover junctions, submit a torque job:
 
-2. Discover junctions, submit a torque job:
+- `qsub [path-to-crt]/crt.splice_junction_discovery.pbs -v bam=file.bam`
+- or `qsub [path-to-crt]/crt.splice_junction_discovery.pbs -v genes=my_gene_panel.bed,bam=file.bam
+- or `python3 [path-to-crt]/SpliceJunctionDiscovery.py -bam=file.bam`
 
-    2.1 with default parameters:
-`qsub [path-to-crt]/crt.splice_junction_discovery.pbs`
-
-    2.2 Or set parameters explicitly:
-`qsub [path-to-crt]/crt.splice_junction_discovery.pbs -v transcript_file=transcript_file,bam_list=bamlist.list,processes=[number of threads] -l nodes=1:ppn=[number of threads]`
-
-    2.3 or run locally:
-`python3 [path-to-crt]/SpliceJunctionDiscovery.py -transcript_file=$transcript_file -bam_list=$bam_list -processes=$processes`
-
-    2.4 Parameters:
-	- transcript_file, path to file #2, [default in the script].
-	- bam_list, path to file #3, [default = bamlist.txt].
-	- processes, the number of worker processes running in the background calling samtools, [default=10].
-
-3. Load GENCODE junctions to the database
+2. Load GENCODE junctions to the database
 ```
-python3 [path-to-MendelianRNA-seq-db]/analysis/AddJunctionsToDatabase.py \
+python3 [path-to-crt]/AddJunctionsToDatabase.py \
 	--addGencode \
-	-transcript_model=[path-to-MendelianRNA-seq-db]/gencode.comprehensive.splice.junctions.txt
+	-transcript_model=[path-to-crt]/gencode.comprehensive.splice.junctions.txt
 ```
-
 result: SpliceJunctions.db
 
-4. Load junctions from the samples to the SpliceJunctions.db database (load controls once, and copy SpliceJunctions.db for every analysis).
+3. Load junctions from the samples to the SpliceJunctions.db database (load controls once, and copy SpliceJunctions.db for every analysis).
 
     4.1 Run a torque job:
 `qsub [path-to-MendelianRNA-seq-db]/analysis/crt.load_junctions.pbs`

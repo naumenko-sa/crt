@@ -7,22 +7,10 @@
 
 CRT_HOME='/home/naumenko/crt'
 
-if [ -z "$transcript_file" ];
+if [ -z "$genes" ];
 then
-	transcript_file=$CRT_HOME/all-protein-coding-genes-no-patches.list
-fi
-
-if [ -z "$processes" ];
-then
-	processes=1
-fi
-
-if [ -z "$bam_list" ];
-then
-	bam_list=bamlist.txt
+	genes=$CRT_HOME/genes.bed
 fi
 
 module load python/3.5.2
-python3 $CRT_HOME/SpliceJunctionDiscovery.py -transcript_file=$transcript_file -bam_list=$bam_list -processes=$processes
-
-echo "done"
+python3 $CRT_HOME/SpliceJunctionDiscovery.py -genes=$transcript_file -bam=$bam
