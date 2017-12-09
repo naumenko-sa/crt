@@ -106,13 +106,13 @@ AddJunctionsToDatabase.py is much faster and likely takes minutes to an hour for
 2. Discover junctions, submit a torque job:
 
     2.1 with default parameters:
-`qsub [path-to-MendelianRNA-seq-db]/analysis/crt.splice_junction_discovery.pbs`
+`qsub [path-to-crt]/crt.splice_junction_discovery.pbs`
 
-    2.2 Or with explicit parameters
-`qsub [path-to-MendelianRNA-seq-db]/analysis/crt.splice_junction_discovery.pbs -v transcript_file=transcript_file,bam_list=bamlist.list,processes=[number of threads] -l nodes=1:ppn=[number of threads]`
+    2.2 Or set parameters explicitly:
+`qsub [path-to-crt]/crt.splice_junction_discovery.pbs -v transcript_file=transcript_file,bam_list=bamlist.list,processes=[number of threads] -l nodes=1:ppn=[number of threads]`
 
     2.3 or run locally:
-`python3 [path-to-MendelianRNA-seq-db]/analysis/SpliceJunctionDiscovery.py -transcript_file=$transcript_file -bam_list=$bam_list -processes=$processes`
+`python3 [path-to-crt]/SpliceJunctionDiscovery.py -transcript_file=$transcript_file -bam_list=$bam_list -processes=$processes`
 
     2.4 Parameters:
 	- transcript_file, path to file #2, [default in the script].
