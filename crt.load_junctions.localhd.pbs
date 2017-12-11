@@ -5,39 +5,19 @@
 #PBS -d .
 #PBS -l vmem=10g,mem=10g
 
-#addjunctionstodatabase.py is very slow on a network file system - localhd is faster
-
 CRT_HOME='/home/naumenko/crt'
 
-sample=`cat bamlist.txt | sed s/.bam//`
-
-tar cf $sample.tar $sample
-
-cp $sample.tar /localhd/$PBS_JOBID
-cp bamlist.txt /localhd/$PBS_JOBID
-cp /hpf/largeprojects/ccmbio/naumenko/project_RNAseq_diagnostics/controls/muscle/cp-SpliceJunction.db_20controls /localhd/$PBS_JOBID/SpliceJunction.db
+cp $bam.junctions.txt /localhd/$PBS_JOBID
+#cp /hpf/largeprojects/ccmbio/naumenko/project_RNAseq_diagnostics/controls/muscle/cp-SpliceJunction.db.transcript_junctions_only /localhd/$PBS_JOBID/SpliceJunction.db
+cp SpliceJunction.db /localhd/$PBS_JOBID
 
 cd /localhd/$PBS_JOBID
 
-tar xf $sample.tar
-
-transcript_file=$CRT_HOME/all-protein-coding-genes-no-patches.list
-    
-#multithreading is problematic
-processes=1
-bam_list=bamlist.txt
-
-echo "starting adding junctions to database"
-
 module load python/3.5.2
-python3 $CRT_HOME/AddJunctionsToDatabase.py \
+module load sqlite/3.20.0
+python3 $CRT_HOME/AddJunctionsToDatabase1.py \
 	--addBAM \
-        -transcript_file=$transcript_file \
-	-processes=$processes \
-	-bamlist=$bam_list \
-	-flank=1
-
-echo "junction are loaded"
-
+	-bam=$bam
 cd -
+#overwrite previous SpliceJunction.db
 cp /localhd/$PBS_JOBID/SpliceJunction.db .

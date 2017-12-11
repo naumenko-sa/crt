@@ -90,6 +90,8 @@ AddJunctionsToDatabase.py is much faster and likely takes minutes to an hour for
 - or `qsub [path-to-crt]/crt.splice_junction_discovery.pbs -v genes=my_gene_panel.bed,bam=file.bam`
 - or `python3 [path-to-crt]/SpliceJunctionDiscovery.py -bam=file.bam`
 
+Result: file.bam.junction.txt
+
 2. Load GENCODE junctions to the database
 ```
 python3 [path-to-crt]/AddJunctionsToDatabase.py \

@@ -1,32 +1,15 @@
 #!/bin/bash
 
-#PBS -l walltime=20:00:00,nodes=1:ppn=4
+#PBS -l walltime=20:00:00,nodes=1:ppn=1
 #PBS -joe .
 #PBS -d .
 #PBS -l vmem=20g,mem=20g
 
-MENDELIAN_RNA_SEQ_DB_HOME='/hpf/largeprojects/ccmbio/naumenko/tools/MendelianRNA-seq-DB'
-
-if [ -z "$transcript_file" ];
-then
-	transcript_file=$MENDELIAN_RNA_SEQ_DB_HOME/all-protein-coding-genes-no-patches.list
-fi
-
-#multithreading is problematic
-if [ -z "$processes" ];
-then
-	processes=1
-fi
-
-if [ -z "$bam_list" ];
-then
-	bam_list=bamlist.txt
-fi
+CRT_HOME='/home/naumenko/crt'
 
 module load python/3.5.2
-python3 $MENDELIAN_RNA_SEQ_DB_HOME/analysis/AddJunctionsToDatabase.py \
+module load sqlite/3.20.0
+
+python3 $CRT_HOME/AddJunctionsToDatabase1.py \
 	--addBAM \
-	-transcript_file=$transcript_file \
-	-processes=$processes \
-	-bamlist=$bam_list \
-	-flank=1
+	-bam=$bam

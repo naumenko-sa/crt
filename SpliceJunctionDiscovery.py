@@ -33,31 +33,17 @@ def run(cmd, dieOnError=True):
 	stdout,stderr = ps.communicate()
 	return exitcode, stdout, stderr
 
-def printSplices(path, spliceDict):
-
+def printJunctions(path, spliceDict,gene):
 	"""
-	Prints junctions and their read counts to a specified file
-
-	This is a striped down version of Beryl Cummings' printSplices()
-
-	Args:
-		path, the path to the output file
 		spliceDict, a dictionary containing junctions and their read counts
 			E.x. spliceDict[1:200-300] = 5
-
-	Returns:
-	    None
-
-	Raises:
-	    None
 	"""
-
 	for key in spliceDict:
 		chrom, junctionStart, junctionEnd = key
 		timesSeenInSample = str(spliceDict[key])
 
 		with open(path, "a") as out:
-			out.write("\t".join([str(chrom),str(junctionStart),str(junctionEnd),timesSeenInSample])+"\n")
+			out.write("\t".join([str(chrom),str(junctionStart),str(junctionEnd),timesSeenInSample,gene])+"\n")
 
 def parseCIGARForIntrons(cigar):
 
@@ -164,7 +150,7 @@ def getJunctionsForAGene(bam,gene,chrom,start,end):
 
 	del stdout # saves ram in between samtool calls
 	if spliceDict:
-		printSplices(geneFilePath, spliceDict)
+		printJunctions(geneFilePath,spliceDict,gene)
 		del spliceDict
 
 def getJunctions(genes, bam):
