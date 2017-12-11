@@ -5,11 +5,11 @@ clinical research transcriptome helps to interpret RNA-seq in Mendelian diseases
 
 2. Look at mutations 
 
-3. Look at the expression
+3. Look at gene expression
 
 - crt.bam2rpkm.sh - counts for RPKM calculation in R
 - crt.load_rpkm_counts.R - load counts into R
-- crt.muscular.R - function for muscular project
+- crt.muscular.R - functions for muscular project
 
 4. Find pathogenic splice events
 
@@ -30,7 +30,7 @@ According to Beryl Cummings, the minimal number of controls should be 30, in the
 
 ## Overview
 
-- SpliceJunctionDiscovery.py calls samtools to discover splice junctions parsing CIGARs.
+- SpliceJunctionDiscovery.py discovers splice junctions calling samtools and parsing CIGARs.
 - AddJunctionsToDatabase.py load junction information to the sqlite database.
 - FilterSpliceJunctions.py outputs junctions present in a sample and absent in controls.
 
