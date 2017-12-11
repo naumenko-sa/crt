@@ -13,10 +13,6 @@ clinical research transcriptome helps to interpret RNA-seq in Mendelian diseases
 
 4. Find pathogenic splice events
 
-# MendelianRNA-seq-DB
-
-![alt text](./SpliceJunctionSchema.png)
-
 ## Modification of [MendelianRNA-seq](https://github.com/berylc/MendelianRNA-seq) for pathogenic splicing events discovery in RNA-seq
 
 * [The original repository of Beryl Cummings](https://github.com/berylc/MendelianRNA-seq)
@@ -24,53 +20,31 @@ clinical research transcriptome helps to interpret RNA-seq in Mendelian diseases
 * [Article: Cummings et al. 2017](http://stm.sciencemag.org/content/9/386/eaal5209) 
 * [Manual](https://macarthurlab.org/2017/05/31/improving-genetic-diagnosis-in-mendelian-disease-with-transcriptome-sequencing-a-walk-through/)
 
-MendelianRNA-seq-DB supports stores junctions in a database, it allows to process control BAM files (GTEX controls) once and reuse the database.
+CRT stores junctions in a database, to process GTEx controls once and reuse the database.
+![alt text](./SpliceJunctionSchema.png)
 
-## Methodology to discovering a pathogenic splicing event
+## On the number of controls
 
-1. Generate 2 sets of splice junction positions from a collection of .bam files. One set is considered to be "healthy" and the other is considered to be "disease"
-2. Remove any shared splice junction positions from the "disease" set since variants causitive for disease are likely not present in a "healthy" population (keep in mind we are dealing with rare diseases)
-3. Remove splice sites from the "disease" set which have a low number of read counts and/or normalized read counts and thus can considered as noise
-4. Prioritize and analyze remaining junctions which reside in genes related to this disease
-
-## The number of controls
-
-It follows that with a higher number of control BAM files you are able to filter out more non-pathogenic and noise junctions leading to a smaller number of candidate splicing events. This is clearly seen in a graph created by Beryl Cummings:
-
+According to Beryl Cummings, the minimal number of controls should be 30, in the article it is 184.
 <img src="https://macarthurlab.files.wordpress.com/2017/05/nmd-controls.png" width="400" height="600" />
 
-Ideally, you want to use as many controls as you can. In practicality, you may want to rely on a few tricks to reduce your dataset to a size where you can actually analyze each sample specific site on IGV:
+## Overview
 
-1. Don't analyze junctions annotated with 'BOTH'
-2. Construct a gene panel, from experts or from scientific literature, and only analyze junctions pertaining to those regions
-3. Set a higher threshold for read counts. This can be specified as a parameter when running FilterSpliceJunctions.py
-4. If you believe you have a high enough coverage across regions of interest in the transcriptome don't analyze junctions annotated with 'NONE'. This removes all possibility of discovering splicing events which start and end in a known exonic regions however.
+- SpliceJunctionDiscovery.py calls samtools to discover splice junctions parsing CIGARs.
+- AddJunctionsToDatabase.py load junction information to the sqlite database.
+- FilterSpliceJunctions.py outputs junctions present in a sample and absent in controls.
 
-## Pipeline details
+## Dependencies
 
-SpliceJunctionDiscovery.py calls upon samtools to report the presence of introns in a list of regions of interest, determines their chromosomal positions, counts the number of alignments to each position, and writes this to a text file (e.x. PATIENT_X/DMD.txt).
-
-AddJunctionsToDatabase.py reads each text file, compares the reported junctions to that of a transcript_model, annotates any shared splice site positions, normalizes annotated reads, and stores this information into a database. 
-
-FilterSpliceJunctions.py contains some pre-defined queries which can be used to filter junctions in the database in hopes of finding an aberrant splicing event causative for disease.
-
-SpliceJunctionDiscovery.py usually takes the longest to execute. This step is parallelized and the number of worker processes can specified in the torque file or as an arguement to the script. 
-
-AddJunctionsToDatabase.py is much faster and likely takes minutes to an hour for sample sizes less than 100. Querrying the database using FilterSpliceJunctions is probably the fastest step taking seconds to execute.
-
-## Required files
-
-1. .bam (and .bai) files produced from an RNA-seq pipeline - All control or "healthy" .bams need to have the phrase 'GTEX' in their file name for read count logic to work properly. You need a sufficient number of high quality control BAMs so that you can filter out more splice junctions and discover those that are specific to a diseased sample. The [GTEx project](https://www.gtexportal.org/home/) is what I used for control BAMs. All BAM files in the database should be from the same tissue due to tissue specific expression.
-
+1. .bam (and .bai) files of cases and GTEx controls.
 2. genes - A bed file with gene coordinates
 	```
 	CHROM	START	STOP	GENE
 	```
-	You can use [genes.R](https://github.com/naumenko-sa/bioscripts/blob/master/genes.R) for that, or convert an existing .bed file using this bash line:
+	Use genes.bed - a list of protein coding genes, or your own bed file. To retrieve gene coordinates from ENSMBL biomart use 
+	[genes.R](https://github.com/naumenko-sa/bioscripts/blob/master/genes.R) 
 	```
-	genes.bed is a list of all protein coding genes.
-	
-3. transcript_model - A text file containing a list of known canonical splice junctions. These will be used to evaluate a junction's annotation (none, start, stop, both, exon_skip). You can use your own, or use the [included file](gencode.comprehensive.splice.junctions.txt). This file contains junctions from gencode v19.
+3. transcript_model - text file containing a list of known canonical splice junctions. [included file](gencode.comprehensive.splice.junctions.txt). This file contains junctions from gencode v19.
 
 4. [Python 3.5.2](https://www.python.org/downloads/) or higher
 
@@ -173,9 +147,3 @@ A single gene region can encompass partial or whole regions of other genes. Thus
 ### Splice site flanks and annotation
 A +/- flanking region is considered when annotating the 5' and 3' positions of sample junctions to increase the number of annotated junctions. This value is specified by the -flank parameter (default 1). There is an option to not use flanking at all (-flank 0).
 
-### Distributed file systems and pipeline performance
-In order to circumvent the issue of write locks each worker process in SpliceJunctionDiscovery is assigned a single gene and writes to a single text file. As a result, each sample folder contains around 15000 to 22000 gene text files if you were to run the pipeline against all protein coding genes. 
-
-Using a DFS does not affect the performance of SpliceJunctionDiscovery, however, it does affect AddJunctionsToDatabase significantly. Because the script opens, reads, and closes many small files, using a DFS will result in a majority of runtime spent looking for these files on the server. In my experience, this increased runtime from 5 minutes (on a local SSD) to over 40 hours (on the server). Therefore, it is reccomended that you copy over the files created by SpliceJunctionDiscovery to a local drive or simply generate them on a local drive before running AddJunctionsToDatabase.
-
-test
