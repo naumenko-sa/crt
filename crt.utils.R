@@ -268,8 +268,10 @@ congenital_muscular_dystrophies=c("LAMA2", "COL6A1", "COL6A2", "COL6A3",
                                   "POMGNT1", "GMPPB", "LARGE", "DPM1", "DPM2", "ALG13", "B3GALNT2", 
                                   "TMEM5",  "POMK", "CHKB", "ACTA1", "TRAPPC11")
 
-congenital_myastenic_syndromes = c("CHRNA1", "CHRNB1", "CHRND", "CHRNE", "CHRNA1", "RAPSN", "CHAT", "COLQ", "MUSK", "DOK7", 
-                                   "AGRN", "GFPT1", "DPAGT1", "LAMB2", "SCN4A", "CHRNG", "PLEC", "ALG2", "ALG14", "SYT2", "PREPL")
+congenital_myastenic_syndromes = c("CHRNA1", "CHRNB1", "CHRND", "CHRNE", "RAPSN", 
+                                   "CHAT", "COLQ", "MUSK", "DOK7", "AGRN", 
+                                   "GFPT1", "DPAGT1", "LAMB2", "SCN4A", "CHRNG", 
+                                   "PLEC", "ALG2", "ALG14", "SYT2", "PREPL")
 
 channelopathies = c("DMPK", "CNBP", "CAV3", "HSPG2", "ATP2A1", "CLCN1", "SCN4A", "CACNA1S", "CACNA1A", "KCNE3", "KCNA1", "KCNJ12")
 
