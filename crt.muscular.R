@@ -593,7 +593,7 @@ expression4gene = function(gene,sample,counts)
     ttest  = t.test(v_muscle,mu=gene_expression[[sample]])
      
     if ((muscle_mean > 0) && (ttest$p.value < 0.01) && 
-        ((muscle_mean > 3*gene_expression[[sample]]) || (3*muscle_mean < gene_expression[[sample]])))
+        ((muscle_mean > 1.5*gene_expression[[sample]]) || (1.5*muscle_mean < gene_expression[[sample]])))
     {
         if (gene_expression[[sample]]<muscle_mean)
         {
