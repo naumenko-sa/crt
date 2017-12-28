@@ -1,6 +1,45 @@
 library(pheatmap)
 library(RColorBrewer)
+library(edgeR)   
+library(readr)
 
+# calculates RPKMs using ~/bioscripts/bam.raw_coverage.sh input - usable to calculate RPKMs for exons using a bed file
+raw_coverage2rpkm = function(filename)
+{
+    #test:
+    #filename="S57_32-1-M.bam.raw_coverage"
+    
+    counts = read_delim(filename,"\t", col_names = FALSE, 
+                                 col_types = cols(X1 = col_character()))
+    
+    colnames(counts)=c("chrom","start","end","exon_id","coverage")
+    
+    Gene_lengths = counts$end - counts$start + 1
+    rownames(counts)=counts$exon_id
+    
+    counts$chrom = NULL
+    counts$start = NULL
+    counts$end = NULL
+    counts$exon_id = NULL
+  
+    counts = rpkm(counts,Gene_lengths)
+  
+    colnames(counts) = gsub(".bam.raw_coverage","",filename)
+  
+    return(counts)
+}
+
+read.raw_coverage2rpkm_dir = function()
+{
+    files = list.files(".","*raw_coverage")
+    counts = raw_coverage2rpkm(files[1])
+    for (file in tail(files,-1))
+    {
+      counts_buf = raw_coverage2rpkm(file)
+      counts = merge_row_names(counts,counts_buf)
+    }
+    write.table(counts,"exon.rpkms.txt",quote=F)
+}
 
 # Loads coverage from bam.coverage_bamstats05.sh
 # loads gene (exonic) lengths
