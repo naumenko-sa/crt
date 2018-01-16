@@ -1,5 +1,7 @@
 #!/bin/bash
 
+ls *.junctions.txt | sed s/.junctions.txt// > table.txt
+
 bam=`head -n1 table.txt`
 prev_id=`qsub ~/crt/crt.load_junctions.localhd.pbs -v bam=$bam`
 
