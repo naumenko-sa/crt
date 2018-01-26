@@ -366,6 +366,14 @@ gene_lengths = read.delim("~/Desktop/project_RNAseq_diagnostics/reference/gene_l
 # plots the heatmap of title.png for gene_panel using sample_rpkm and gtex_rpkm
 plot_panel= function(gene_panel, sample_rpkm, filename,title, breaks)
 {
+    #test:
+    #breaks = c(0,1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100,200,300,400,500,600,700,800,900,1000,2000,3000,4000,
+    #  5000,6000,7000,8000,9000,10000,15000,17100)
+    #gene_panel = congenital_myopathy
+    #sample_rpkm = rpkms
+    #filename = "1_congenital_myopaties.png"
+    #title = "Congenital myopaties RPKM"
+    
     panel_rpkm = sample_rpkm[sample_rpkm$external_gene_name %in% gene_panel,]
     gtex_panel_rpkm = gtex_rpkm[gtex_rpkm$gene_name %in% gene_panel,]
   
