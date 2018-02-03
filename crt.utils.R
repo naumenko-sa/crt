@@ -139,7 +139,8 @@ read.rpkm_counts_dir = function(update=F)
         counts$Gene_description=NULL
     
         #remove a second entry of CLN3 from rpm_counts.txt
-        counts = counts[!row.names(counts) %in% c("ENSG00000261832"),]
+        counts = counts[!row.names(counts) %in% c("ENSG00000261832","ENSG00000267059","ENSG00000200733","ENSG00000207199","ENSG00000252408",
+                                                  "ENSG00000212270","ENSG00000212377","ENSG00000167774"),]
         
         write.table(counts,"rpkms.txt",quote=F)
     }
@@ -363,6 +364,7 @@ linkage_region8 = c("NDUFA7", "RPS28", "KANK3", "ANGPTL4", "RAB11B-AS1", "MIR499
                     "PRAM1", "ZNF414", "MYO1F", "ADAMTS10", "ACTL9", "OR2Z1", "ZNF558", "MBD3L1", "OR1M1", "MUC16")
 
 gtex_rpkm = read.csv("~/Desktop/project_RNAseq_diagnostics/reference/gtex.muscle_gene.rpkm", sep="", stringsAsFactors = F)
+
 ensembl_w_description = read.delim2("~/cre/ensembl_w_description.txt", row.names=1, stringsAsFactors=F)
 gene_lengths = read.delim("~/Desktop/project_RNAseq_diagnostics/reference/gene_lengths.txt", stringsAsFactors=F, row.names=1)
 
@@ -372,7 +374,7 @@ plot_panel= function(gene_panel, sample_rpkm, filename,title, breaks)
     #test:
     #breaks = c(0,1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100,200,300,400,500,600,700,800,900,1000,2000,3000,4000,
     #  5000,6000,7000,8000,9000,10000,15000,17100)
-    #gene_panel = congenital_myopathy
+    #gene_panel = linkage_region4
     #sample_rpkm = rpkms
     #filename = "1_congenital_myopaties.png"
     #title = "Congenital myopaties RPKM"
@@ -430,4 +432,59 @@ plot_all_panels = function(rpkms)
     breaks = c(0,1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100,200,300,400,500,600,700,800,900,1000,2000,2400)
     plot_panel(muscular_dystrophies, rpkms, "8_Muscular_dystrophies.png",
                "Muscular_dystrophies panel, RPKM",breaks)
+}
+
+
+plot_region_panels = function(rpkms)
+{
+    rpkms = read.rpkm_counts_dir(update = T)
+    breaks = c(0,1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100,200,
+             300,400)
+    plot_panel(linkage_region1, rpkms, 
+             "1_linkage_region.png",
+             "Linkage region 1, RPKM",
+             breaks)
+  
+    breaks = c(0,1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100,200,
+             300,400)
+    plot_panel(linkage_region2, rpkms, 
+             "2_linkage_region.png",
+             "Linkage region 2, RPKM",
+             breaks)
+  
+    plot_panel(linkage_region3, rpkms, 
+             "3_linkage_region.png",
+             "Linkage region 3, RPKM",
+             breaks)
+  
+    breaks = c(0,1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100,200,
+               300,400,500,600,700,800)
+    plot_panel(linkage_region4, rpkms, 
+             "4_linkage_region.png",
+             "Linkage region 4, RPKM",
+             breaks)
+    
+    breaks = c(0,1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100)
+    plot_panel(linkage_region5, rpkms, 
+               "5_linkage_region.png",
+               "Linkage region 5, RPKM",
+               breaks)
+  
+  
+    breaks = c(0,1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100)
+    plot_panel(linkage_region6, rpkms, 
+               "6_linkage_region.png",
+               "Linkage region 6, RPKM",
+               breaks)
+    
+    plot_panel(linkage_region7, rpkms, 
+               "7_linkage_region.png",
+               "Linkage region 7, RPKM",
+               breaks)
+    
+    plot_panel(linkage_region8, rpkms, 
+               "8_linkage_region.png",
+               "Linkage region 8, RPKM",
+               breaks)
+    
 }
