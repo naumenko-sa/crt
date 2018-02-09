@@ -292,8 +292,6 @@ plot_heatmap_separate = function(counts,samples,de_results,prefix,ntop = NULL)
   plot_heatmap(paste0(prefix,".right"),top_genes_cpm[downregulated_genes,])
 }   
 
-
-
 mh_panel=c("CACNA1S","RYR1","STAC3","TRDN","ASPH","JPH2","CASQ1","ATP2A1","ATP2A2","CALM1","FKBP1A")
 
 #panels
@@ -329,7 +327,6 @@ distal_myopathies=c("DYSF", "TTN", "GNE", "MYH7", "MATR3", "TIA1", "MYOT", "NEB"
                     "VCP", "CRYAB", "DES", "SEPN1", "LDB3", "FLNC", "BAG3", "TRIM63", "TRIM54")
 
 muscular_dystrophies= c("DMD", "EMD", "FHL1", "LMNA", "SYNE1", "SYNE2", "TMEM43", "TOR1AIP1","DUX4", "SMCHD1", "PTRF")
-
 
 #gene panels for linkage region on chr19
 linkage_region1 = c("GAMT", "DAZAP1", "RPS15", "APC2", "C19orf25", "PCSk4", "REEP6","ADAMTSL5","PLK5","MEX3D", 
@@ -434,7 +431,6 @@ plot_all_panels = function(rpkms)
                "Muscular_dystrophies panel, RPKM",breaks)
 }
 
-
 plot_region_panels = function(rpkms)
 {
     rpkms = read.rpkm_counts_dir(update = T)
@@ -470,7 +466,6 @@ plot_region_panels = function(rpkms)
                "Linkage region 5, RPKM",
                breaks)
   
-  
     breaks = c(0,1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100)
     plot_panel(linkage_region6, rpkms, 
                "6_linkage_region.png",
@@ -486,5 +481,81 @@ plot_region_panels = function(rpkms)
                "8_linkage_region.png",
                "Linkage region 8, RPKM",
                breaks)
+}
+
+#https://www.r-bloggers.com/summarising-data-using-dot-plots/
+#expression_dotplot = function(rpkms,tissue_type,gene_panel_name,color)
+#{
+expression_dotplot = function()
+{
+      #test
+    gene_panel_name = "channelopathies"
+    color = "red"
+    tissue_type = "muscle"
     
+    library(lattice)
+    library(latticeExtra)
+    gene_panel = get(gene_panel_name)
+    panel_rpkm = rpkms[rpkms$external_gene_name %in% gene_panel,]
+    row.names(panel_rpkm) = panel_rpkm$external_gene_name
+    panel_rpkm$external_gene_name = NULL
+    
+    df = data.frame(matrix(ncol=3,nrow=0))
+    names(df) = c("gene","sample","expression")
+    
+    f_gene = factor(sort(gene_panel,decreasing = T))  
+    f_sample = factor(colnames(panel_rpkm))
+    
+    for (gene in f_gene)
+    {
+        for (sample in f_sample)
+        {
+            de = data.frame(gene,sample,panel_rpkm[gene,sample])
+            names(de) = c("gene","sample","expression")
+            df = rbind(df,de)
+        }
+    }
+ 
+    filename=paste0(tissue_type,"_",gene_panel_name,".png")
+    png(filename,res=300,width=2000,height=2000)
+
+    #https://stackoverflow.com/questions/35489624/remove-grid-lines-in-dotplot-without-modifying-underlying-trellis-parameters    
+    d1 <- trellis.par.get("dot.line")
+    d1$lwd <- 0  ## hack -- set line width to 0
+    trellis.par.set("dot.line",d1)
+    
+    plot1=dotplot(gene ~ expression,data=df,
+            xlab="Expression, RPKM",col="red", subset = expression <= 30,
+            scales = list(x=list(relation="sliced"),y=list(relation="same")),
+            drop.unused.levels = F,xlab="")
+            
+    plot2=dotplot(gene ~ expression,data=df, col="blue", subset = ((expression > 30) & (expression <=100)),
+                  scales = list(x=list(relation="sliced"),y=list(draw=F)),
+                  drop.unused.levels = F,xlab="")
+    
+    plot3=dotplot(gene ~ expression,data=df, col="green", subset = expression >100,
+                  scales = list(x=list(relation="sliced"),y=list(draw=F)),
+                  drop.unused.levels = F,xlab="")
+    
+    plot(plot1, split=c(1,1,3,1))
+    plot(plot2, split=c(2,1,3,1),newpage=F)
+    plot(plot3, split=c(3,1,3,1),newpage = F)
+            #groups = expression < 100
+            
+    #as.layer(dotplot(df$gene ~ df$expression,subset = df$expression >=100, col="blue"),x.same = F,opposite = F,)
+    
+    #for some reason you have to print plots in lattice
+    #print(theplot)
+    dev.off()
+}
+
+all_expression_dotplots = function()
+{
+    rpkms = read.rpkm_counts_dir(update = F)  
+    color = "green"
+    tissue_type = "fibroblasts"
+    for (gene_panel_name in panel_list)
+    {
+        expression_dotplot(rpkms,tissue_type,gene_panel_name,color)
+    }
 }
