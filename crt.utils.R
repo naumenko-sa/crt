@@ -66,26 +66,23 @@ coverage2rpkm = function(filename)
 
 read.coverage2counts_dir = function(update=F)
 {
-  if(file.exists("rpkms.txt") && update == F)
-  {
-      counts = read.table("rpkms.txt")
-  }
-  else
-  {
-    files = list.files(".","*coverage")
-    counts = coverage2rpkm(files[1])
-    for (file in tail(files,-1))
+    if(file.exists("rpkms.txt") && update == F)
     {
-      counts_buf = coverage2rpkm(file)
-      counts = merge_row_names(counts,counts_buf)
+        counts = read.table("rpkms.txt")
     }
-    
-    write.table(counts,"rpkms.txt",quote=F)
-  }
-  
-  return(counts)
+    else
+    {
+        files = list.files(".","*coverage")
+        counts = coverage2rpkm(files[1])
+        for (file in tail(files,-1))
+        {
+            counts_buf = coverage2rpkm(file)
+            counts = merge_row_names(counts,counts_buf)
+        }
+        write.table(counts,"rpkms.txt",quote=F)
+    }
+    return(counts)
 }
-
 
 # Loads a file with counts from feature_counts
 # loads gene lengths
@@ -485,38 +482,65 @@ plot_region_panels = function(rpkms)
 
 #https://www.r-bloggers.com/summarising-data-using-dot-plots/
 #expression_dotplot = function(rpkms,tissue_type,gene_panel_name,color)
-#{
+#plot a picture like Beryl's S1
 expression_dotplot = function()
 {
-      #test
-    gene_panel_name = "channelopathies"
-    color = "red"
-    tissue_type = "muscle"
-    
     library(lattice)
     library(latticeExtra)
+    
+    gene_panel_name = "channelopathies"
     gene_panel = get(gene_panel_name)
-    panel_rpkm = rpkms[rpkms$external_gene_name %in% gene_panel,]
-    row.names(panel_rpkm) = panel_rpkm$external_gene_name
-    panel_rpkm$external_gene_name = NULL
     
-    df = data.frame(matrix(ncol=3,nrow=0))
-    names(df) = c("gene","sample","expression")
+    colors = c("red","blue","green")
     
-    f_gene = factor(sort(gene_panel,decreasing = T))  
-    f_sample = factor(colnames(panel_rpkm))
+    rpkms_muscle = read.table("rpkms.muscle.txt")
+    rpkms_myotubes = read.table("rpkms.myotubes.txt")
+    rpkms_fibro = read.table("rpkms.fibro.txt")
     
-    for (gene in f_gene)
+    panel_rpkm_muscle = rpkms_muscle[rpkms_muscle$external_gene_name %in% gene_panel,]
+    panel_rpkm_myotubes = rpkms_myotubes[rpkms_myotubes$external_gene_name %in% gene_panel,]
+    panel_rpkm_fibro = rpkms_fibro[rpkms_fibro$external_gene_name %in% gene_panel,]
+    
+    row.names(panel_rpkm_muscle) = panel_rpkm_muscle$external_gene_name
+    panel_rpkm_muscle$external_gene_name = NULL
+    
+    row.names(panel_rpkm_myotubes) = panel_rpkm_myotubes$external_gene_name
+    panel_rpkm_myotubes$external_gene_name = NULL
+    
+    row.names(panel_rpkm_fibro) = panel_rpkm_fibro$external_gene_name
+    panel_rpkm_fibro$external_gene_name = NULL
+    
+    df = data.frame(matrix(ncol=4,nrow=0))
+    names(df) = c("gene","sample","expression","type")
+    
+    f_muscle_type = factor(c("muscle","myotubes","fibro"))
+    
+    for (m_type in f_muscle_type)
     {
-        for (sample in f_sample)
+        if (m_type == "muscle")
         {
-            de = data.frame(gene,sample,panel_rpkm[gene,sample])
-            names(de) = c("gene","sample","expression")
-            df = rbind(df,de)
+            panel_rpkm = panel_rpkm_muscle
+        }else if (m_type == "myotubes"){
+            panel_rpkm = panel_rpkm_myotubes
+        }else{
+            panel_rpkm = panel_rpkm_fibro   
+        }
+    
+        f_gene = factor(sort(gene_panel,decreasing = T))  
+        f_sample = factor(colnames(panel_rpkm))
+    
+        for (gene in f_gene)
+        {
+            for (sample in f_sample)
+            {
+                de = data.frame(gene,sample,panel_rpkm[gene,sample],m_type)
+                names(de) = c("gene","sample","expression","type")
+                df = rbind(df,de)
+            }
         }
     }
  
-    filename=paste0(tissue_type,"_",gene_panel_name,".png")
+    filename=paste0(gene_panel_name,"_dotplot.png")
     png(filename,res=300,width=2000,height=2000)
 
     #https://stackoverflow.com/questions/35489624/remove-grid-lines-in-dotplot-without-modifying-underlying-trellis-parameters    
@@ -524,28 +548,58 @@ expression_dotplot = function()
     d1$lwd <- 0  ## hack -- set line width to 0
     trellis.par.set("dot.line",d1)
     
-    plot1=dotplot(gene ~ expression,data=df,
-            xlab="Expression, RPKM",col="red", subset = expression <= 30,
-            scales = list(x=list(relation="sliced"),y=list(relation="same")),
-            drop.unused.levels = F,xlab="")
-            
-    plot2=dotplot(gene ~ expression,data=df, col="blue", subset = ((expression > 30) & (expression <=100)),
-                  scales = list(x=list(relation="sliced"),y=list(draw=F)),
-                  drop.unused.levels = F,xlab="")
+    parSettings = list(axis.line = list(lty = 3),
+                       layout.widths = list(left.padding = 0,
+                                            right.padding = 0,
+                                            ylab.axis.padding = 0,
+                                            between = 0))
     
-    plot3=dotplot(gene ~ expression,data=df, col="green", subset = expression >100,
-                  scales = list(x=list(relation="sliced"),y=list(draw=F)),
-                  drop.unused.levels = F,xlab="")
+    #https://stat.ethz.ch/pipermail/r-help/2007-March/128502.html - removing frame borders
+    plot1 = dotplot(
+                gene ~ expression,
+                data=df,
+                xlab="Expression, RPKM",
+                col=colors, 
+                subset = expression <= 30,
+                scales = list(x=list(relation="sliced"),
+                              y=list(relation="same")),
+                drop.unused.levels = F,
+                group=type,
+                pch = 20,
+                par.settings = parSettings
+    )
+    
+    #as.layer(dotplot(df$gene ~ df$expression,subset = df$expression >=100, col="blue"),x.same = F,opposite = F,)
+            
+    plot2=dotplot(gene ~ expression,data=df, 
+                  col=color,
+                  subset = ((expression > 30) & (expression <=100)),
+                  scales = list(x=list(relation="sliced"),
+                                y=list(draw=F)),
+                  drop.unused.levels = F,
+                  group = type,
+                  pch = 20,
+                  par.settings = parSettings
+    )
+    
+    plot3 = dotplot(gene ~ expression,data=df, 
+                    col=colors, 
+                    subset = expression >100,
+                    scales = list(x=list(relation="sliced"),
+                                  y=list(draw=F)),
+                    drop.unused.levels = F,
+                    group = type,
+                    pch = 20,
+                    par.settings = parSettings
+    )
     
     plot(plot1, split=c(1,1,3,1))
-    plot(plot2, split=c(2,1,3,1),newpage=F)
+    plot(plot2, split=c(2,1,3,1),newpage = F)
     plot(plot3, split=c(3,1,3,1),newpage = F)
-            #groups = expression < 100
+    #groups = expression < 100
             
-    #as.layer(dotplot(df$gene ~ df$expression,subset = df$expression >=100, col="blue"),x.same = F,opposite = F,)
-    
     #for some reason you have to print plots in lattice
-    #print(theplot)
+    #print(plot1)
     dev.off()
 }
 
