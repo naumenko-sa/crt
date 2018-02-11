@@ -491,7 +491,7 @@ expression_dotplot = function(gene_panel_name)
     #gene_panel_name = "channelopathies"
     gene_panel = get(gene_panel_name)
     
-    colors = c("red","blue","green")
+    colors = c("darkgreen","red","orange")
     
     rpkms_muscle = read.table("rpkms.muscle.txt")
     rpkms_myotubes = read.table("rpkms.myotubes.txt")
@@ -515,10 +515,8 @@ expression_dotplot = function(gene_panel_name)
     
     f_muscle_type = factor(c("muscle","myotubes","fibro"))
     
-    for (m_type in f_muscle_type)
-    {
-        if (m_type == "muscle")
-        {
+    for (m_type in f_muscle_type){
+        if (m_type == "muscle"){
             panel_rpkm = panel_rpkm_muscle
         }else if (m_type == "myotubes"){
             panel_rpkm = panel_rpkm_myotubes
@@ -529,10 +527,8 @@ expression_dotplot = function(gene_panel_name)
         f_gene = factor(sort(gene_panel,decreasing = T))  
         f_sample = factor(colnames(panel_rpkm))
     
-        for (gene in f_gene)
-        {
-            for (sample in f_sample)
-            {
+        for (gene in f_gene){
+            for (sample in f_sample){
                 de = data.frame(gene,sample,panel_rpkm[gene,sample],m_type)
                 names(de) = c("gene","sample","expression","type")
                 df = rbind(df,de)
@@ -552,45 +548,53 @@ expression_dotplot = function(gene_panel_name)
                        layout.widths = list(left.padding = 0,
                                             right.padding = 0,
                                             ylab.axis.padding = 0,
-                                            between = 0))
+                                            between = 0),
+                       axis.components = list (right = list (pad1 = 0, pad2 = 0),
+                                               top = list(pad1 = 0, pad2 = 0))
+    )
     
     #https://stat.ethz.ch/pipermail/r-help/2007-March/128502.html - removing frame borders
     plot1 = dotplot(
                 gene ~ expression,
-                data=df,
-                xlab="Expression, RPKM",
-                col=colors, 
+                data = df,
+                col = colors,
                 subset = expression <= 30,
-                scales = list(x=list(relation="sliced"),
-                              y=list(relation="same")),
+                scales = list(x = list(relation = "sliced",
+                                       tick.number = 3),
+                              y = list(relation = "same")
+                ),
                 drop.unused.levels = F,
-                group=type,
-                pch = 20,
-                par.settings = parSettings
+                group = type,
+                pch = 16,
+                par.settings = parSettings,
+                xlab = NULL
     )
     
     #as.layer(dotplot(df$gene ~ df$expression,subset = df$expression >=100, col="blue"),x.same = F,opposite = F,)
             
-    plot2=dotplot(gene ~ expression,data=df, 
-                  col=colors,
-                  subset = ((expression > 30) & (expression <=100)),
-                  scales = list(x=list(relation="sliced"),
-                                y=list(draw=F)),
-                  drop.unused.levels = F,
-                  group = type,
-                  pch = 20,
-                  par.settings = parSettings
+    plot2 = dotplot(gene ~ expression,data=df, 
+                    col=colors,
+                    subset = ((expression > 30) & (expression <=100)),
+                    scales = list(x = list(relation = "sliced"),
+                                y = list(draw = F)),
+                     drop.unused.levels = F,
+                    group = type,
+                    pch = 16,
+                    par.settings = parSettings,
+                    xlab = NULL
     )
     
-    plot3 = dotplot(gene ~ expression,data=df, 
+    plot3 = dotplot(gene ~ expression,
+                    data=df, 
                     col=colors, 
                     subset = expression >100,
                     scales = list(x=list(relation="sliced"),
                                   y=list(draw=F)),
                     drop.unused.levels = F,
                     group = type,
-                    pch = 20,
-                    par.settings = parSettings
+                    pch = 16,
+                    par.settings = parSettings,
+                    xlab = NULL
     )
     
     plot(plot1, split=c(1,1,3,1))
