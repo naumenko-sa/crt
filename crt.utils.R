@@ -483,12 +483,12 @@ plot_region_panels = function(rpkms)
 #https://www.r-bloggers.com/summarising-data-using-dot-plots/
 #expression_dotplot = function(rpkms,tissue_type,gene_panel_name,color)
 #plot a picture like Beryl's S1
-expression_dotplot = function()
+expression_dotplot = function(gene_panel_name)
 {
     library(lattice)
     library(latticeExtra)
     
-    gene_panel_name = "channelopathies"
+    #gene_panel_name = "channelopathies"
     gene_panel = get(gene_panel_name)
     
     colors = c("red","blue","green")
@@ -572,7 +572,7 @@ expression_dotplot = function()
     #as.layer(dotplot(df$gene ~ df$expression,subset = df$expression >=100, col="blue"),x.same = F,opposite = F,)
             
     plot2=dotplot(gene ~ expression,data=df, 
-                  col=color,
+                  col=colors,
                   subset = ((expression > 30) & (expression <=100)),
                   scales = list(x=list(relation="sliced"),
                                 y=list(draw=F)),
@@ -605,11 +605,8 @@ expression_dotplot = function()
 
 all_expression_dotplots = function()
 {
-    rpkms = read.rpkm_counts_dir(update = F)  
-    color = "green"
-    tissue_type = "fibroblasts"
     for (gene_panel_name in panel_list)
     {
-        expression_dotplot(rpkms,tissue_type,gene_panel_name,color)
+        expression_dotplot(gene_panel_name)
     }
 }
