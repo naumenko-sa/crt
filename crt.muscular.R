@@ -1,5 +1,7 @@
-png("Fig2.total_counts_after_filtration.png",width=1000)
-op <- par(mar = c(10,4,4,2) + 0.1)
+junk=function()
+{
+    png("Fig2.total_counts_after_filtration.png",width=1000)
+    op <- par(mar = c(10,4,4,2) + 0.1)
 barplot(all.samples.total_counts,las=2,main="Total counts after filtration")
 par(op)
 dev.off()
@@ -103,6 +105,8 @@ dispersion=0.04
   lrt=glmLRT(fit,coef=2)
 
 write.table(merge(work_counts,lrt$table,by="row.names"),"muscle1_vs_1130_panel.txt",col.names=NA,quote=F)  
+
+}
 
 expression_unfiltered = function()
 {
@@ -532,11 +536,32 @@ init = function()
     #gene_lengths = read.delim("~/Desktop/project_muscular/reference/gene_lengths.txt", stringsAsFactors=F, row.names=1)
 }
 
+expression_table()
+{
+    setwd("/home/sergey/Desktop/work")
+    counts = read.table("rpkms.muscle.txt")
+    counts = counts[setdiff(rownames(counts),"ENSG00000261832"),]
+    samples=head(colnames(counts),-1)
+    
+    for (sample in samples)
+    {
+        for (gene_panel_name in panel_list)
+             
+        {
+            gene_panel = get(gene_panel_name)
+            for (gene in gene_panel)
+            {
+                expression4gene_table(gene,sample,counts)
+            }
+        }
+    }
+}
+
 expression_sample()
 {
     setwd("/home/sergey/Desktop/work")
-    read.rpkm_counts_dir()
-    counts = read.table("rpkms.txt")
+    #read.rpkm_counts_dir()
+    counts = read.table("rpkms.muscle.txt")
     #remove second entry for CLN3
     counts = counts[setdiff(rownames(counts),"ENSG00000261832"),]
     #sample = "S12_9.1.M"
@@ -569,6 +594,40 @@ expression4gene_in_a_gene_panel = function(sample,gene_panel,counts)
     for (gene in gene_panel)
     {
         expression4gene(gene,sample,counts)
+    }
+}
+
+expression4gene_table = function(gene,sample,counts)
+{
+    #gene = "LAMA2" 
+    #sample = "S12_9.1.M"
+    #print(gene)
+    
+    gene_expression = subset(counts,external_gene_name == gene)     
+    gene_expression$external_gene_name=NULL
+    v_muscle=as.numeric(gene_expression[1,])
+    
+    muscle_mean = mean(v_muscle)
+    
+    #significance
+    ttest  = t.test(v_muscle,mu=gene_expression[[sample]])
+    if ((muscle_mean > 0) && (gene_expression[[sample]] > 0))
+    {
+        fold_change = max(muscle_mean,gene_expression[[sample]])/min(muscle_mean,gene_expression[[sample]])
+        
+        if (gene_expression[[sample]] > muscle_mean)
+        {
+            regulation = "UP"
+        }
+        else
+        {
+            regulation = "DOWN"
+        }
+    
+        if ((fold_change > 1.5) && (ttest$p.value < 0.01))
+        {
+            print(paste(sample,gene,regulation,fold_change,ttest$p.value,sep = ","))   
+        }
     }
 }
 
