@@ -542,7 +542,7 @@ expression_table()
     counts = read.table("rpkms.muscle.txt")
     counts = counts[setdiff(rownames(counts),"ENSG00000261832"),]
     samples=head(colnames(counts),-1)
-    
+    #fh = file("eoutliers.txt")
     for (sample in samples)
     {
         for (gene_panel_name in panel_list)
@@ -551,10 +551,11 @@ expression_table()
             gene_panel = get(gene_panel_name)
             for (gene in gene_panel)
             {
-                expression4gene_table(gene,sample,counts)
+                expression4gene_table(gene,sample,counts,fh)
             }
         }
     }
+    #close(fh)
 }
 
 expression_sample()
@@ -597,9 +598,9 @@ expression4gene_in_a_gene_panel = function(sample,gene_panel,counts)
     }
 }
 
-expression4gene_table = function(gene,sample,counts)
+expression4gene_table = function(gene,sample,counts,fh)
 {
-    #gene = "LAMA2" 
+    #gene = "LAMA2"
     #sample = "S12_9.1.M"
     #print(gene)
     
@@ -607,7 +608,8 @@ expression4gene_table = function(gene,sample,counts)
     gene_expression$external_gene_name=NULL
     v_muscle=as.numeric(gene_expression[1,])
     
-    muscle_mean = mean(v_muscle)
+    muscle_mean = as.numeric(gtex_rpkm[gtex_rpkm$gene_name %in% c(gene),]$GTEX)
+    #muscle_mean = mean(v_muscle)
     
     #significance
     ttest  = t.test(v_muscle,mu=gene_expression[[sample]])
@@ -624,10 +626,10 @@ expression4gene_table = function(gene,sample,counts)
             regulation = "DOWN"
         }
     
-        if ((fold_change > 1.5) && (ttest$p.value < 0.01))
-        {
-            print(paste(sample,gene,regulation,fold_change,ttest$p.value,sep = ","))   
-        }
+        #if ((fold_change > 1.5) && (ttest$p.value < 0.01))
+        #{
+        cat(paste(sample,gene,regulation,fold_change,ttest$p.value,sep = ","),file="eoutliers.txt",append=T,sep="\n")   
+        #}
     }
 }
 

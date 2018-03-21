@@ -389,10 +389,10 @@ linkage_region7 = c("PEX11G", "C19orf45", "ZNF358", "MCOLN1", "PNPLA6", "CAMPSAP
 linkage_region8 = c("NDUFA7", "RPS28", "KANK3", "ANGPTL4", "RAB11B-AS1", "MIR4999", "RAB11B", "MARCH2", "HNRNPM", 
                     "PRAM1", "ZNF414", "MYO1F", "ADAMTS10", "ACTL9", "OR2Z1", "ZNF558", "MBD3L1", "OR1M1", "MUC16")
 
-gtex_rpkm = read.csv("~/Desktop/project_RNAseq_diagnostics/reference/gtex.muscle_gene.rpkm", sep="", stringsAsFactors = F)
+gtex_rpkm = read.csv("/home/sergey/Desktop/stories/4_RNAseq_diagnostics/rnaseq_article/expression_plots/gtex.muscle_genes.rpkm.txt", sep="", stringsAsFactors = F)
 
 ensembl_w_description = read.delim2("~/cre/ensembl_w_description.txt", row.names=1, stringsAsFactors=F)
-gene_lengths = read.delim("~/Desktop/project_RNAseq_diagnostics/reference/gene_lengths.txt", stringsAsFactors=F, row.names=1)
+#gene_lengths = read.delim("~/Desktop/project_RNAseq_diagnostics/reference/gene_lengths.txt", stringsAsFactors=F, row.names=1)
 
 # plots the heatmap of title.png for gene_panel using sample_rpkm and gtex_rpkm
 plot_panel= function(gene_panel, sample_rpkm, filename,title, breaks)
