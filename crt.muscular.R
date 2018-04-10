@@ -1,10 +1,64 @@
+# among genes expressed in muscle, what % is expressed in myo w > 10x coverage
+# trios = families 9, 12, 14-1, 14-2, 17
+trio_analysis = function()
+{
+    setwd("~/Desktop/work/")
+    protein_coding_genes <- read.csv("~/Desktop/work/protein_coding_genes.list", sep="", stringsAsFactors=FALSE)
+
+    rpkms.muscle <- read.csv("~/Desktop/work/rpkms.muscle.txt", sep="", stringsAsFactors=FALSE)
+    columns = c("S12_9.1.M","S20_12.1.Mpv","S43_14.1.M","S44_14.2.M","S46_17.1.M","external_gene_name")
+    rpkms.muscle = subset(rpkms.muscle,select = columns)
+    rpkms.muscle = rpkms.muscle[rpkms.muscle$external_gene_name %in% protein_coding_genes$Gene_name,]
+    rpkms.muscle$mean = (rpkms.muscle$S12_9.1.M+rpkms.muscle$S20_12.1.Mpv+rpkms.muscle$S43_14.1.M + 
+                             rpkms.muscle$S44_14.2.M + rpkms.muscle$S46_17.1.M)/5
+    rpkms.muscle = rpkms.muscle[rpkms.muscle$mean > 1,]
+    
+    genes_expressed_in_muscle = row.names(rpkms.muscle)
+    
+    rpkms.myo = read.csv("rpkms.myotubes.txt",sep="",stringsAsFactors = F)
+    columns = c("S13_9.1.Myo","S58_12.1.Myo","S23_14.1.Myo","S24_14.2.Myo","S45_17.1.Myo",
+                "external_gene_name")
+    rpkms.myo = subset(rpkms.myo, select = columns)
+    rpkms.myo = rpkms.myo[rpkms.myo$external_gene_name %in% protein_coding_genes$Gene_name,]
+    
+    
+    rpkms.fibro = read.csv("rpkms.fibro.txt", sep="", stringsAsFactors = F)
+    columns = c("S62_9.1.F","S37_12.1.F","S59_14.1.F","S60_14.2.F","S28_17.1.F","external_gene_name")
+    rpkms.fibro = subset(rpkms.fibro, select = columns)
+    rpkms.fibro$mean = (rpkms.fibro$S62_9.1.F + rpkms.fibro$S37_12.1.F + rpkms.fibro$S59_14.1.F +
+                            rpkms.fibro$S60_14.2.F + rpkms.fibro$S28_17.1.F)/5
+    rpkms.fibro = rpkms.fibro[rpkms.fibro$mean>1,]
+    
+    rpkms.myo = rpkms.myo[row.names(rpkms.myo) %in% genes_expressed_in_muscle,]
+    rpkms.myo$mean = (rpkms.myo$S13_9.1.Myo + rpkms.myo$S58_12.1.Myo + rpkms.myo$S23_14.1.Myo +
+                          rpkms.myo$S24_14.2.Myo + rpkms.myo$S45_17.1.Myo)/5
+    myo.expressed = rpkms.myo[rpkms.myo$mean > 1,]
+    
+    genes_expressed_in_myo = sort(unique(myo.expressed$external_gene_name))
+    
+    myo_coverage = read.delim("~/Desktop/work/S13_9-1-Myo.bam.coverage", comment.char="!", stringsAsFactors=FALSE)
+    S58_12.1.Myo = read.delim("~/Desktop/work/S58_12-1-Myo.bam.coverage", comment.char="!", stringsAsFactors=FALSE)
+    S23_14.1.Myo = read.delim("~/Desktop/work/S23_14-1-Myo.bam.coverage", comment.char="!", stringsAsFactors=FALSE)
+    S24_14.2.Myo = read.delim("~/Desktop/work/S24_14-2-Myo.bam.coverage", comment.char="!", stringsAsFactors=FALSE)
+    S45_17.1.Myo = read.delim("~/Desktop/work/S45_17-1-Myo.bam.coverage", comment.char="!", stringsAsFactors=FALSE)
+    
+    myo_coverage = cbind(myo_coverage,S58_12.1.Myo$avg,S23_14.1.Myo$avg,S24_14.2.Myo$avg,S45_17.1.Myo$avg)
+    
+    myo_coverage$mean = (myo_coverage$avg + myo_coverage$`S23_14.1.Myo$avg` + myo_coverage$`S58_12.1.Myo$avg` +
+                             myo_coverage$`S24_14.2.Myo$avg` + myo_coverage$`S45_17.1.Myo$avg`)/5
+    
+    myo_coverage = myo_coverage[myo_coverage$gene %in% genes_expressed_in_myo,]
+    myo_coverage = myo_coverage[myo_coverage$mean > 10,]
+    
+}
+
 junk=function()
 {
     png("Fig2.total_counts_after_filtration.png",width=1000)
     op <- par(mar = c(10,4,4,2) + 0.1)
-barplot(all.samples.total_counts,las=2,main="Total counts after filtration")
-par(op)
-dev.off()
+    barplot(all.samples.total_counts,las=2,main="Total counts after filtration")
+    par(op)
+    dev.off()
 
 png("Fig3.Genes_with_reads_after_filtration.png",width=1000)
 op <- par(mar = c(10,4,4,2) + 0.1)
