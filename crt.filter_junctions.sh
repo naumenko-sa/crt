@@ -1,7 +1,16 @@
 #!/bin/bash
 
+#PBS -l walltime=1:00:00,nodes=1:ppn=1
+#PBS -joe .
+#PBS -d .
+#PBS -l vmem=10g,mem=10g
+
 module load python/3.5.2
 module load sqlite/3.20.0
 
-python3 ~/crt/FilterSpliceJunctions.py --sample $1 5 0.05
+if [ -z $bam ]
+then
+    bam=$1
+fi
 
+python3 ~/crt/FilterSpliceJunctions.py --sample $bam 5 0.05
