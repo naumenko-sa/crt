@@ -616,7 +616,7 @@ expression_table()
 
 expression_sample()
 {
-    setwd("/home/sergey/Desktop/work")
+    setwd("~/Desktop/work")
     #read.rpkm_counts_dir()
     counts = read.table("rpkms.muscle.txt")
     #remove second entry for CLN3

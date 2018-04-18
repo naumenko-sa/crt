@@ -92,7 +92,7 @@ read.coverage2counts_dir = function(update=F)
 feature_counts2rpkm = function(filename)
 {
     #test:
-    #filename="/home/sergey/Desktop/work/S01_1-1-B.bam.rpkm_counts.txt"
+    #filename="S01_1-1-B.bam.rpkm_counts.txt"
     library(edgeR)   
     ensembl_w_description = read.delim2("~/cre/ensembl_w_description.txt", row.names=1, stringsAsFactors=F)
     #first line in the file is a comment
@@ -189,7 +189,6 @@ merge_row_names = function(df1,df2)
     merged$Row.names = NULL
     return(merged)
 }
-
 
 mds_plot = function()
 {
