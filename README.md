@@ -72,11 +72,11 @@ python3 [path-to-crt]/AddJunctionsToDatabase.py \
 	--addGencode \
 	-transcript_model=[path-to-crt]/gencode.comprehensive.splice.junctions.txt
 ```
-result: SpliceJunctions.db
+result: SpliceJunction.db
 
 3. Load junctions from the samples to the SpliceJunctions.db database (load controls once, and copy SpliceJunctions.db for every analysis).
 
-- `qsub [path-to-MendelianRNA-seq-db]/analysis/crt.load_junctions.pbs`
+- `qsub [path-to-crt]/crt.load_junctions.pbs`
 - or `python3 [path-to-crt]/analysis/AddJunctionsToDatabase.py -addBAM -transcript_file [path-to-MendelianRNA-seq-db]/all-protein-coding-genes-no-patches.txt -bamlist bamlist.list -flank 1`
 -flank is a parameter which specifies a flanking region for transcript_model annotation. If flank was set to 1, a gencode junction was 1:100-300 and a junction in a sample was 1:99-301, the sample junction would be considered BOTH annotated. This is because both the start and stop positions fall within a +/- 1 range of that of a transcript_model's junction.
 
