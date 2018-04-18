@@ -1,6 +1,6 @@
 details:
 - algorithm:
-    aligner: false
+    aligner: star
     variantcaller: gatk-haplotype
   analysis: RNA-seq
   description: project
