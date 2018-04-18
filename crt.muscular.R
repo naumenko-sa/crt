@@ -25,6 +25,8 @@ trio_analysis = function()
     rpkms.fibro = read.csv("rpkms.fibro.txt", sep="", stringsAsFactors = F)
     columns = c("S62_9.1.F","S37_12.1.F","S59_14.1.F","S60_14.2.F","S28_17.1.F","external_gene_name")
     rpkms.fibro = subset(rpkms.fibro, select = columns)
+    rpkms.fibro = rpkms.fibro[row.names(rpkms.fibro) %in% genes_expressed_in_muscle,]
+    
     rpkms.fibro$mean = (rpkms.fibro$S62_9.1.F + rpkms.fibro$S37_12.1.F + rpkms.fibro$S59_14.1.F +
                             rpkms.fibro$S60_14.2.F + rpkms.fibro$S28_17.1.F)/5
     rpkms.fibro = rpkms.fibro[rpkms.fibro$mean>1,]
@@ -744,4 +746,36 @@ expression4gene = function(gene,sample,counts)
      
          dev.off()
      }
+}
+
+expression_variability = function()
+{
+    setwd("~/Desktop/work")
+    rpkms.muscle <- read.csv("~/Desktop/work/rpkms.muscle.txt", sep="", stringsAsFactors=F)
+    rpkms.myo <- read.csv("~/Desktop/work/rpkms.myotubes.txt", sep="", stringsAsFactors=F)
+    rpkms.fibro <- read.csv("~/Desktop/work/rpkms.fibro.txt", sep="", stringsAsFactors=F)
+    
+    i = 1
+    tissues = c("muscle","myo","fibro")
+    cnames = c("Tissue","Gene","Mean","SD","Var")
+    for (df in list(rpkms.muscle, rpkms.myo, rpkms.fibro))
+    {
+        result = data.frame()
+        for (gene in c("DMD", "NEB", "ACTA1", "LMNA", "RYR1", "MTM1", "KCNIP4", "FKRP", "CAV3", "LAMA2"))
+        {
+            #df = rpkms.muscle
+            #gene = "NEB"
+            gene_expression = df[df$external_gene_name==gene,]
+            gene_expression$external_gene_name=NULL
+            #print(paste(tissues[i],gene,min(gene_expression),rowMeans(gene_expression)[[1]],max(gene_expression)))
+            #df_temp = data.frame(tissues[i],gene,rowMeans(gene_expression)[[1]],sd(gene_expression),var(as.numeric(as.vector(gene_expression))))
+            tissue = tissues[i]
+            df_temp = data.frame(tissue,gene,gene_expression)
+            result = rbind(result,df_temp)
+        }
+        write.table(result,paste0("expression_variability.",tissue,".csv"),sep = ",",row.names = F)
+        i = i + 1
+    }
+    colnames(result) = cnames
+    #write.table(result,"expression_variability.csv",sep = ",",row.names = F)
 }
