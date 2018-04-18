@@ -1,0 +1,8 @@
+#!/bin/bash
+
+#PBS -l walltime=20:00:00,nodes=1:ppn=1
+#PBS -joe .
+#PBS -d .
+#PBS -l vmem=50g,mem=50g
+
+Rscript ~/work/code/crt/crt.gtex_junctions.R $biobank $junctions

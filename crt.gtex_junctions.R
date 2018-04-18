@@ -58,4 +58,4 @@ GTEx = cbind(GTEx,GTEx_counts)
 
 GTEx = subset(GTEx,GTEx_counts > 4)
 
-write.table(GTEx,"junction_counts.txt")
+write.table(GTEx,paste0(args[2],".junction_counts.txt"))
