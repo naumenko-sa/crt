@@ -1,3 +1,15 @@
+# Function for the RNA-seq article Gonorazky.Naumenko.2018
+
+init = function()
+{
+    library(edgeR)
+    library(RColorBrewer)
+    source("~/crt/crt.utils.R")
+    setwd("~/Desktop/work")
+    
+    #gene_lengths = read.delim("~/Desktop/project_muscular/reference/gene_lengths.txt", stringsAsFactors=F, row.names=1)
+}
+
 # among genes expressed in muscle, what % is expressed in myo w > 10x coverage
 # trios = families 9, 12, 14-1, 14-2, 17
 trio_analysis = function()
@@ -62,10 +74,10 @@ junk=function()
     par(op)
     dev.off()
 
-png("Fig3.Genes_with_reads_after_filtration.png",width=1000)
-op <- par(mar = c(10,4,4,2) + 0.1)
-barplot(all.samples.non_zero,las=2,main="Genes with reads after filtration")
-par(op)
+    png("Fig3.Genes_with_reads_after_filtration.png",width=1000)
+    op <- par(mar = c(10,4,4,2) + 0.1)
+    barplot(all.samples.non_zero,las=2,main="Genes with reads after filtration")
+    par(op)
 dev.off()
 
 bars = list()
@@ -582,39 +594,69 @@ dexpression = function()
     
 }
 
-init = function()
+# output expression outliers as a table eoutliers.txt
+# test is within cohort, fold change reported vs cohort and gtex
+expression_outliers.table()
 {
-    library(edgeR)
-    library(RColorBrewer)
-    source("~/crt/crt.utils.R")
     setwd("~/Desktop/work")
-    
-    #gene_lengths = read.delim("~/Desktop/project_muscular/reference/gene_lengths.txt", stringsAsFactors=F, row.names=1)
-}
-
-expression_table()
-{
-    setwd("/home/sergey/Desktop/work")
+    cat("Sample,Gene_panel_name,Gene,Regulation,Abs_FC_cohort,Abs_FC_GTex,Pvalue",file="eoutliers.txt",append=T,sep="\n")
     counts = read.table("rpkms.muscle.txt")
     counts = counts[setdiff(rownames(counts),"ENSG00000261832"),]
     samples=head(colnames(counts),-1)
-    #fh = file("eoutliers.txt")
     for (sample in samples)
     {
         for (gene_panel_name in panel_list)
-             
         {
             gene_panel = get(gene_panel_name)
             for (gene in gene_panel)
             {
-                expression4gene_table(gene,sample,counts,fh)
+                expression4gene.table(gene,sample,counts,gene_panel_name)
             }
         }
     }
-    #close(fh)
 }
 
-expression_sample()
+expression4gene.table = function(gene,sample,counts,gene_panel_name)
+{
+    #gene = "LAMA2"
+    #sample = "S12_9.1.M"
+    #print(gene)
+    
+    gene_expression = subset(counts,external_gene_name == gene)     
+    gene_expression$external_gene_name = NULL
+    v_muscle = as.numeric(gene_expression[1,])
+    muscle_mean.cohort = mean(v_muscle)
+    
+    muscle_mean.gtex = as.numeric(gtex_rpkm[gtex_rpkm$gene_name %in% c(gene),]$GTEX)
+    
+    expression_sample = gene_expression[[sample]]
+    
+    #significance
+    ttest = t.test(v_muscle,mu=expression_sample)
+    
+    if ((muscle_mean.cohort > 0) && (expression_sample > 0))
+    {
+        fold_change.cohort = (max(muscle_mean.cohort, expression_sample)/min(muscle_mean.cohort,expression_sample))
+        fold_change.gtex = (max(muscle_mean.gtex, expression_sample)/min(muscle_mean.gtex,expression_sample))
+        
+        if (expression_sample > muscle_mean.cohort)
+        {
+            regulation = "UP"
+        }
+        else
+        {
+            regulation = "DOWN"
+        }
+        
+        if ((fold_change.cohort > 1.5 || fold_change.gtex > 1.5) && (ttest$p.value < 0.01))
+        {
+            cat(paste(sample,gene_panel_name,gene,regulation,fold_change.cohort,fold_change.gtex,ttest$p.value,sep = ","),file="eoutliers.txt",append=T,sep="\n")   
+        }
+    }
+}
+
+#detect expression outliers among similar samples and plot pictures
+expression_outliers.pictures()
 {
     setwd("~/Desktop/work")
     #read.rpkm_counts_dir()
@@ -624,7 +666,7 @@ expression_sample()
     #sample = "S12_9.1.M"
     samples=head(colnames(counts),-1)
     #not GTEX
-    samples=tail(samples,-10)
+    #samples=tail(samples,-10)
     
     for (sample in samples)
     {
@@ -651,41 +693,6 @@ expression4gene_in_a_gene_panel = function(sample,gene_panel,counts)
     for (gene in gene_panel)
     {
         expression4gene(gene,sample,counts)
-    }
-}
-
-expression4gene_table = function(gene,sample,counts,fh)
-{
-    #gene = "LAMA2"
-    #sample = "S12_9.1.M"
-    #print(gene)
-    
-    gene_expression = subset(counts,external_gene_name == gene)     
-    gene_expression$external_gene_name=NULL
-    v_muscle=as.numeric(gene_expression[1,])
-    
-    muscle_mean = as.numeric(gtex_rpkm[gtex_rpkm$gene_name %in% c(gene),]$GTEX)
-    #muscle_mean = mean(v_muscle)
-    
-    #significance
-    ttest  = t.test(v_muscle,mu=gene_expression[[sample]])
-    if ((muscle_mean > 0) && (gene_expression[[sample]] > 0))
-    {
-        fold_change = max(muscle_mean,gene_expression[[sample]])/min(muscle_mean,gene_expression[[sample]])
-        
-        if (gene_expression[[sample]] > muscle_mean)
-        {
-            regulation = "UP"
-        }
-        else
-        {
-            regulation = "DOWN"
-        }
-    
-        #if ((fold_change > 1.5) && (ttest$p.value < 0.01))
-        #{
-        cat(paste(sample,gene,regulation,fold_change,ttest$p.value,sep = ","),file="eoutliers.txt",append=T,sep="\n")   
-        #}
     }
 }
 
