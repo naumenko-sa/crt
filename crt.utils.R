@@ -192,13 +192,36 @@ merge_row_names = function(df1,df2)
 
 mds_plot = function()
 {
+    print("Reading counts ...")
     library(edgeR)   
-    counts = read.feature_counts_dir(F)
+    counts = read.feature_counts_dir(update=T)
     #group = factor(c(rep(1,ncol(counts))))
     
-    group = factor(c("F","F","F","M","M","Myo","M","M","M","M","Mvl","M","Myo","Myo","F","F",
-                   "F","F","F","F","F","Myo","F","Myo","F","F","F","F","F","F","F","F","M",
-                   "M","Myo","M","Myo","M","Myo","Myo","Myo","Myo","M","M","Myo","F","F","F","F"))    
+    sample_names = colnames(counts)
+    
+    i=1
+    for (sname in sample_names)
+    {
+        if (grepl("GTEX",sname))
+        {
+            sample_names[i]="GTEX"
+        }
+        else if (grepl("Myo",sname))
+        {
+            sample_names[i]="Myo"
+        }
+        else if (grepl("F",sname))
+        {
+            sample_names[i]="F"
+        }
+        else
+        {
+            sample_names[i]="M"
+        }
+        i=i+1
+    }
+    
+    group = factor(sample_names)    
     
     v_colors = c()
     for (i in 1:length(group))
@@ -207,14 +230,20 @@ mds_plot = function()
                 clr = "orange"
             }else if (group[i] == "Myo"){
                 clr = "red"
-            }else{
+            }else if (group[i] == "GTEX"){
                 clr = "darkgreen"
+            }else{ #muscle
+                clr = "chartreuse"
             }
         v_colors[i] = clr
     }
     
+    print("Removing zeroes ...")
+    
     y=DGEList(counts=counts,group=group,remove.zeros = T)
     png("mds.png",res=300,width=2000,height=2000)
+    
+    print("Plotting zeroes ...")
     
     mds = plotMDS(y,
             labels=NULL
@@ -707,3 +736,5 @@ coverage_plot = function ()
         dev.off()
     }
 }
+
+mds_plot()
