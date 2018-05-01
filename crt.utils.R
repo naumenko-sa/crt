@@ -173,6 +173,7 @@ read.feature_counts_dir = function(update=F)
         counts = read.feature_counts(files[1])
         for (file in tail(files,-1))
         {
+            print(paste0("Reading ",file))
             counts_buf = read.feature_counts(file)
             counts = merge_row_names(counts,counts_buf)
         }
@@ -220,7 +221,7 @@ mds_plot = function()
         }
         i=i+1
     }
-    
+    print(sample_names)
     group = factor(sample_names)    
     
     v_colors = c()
