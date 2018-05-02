@@ -199,11 +199,11 @@ merge_row_names = function(df1,df2)
     return(merged)
 }
 
-mds_plot = function()
+mds_plot = function(refresh_files = F)
 {
     print("Reading counts ...")
     library(edgeR)   
-    counts = read.feature_counts_dir(update=T)
+    counts = read.feature_counts_dir(update=refresh_files)
     #group = factor(c(rep(1,ncol(counts))))
     
     sample_names = colnames(counts)
@@ -768,4 +768,6 @@ coverage_plot = function ()
     }
 }
 
-mds_plot()
+args = commandArgs(trailingOnly = T)
+print(args[1])
+mds_plot(refresh_files = as.logical(args[1]))
