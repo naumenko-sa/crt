@@ -3,6 +3,12 @@ library(RColorBrewer)
 library(edgeR)   
 library(readr)
 
+installation = function()
+{
+    source("http://bioconductor.org/biocLite.R")
+    biocLite("edgeR")
+}
+
 # calculates RPKMs using ~/bioscripts/bam.raw_coverage.sh input - usable to calculate RPKMs for exons using a bed file
 raw_coverage2rpkm = function(filename)
 {
@@ -239,12 +245,22 @@ mds_plot = function()
         v_colors[i] = clr
     }
     
+    print("Subsetting protein coding genes ...")
+    #a file with ENSEMBL IDs
+    if (file.exists("protein_coding_genes.list"))
+    {
+        protein_coding_genes <- read.csv("protein_coding_genes.list", sep="", stringsAsFactors=FALSE)
+        counts = counts[row.names(counts) %in% protein_coding_genes$ENS_GENE_ID,]
+    }else{
+        print("Please provide protein_coding_genes.list with ENS_GENE_ID")
+    }
+    
     print("Removing zeroes ...")
     
     y=DGEList(counts=counts,group=group,remove.zeros = T)
     png("mds.png",res=300,width=2000,height=2000)
     
-    print("Plotting zeroes ...")
+    print("Plotting ...")
     
     mds = plotMDS(y,
             labels=NULL
