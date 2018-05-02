@@ -7,6 +7,8 @@ installation = function()
 {
     source("http://bioconductor.org/biocLite.R")
     biocLite("edgeR")
+    
+    install.packages("pheatmap")
 }
 
 # calculates RPKMs using ~/bioscripts/bam.raw_coverage.sh input - usable to calculate RPKMs for exons using a bed file
@@ -205,13 +207,17 @@ mds_plot = function()
     #group = factor(c(rep(1,ncol(counts))))
     
     sample_names = colnames(counts)
+    sample_labels = colnames(counts)
     
     i=1
     for (sname in sample_names)
     {
+        sample_labels[i] = substr(sname,1,3) #i.e. S01
+        
         if (grepl("GTEX",sname))
         {
             sample_names[i]="GTEX"
+            sample_labels[i]=""
         }
         else if (grepl("Myo",sname))
         {
@@ -263,13 +269,17 @@ mds_plot = function()
     print("Plotting ...")
     
     mds = plotMDS(y,
-            labels=NULL
+            labels=sample_labels
     )
     plot(mds,
          col = v_colors,
          pch=19,xlab = "MDS dimension 1", 
          ylab = "MDS dimension 2")
     
+    dev.off()
+    
+    png("mds.labels.png",res=300,width=2000,height=2000)
+    plotMDS(y, labels=sample_labels)
     dev.off()
 }
 
