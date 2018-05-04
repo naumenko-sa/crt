@@ -20,7 +20,7 @@ cd ..
 #no family is neede for single sample
 while read sample
 do
-    echo $sample","$sample",,,," >> $family.csv
+    echo $sample","$sample","$family",,," >> $family.csv
 done < samples.txt
 
 #default template

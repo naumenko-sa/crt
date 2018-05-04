@@ -8,5 +8,7 @@ details:
   - /hpf/largeprojects/ccmbio/naumenko/RIVAL/bcbio_run/input/SRR307897_1.fq.gz
   - /hpf/largeprojects/ccmbio/naumenko/RIVAL/bcbio_run/input/SRR307897_2.fq.gz
   genome_build: GRCh37
+  metadata:
+    batch: family
 upload:
   dir: ../final

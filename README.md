@@ -1,5 +1,4 @@
 # crt
-clinical research transcriptome helps to interpret RNA-seq in Mendelian diseases
 
 1. Run bcbio with crt.bcbio.rnaseq.yaml. Don't trim reads to save all data and delete fastq files.
 
@@ -88,7 +87,7 @@ result: junctions from a bam file (files) added to SpliceJunctions.db
 To print out splice sites only seen in a "disease" sample and not in any GTEx sample use:
 
 ``` 
-python3 [path-to-MendelianRNA-seq-db]/analysis/FilterSpliceJunctions.py \
+python3 [path2crt]/FilterSpliceJunctions.py \
     --sample [sample.bam] \
     [MIN_READ_COUNT]	\
     [MIN_NORM_READ_COUNT]
@@ -122,7 +121,7 @@ Using one of the options of FilterSpliceJunctions.py will produce a text file co
 
 ## Differences between Beryl Cumming's original MendelianRNA-seq
 
-- SpliceJunctionDiscovery has been rewritten in Python and parallelized - decreasing processing time by a factor proprotional to the number of worker processes
+- SpliceJunctionDiscovery has been rewritten in Python
 - CIGAR string parsing is handled by a function called parseCIGARForIntrons() whereas before CIGAR strings were handled by piping through multiple bash tools. As a result of improper parsing using bash tools, junction start and/or stop positions were not reported properly (e.x. 1:100-200*1D30 represents an alignment that should really be 1:100-230 or 1:100-231)
 - Transcript_model annotation and flanking have been implemented using database logic
 - All information produced by SpliceJunctionDiscovery is stored in a database instead of text files. This allows the user to utilize previously computed results instead of having to run the entire pipeline again when a new sample needs to be analyzed.

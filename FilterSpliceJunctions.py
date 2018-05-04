@@ -6,41 +6,11 @@ import sqlite3
 from AddJunctionsToDatabase import connectToDB, commitAndClose
 
 def tableHeader():
-
-	"""
-	Creates the header for output text files
-
-	Args:
-		None
-
-	Returns:
-	    A string containing tab delimited headers
-
-	Raises:
-	    None
-	"""
-
-	header = ['gene', 'chromosome:start-stop', 'annotation', 'n_gtex_seen', 'n_patients_seen', 'total_patient_read_count', 'total_gtex_read_count', 'total_read_count', 'sample:read_count', 'sample:norm_read_count']
-
-	return ('\t'.join(header) + '\n')
+	header = ['gene','pos', 'annotation', 'read_count', 'norm_read_count']
+	return (','.join(header) + '\n')
 
 def countGTEX(cur):
-
-	"""
-	Counts the number of GTEx samples in the database
-
-	Args:
-		cur, a cursor to a connection to a database
-
-	Returns:
-	    The number of GTEx files in the database
-
-	Raises:
-	    None
-	"""
-
 	cur.execute('select count(*) from SAMPLE_REF where type = 0;') # 0 = GTEX, 1 = PATIENT
-
 	return cur.fetchone()[0]
 
 def countPatients(cur):
@@ -63,27 +33,10 @@ def countPatients(cur):
 	return cur.fetchone()[0]
 
 def writeToFile(res, file):
-
-	"""
-	Writes the results from a database query to a specified text file
-
-	Args:
-		res, the returned values from a cursor's fetchall() method
-		file, the path or name of a file to write to
-
-	Returns:
-	    None
-
-	Raises:
-	    None
-	"""
-
 	with open(file, "w") as out:
-
 		out.write(tableHeader())
-
 		for row in res:
-			out.write('\t'.join(str(element) for element in row) + '\n')
+			out.write(','.join(str(element) for element in row) + '\n')
 
 def sampleSpecificJunctions(cur, sample, min_read, min_norm_read):
 
@@ -109,18 +62,14 @@ def sampleSpecificJunctions(cur, sample, min_read, min_norm_read):
 		min_read, the minimum number of reads a junction must have
 		min_norm_read, the minimum normalized read count a junction must have or NULL
 
-	Returns:
-	    None
-
-	Raises:
-	    None
+	    not reporting junctions with NULL norm_count (mostly NONE annotated)
 	"""
 
 	count = str(countGTEX(cur))
 
 	output = '_'.join([sample, 'specific', 'rc' + str(min_read), ('norm_rc' + str(min_norm_read)), 'n_gtex_' + count])
 
-	cur.execute('''select group_concat(gene_ref.gene),
+	cur.execute('''select gene_ref.gene,
 		(junction_ref.chromosome||':'||junction_ref.start||'-'||junction_ref.stop),
 		case 
 			when junction_ref.gencode_annotation = 0 then 'NONE'
@@ -129,25 +78,18 @@ def sampleSpecificJunctions(cur, sample, min_read, min_norm_read):
 			when junction_ref.gencode_annotation = 3 then 'BOTH'
 			when junction_ref.gencode_annotation = 4 then 'EXON_SKIP'
 		END as annotation, 
-		junction_ref.n_gtex_seen, 
-		junction_ref.n_patients_seen,
 		junction_ref.total_patient_read_count,
-		junction_ref.total_gtex_read_count,
-		junction_ref.total_read_count,
-		group_concat(distinct junction_counts.read_count||':'||sample_ref.sample_name),
-		group_concat(distinct junction_counts.norm_read_count||':'||sample_ref.sample_name)
-		from 
-		sample_ref inner join junction_counts on sample_ref.ROWID = junction_counts.bam_id 
-		inner join junction_ref on junction_counts.junction_id = junction_ref.rowid 
-		inner join gene_ref on junction_ref.rowid = gene_ref.junction_id 
-		where
-		sample_ref.sample_name = ? and
-		junction_counts.read_count >= ? and
-		junction_ref.n_gtex_seen <= ? and
-		(junction_counts.norm_read_count >= ? or junction_counts.norm_read_count is NULL)
-		group by 
-		junction_ref.chromosome, junction_ref.start, junction_ref.stop;''',
-		(sample, min_read, 0, min_norm_read))
+		junction_counts.norm_read_count
+		from junction_counts, sample_ref, junction_ref, gene_ref
+		where 
+			sample_ref.sample_name = ? and
+			junction_counts.read_count >= ? and
+			junction_counts.norm_read_count >= ? and junction_counts.norm_read_count!='NULL' and
+			junction_ref.n_gtex_seen <= 0 and
+			sample_ref.rowid=junction_counts.bam_id and
+			junction_counts.junction_id = junction_ref.rowid and
+			junction_ref.rowid = gene_ref.junction_id;''',
+		(sample, min_read, min_norm_read))
 
 	writeToFile(cur.fetchall(), output)
 
@@ -191,6 +133,7 @@ def customSampleSpecificJunctions(cur, sample, min_read, min_norm_read, max_n_gt
 
 	output = '_'.join([str(sample), ('rc' + str(min_read)), ('norm_rc' + str(min_norm_read)), ('maxGTEX' + str(max_n_gtex_seen)), ('maxGTEXrc' + str(max_total_gtex_reads))])
 
+	# does not report events with norm_count==NULL
 	cur.execute('''select group_concat(gene_ref.gene),
 		(junction_ref.chromosome||':'||junction_ref.start||'-'||junction_ref.stop),
 		case 
@@ -216,7 +159,7 @@ def customSampleSpecificJunctions(cur, sample, min_read, min_norm_read, max_n_gt
 		junction_counts.read_count >= ? and
 		junction_ref.n_gtex_seen <= ? and
 		junction_ref.total_gtex_read_count <= ? and
-		(junction_counts.norm_read_count >= ? or junction_counts.norm_read_count is NULL)
+		junction_counts.norm_read_count >= ?
 		group by 
 		junction_ref.chromosome, junction_ref.start, junction_ref.stop;''',
 		(sample, min_read, max_n_gtex_seen, max_total_gtex_reads))
