@@ -43,8 +43,8 @@ read.raw_coverage2rpkm_dir = function()
     counts = raw_coverage2rpkm(files[1])
     for (file in tail(files,-1))
     {
-      counts_buf = raw_coverage2rpkm(file)
-      counts = merge_row_names(counts,counts_buf)
+        counts_buf = raw_coverage2rpkm(file)
+        counts = merge_row_names(counts,counts_buf)
     }
     write.table(counts,"exon.rpkms.txt",quote=F)
 }
@@ -768,6 +768,6 @@ coverage_plot = function ()
     }
 }
 
-args = commandArgs(trailingOnly = T)
-print(args[1])
-mds_plot(refresh_files = as.logical(args[1]))
+#args = commandArgs(trailingOnly = T)
+#print(args[1])
+#mds_plot(refresh_files = as.logical(args[1]))
