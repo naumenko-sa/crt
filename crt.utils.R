@@ -768,6 +768,49 @@ coverage_plot = function ()
     }
 }
 
+# statistics based on the output of crt.filter_junctions.sh
+read_novel_splice_events_dir = function()
+{
+    files = list.files(".","*n_gtex_184")
+    events = read_novel_splice_events(files[1])
+    for (file in tail(files,-1))
+    {
+        events_buf = read_novel_splice_events(file)
+        events = rbind(events,events_buf)
+    }
+    filtered = events[events$norm_read_count >= 0.5,]
+    filtered = filtered[filtered$read_count > 30,]
+    write.table(filtered,"splicing.all_genes.txt",quote=F, row.names = F)
+    
+    panel_genes = c()
+    for (p in panel_list){
+        panel_genes = unique(c(panel_genes,get(p)))
+    }
+    events = events[events$gene %in% panel_genes,]
+    
+    
+    
+    
+    eoutliers <- read.csv("~/Desktop/work/eoutliers.txt", stringsAsFactors=FALSE)
+    eoutliers = subset(eoutliers,select=c("Sample","Gene","Regulation","Abs_FC_cohort","Abs_FC_GTex"))
+    eoutliers$Sample = gsub("[.]","-",eoutliers$Sample)
+    eoutliers = unique(eoutliers)
+    
+    res = merge(events,eoutliers,by.x = c("sample","gene"),by.y = c("Sample","Gene"),all.x=T,all.y=F)
+    
+    write.table(res,"splicing.gene_panels.txt",quote=F,row.names = F)
+}
+read_novel_splice_events = function(file)
+{
+    #setwd("~/Desktop/work")
+    #file = "S12_9-1-M.bam_specific_rc5_norm_rc0.05_n_gtex_184"
+    sample = strsplit(file,".",fixed=T)[[1]][1]
+    print(sample)
+    splice_events = read.csv(file,stringsAsFactors=FALSE)
+    splice_events$sample = sample
+    return(splice_events)
+}
+
 #args = commandArgs(trailingOnly = T)
 #print(args[1])
 #mds_plot(refresh_files = as.logical(args[1]))
