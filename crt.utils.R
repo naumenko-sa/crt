@@ -11,7 +11,8 @@ installation = function()
     install.packages("pheatmap")
 }
 
-# calculates RPKMs using ~/bioscripts/bam.raw_coverage.sh input - usable to calculate RPKMs for exons using a bed file
+# calculates RPKMs using ~/bioscripts/bam.raw_coverage.sh input - 
+# usable to calculate RPKMs for exons using a bed file for page website
 raw_coverage2rpkm = function(filename)
 {
     #test:
@@ -43,6 +44,7 @@ read.raw_coverage2rpkm_dir = function()
     counts = raw_coverage2rpkm(files[1])
     for (file in tail(files,-1))
     {
+        print(file)
         counts_buf = raw_coverage2rpkm(file)
         counts = merge_row_names(counts,counts_buf)
     }
@@ -101,8 +103,6 @@ feature_counts2rpkm = function(filename)
 {
     #test:
     #filename="S01_1-1-B.bam.rpkm_counts.txt"
-    library(edgeR)   
-    ensembl_w_description = read.delim2("~/cre/ensembl_w_description.txt", row.names=1, stringsAsFactors=F)
     #first line in the file is a comment
     counts = read.delim(filename, stringsAsFactors=F, row.names=1,skip=1)
     counts$Chr=NULL
@@ -111,11 +111,9 @@ feature_counts2rpkm = function(filename)
     counts$Strand=NULL
     
     Gene_lengths = counts$Length
-    
     counts$Length=NULL
     
     counts = rpkm(counts,Gene_lengths)
-    
     colnames(counts) = gsub(".bam","",colnames(counts))
     
     return(counts)
