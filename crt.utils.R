@@ -3,6 +3,93 @@ library(RColorBrewer)
 library(edgeR)   
 library(readr)
 
+mh_panel=c("CACNA1S","RYR1","STAC3","TRDN","ASPH","JPH2","CASQ1","ATP2A1","ATP2A2","CALM1","FKBP1A")
+
+#panels
+panel_list = c("congenital_myopathy",
+               "congenital_muscular_dystrophies",
+               "congenital_myastenic_syndromes",
+               "channelopathies", 
+               "vacuolar_and_others",
+               "limb_girdle",
+               "distal_myopathies",
+               "muscular_dystrophies")
+
+congenital_myopathy = c("ACTA1","BIN1","CACNA1S","CCDC78","CFL2","CNTN1","DNM2","KBTBD13","KLHL40","KLHL41",
+                        "LMOD3","MEGF10","MLTK","MTM1", "MTMR14","MYH2","MYH7","MYO18B","MYPN","NEB",
+                        "ORAI1","PTPLA","RYR1","SEPN1","SPEG","STAC3","STIM1","TNNT1","TPM2","TPM3", 
+                        "TTN")
+
+congenital_muscular_dystrophies=c("ACTA1","ALG13","B3GALNT2","B3GNT1","CHKB","COL6A1","COL6A2","COL6A3","DNM2","DPM1",
+                                  "DPM2","FHL1","FKRP","FKTN","GMPPB","ISPD","ITGA7","LAMA2","LARGE","LMNA",
+                                  "POMGNT1","POMGNT2","POMK","POMT1","POMT2","SEPN1","TCAP","TMEM5","TRAPPC11")
+
+congenital_myastenic_syndromes = c("AGRN","ALG14","ALG2","CHAT","CHRNA1","CHRNB1","CHRND","CHRNE","CHRNG","COLQ",
+                                   "DOK7","DPAGT1","GFPT1","LAMB2","MUSK","PLEC","PREPL","RAPSN","SCN4A","SYT2")
+
+channelopathies = c("ATP2A1","CACNA1A","CACNA1S","CAV3","CLCN1","CNBP","DMPK","HSPG2","KCNA1","KCNE3",
+                    "KCNJ12","SCN4A")
+
+vacuolar_and_others = c("ACVR1","CAV3","CLN3","FHL1","ISCU","LAMP2","MCOLN1","MSTN","PABPN1","PLEC",
+                        "TTN","VMA21")
+
+limb_girdle = c("ANO5","CAPN3","CAV3","DAG1","DES","DNAJB6","DPM3","DYSF","FKRP","FKTN",
+                "GAA","GMPPB","HNRNPDL","ISPD","LIMS2","LMNA","MYOT","PLEC","POMGNT1","POMT1",
+                "POMT2","SGCA","SGCB","SGCD","SGCG","TCAP","TNPO3","TRAPPC11","TRIM32","TTN",
+                "VCP" )
+
+distal_myopathies=c("ANO5","BAG3","CRYAB","DES","DNM2","DYSF","FLNC","FLNC","GNE","KLHL9",
+                    "LDB3","LDB3","MATR3","MYH7","MYOT","NEB","SEPN1","TIA1","TRIM54","TRIM63",
+                    "TTN","VCP")
+
+muscular_dystrophies= c("DMD","DUX4","EMD","FHL1","LMNA","PTRF","SMCHD1","SYNE1","SYNE2","TMEM43",
+                        "TOR1AIP1")
+
+#gene panels for linkage region on chr19
+linkage_region1 = c("GAMT", "DAZAP1", "RPS15", "APC2", "C19orf25", "PCSk4", "REEP6","ADAMTSL5","PLK5","MEX3D", 
+                    "MBD3", "UQCR11", "TCF3", "ONECUT3", "ATP8B3", "REX01", "MIR1909", "KLF16", "ABHD17A", "SCAMP4", 
+                    "ADAT3", "CSNK1G2", "CSNK1G2-AS1", "BTBD2", "MKNK2", "MOB3A", "IZUMO4", "AP3D1", "DOT1L", "PLEKHJ1")
+
+linkage_region2 = c("MIR1227", "MIR6789", "SF3A2", "AMH", "MIR4321", "JSRP1", "OAZ1", "C19orf35", "LINGO3", "LSM7", 
+                    "SPPL2B", "TMPRSS9", "TIMM13", "LMNB2", "MIR7108", "GADD45B", "GNG7", "MIR7850", "DIRAS1", "SLC39A3",
+                    "SGTA", "THOP1", "ZNF554", "ZNF555", "ZNF556", "ZNF57", "NF77", "TLE6", "TLE2", "MIR1268A")
+
+linkage_region3 = c("AES", "GNA11", "GNA15", "S1PR4", "NCLN", "CELF5", "NFIC", "SMIM24", "DOHH", "FZR1", 
+                    "SNORD38", "FZR1", "C19orf71", "MFSD12", "HMG20B", "GIPC3", "TBXA2R", "CACTIN-AS1", "CACTIN", 
+                    "PIP5K1C", "TJP3", "APBA3", "MRPL54", "RAX2", "MATK", "ZFR2", "ATCAY", "NMRK2", "DAPK3")
+
+linkage_region4 = c("MIR637", "EEF2", "SNORD37", "PIAS4", "ZBTB7A", "MAP2K2", "CREBL3L3", "SIRT6", "ANKRD24", "EBI3",
+                    "CCDC94", "SHD", "TMIGD2", "FSD1", "STAP2", "MPND", "SH3GL1", "CHAF1A","UBXN6", "MIR4746", 
+                    "PLIN4", "PLIN5", "LRG1", "SEMA6B", "TNFAIP8L1", "MYDGF", "DPP9", "DPP9-AS1", "MIR7-3HG", "MIR7-3")
+
+linkage_region5 = c("FEM1A", "TICAM1","PLIN3", "ARRDC5", "UHRF1", "MIR4747", "KDM4B", "PTPRS", "ZNRF4", "TINCR", 
+                    "SAFB2", "SAFB", "C19orf70", "HSD11B1L", "RPL36", "LONP1", "CATSPERD", "PRR22", "DUS3L","NRTN",
+                    "FUT6","FUT5","NDUFA11","VMAC","CAPS","RANBP3", "RFX2","ACSBG2","MLLT1","ACER1")
+
+linkage_region6 = c("CLPP", "ALKBH7", "PSPN", "GTF2F1", "MIR6885", "MIR6790", "KHSRP", "MIR3940", "SLC25A41", "SLC25A23",
+                    "CRB3", "DEND1C", "TUBB4A", "TNFSF9", "CD70", "TNFSF14", "C3", "GPR108", "MIR6791", "TRIP10", 
+                    "SH2D3A", "VAV1", "ADGRE1", "MBD3L5", "MBD3L4", "MBD3L2", "MBD3L3", "ZNF557", "INSR",  "ARHGEF18")
+
+linkage_region7 = c("PEX11G", "C19orf45", "ZNF358", "MCOLN1", "PNPLA6", "CAMPSAP3", "MIR6792", "XAB2", "PET100", "PCP2",  
+                    "STXBP2", "RETN", "MCEMP1", "TRAPPC5", "FCER2", "CLEC4G", "CD209", "CLEC4M", "EVI5L", "PRR36",
+                    "LRRC8E", "MAP2K7","SNAPC2","CTXN1","TIMM44","ELAVL1","CCL25","FBN3","CERS4","CD320")
+
+linkage_region8 = c("NDUFA7", "RPS28", "KANK3", "ANGPTL4", "RAB11B-AS1", "MIR4999", "RAB11B", "MARCH2", "HNRNPM", 
+                    "PRAM1", "ZNF414", "MYO1F", "ADAMTS10", "ACTL9", "OR2Z1", "ZNF558", "MBD3L1", "OR1M1", "MUC16")
+
+gtex_rpkm_file = "/home/sergey/Desktop/stories/4_RNAseq_diagnostics/rnaseq_article/expression_plots/gtex.muscle_genes.rpkm.txt"
+
+protein_coding_genes <- read.table("~/cre/protein_coding_genes.txt", stringsAsFactors=F)
+protein_coding_genes.ens_ids <- read.table("~/cre/protein_coding_genes.ens_ids.txt", stringsAsFactors=F,header=T)
+
+if (file.exists(gtex_rpkm_file))
+{
+    gtex_rpkm = read.csv(gtex_rpkm_file, sep="", stringsAsFactors = F)
+}
+
+ensembl_w_description = read.delim2("~/cre/ensembl_w_description.txt", row.names=1, stringsAsFactors=F)
+#gene_lengths = read.delim("~/Desktop/project_RNAseq_diagnostics/reference/gene_lengths.txt", stringsAsFactors=F, row.names=1)
+
 installation = function()
 {
     source("http://bioconductor.org/biocLite.R")
@@ -293,9 +380,6 @@ prepare_file_4gsea = function(counts,samples,prefix)
   #remove rows with 0 expression
   t_cpm = t_cpm[rowSums(t_cpm)>0,]
   
-  #only protein coding genes
-  protein_coding_genes = read.delim(paste0(reference_tables_path,"/protein_coding_genes.txt"), row.names=1, stringsAsFactors=F)
-  
   t_cpm = merge(protein_coding_genes,t_cpm,by.x='row.names',by.y='row.names',all = F)
   
   rownames(t_cpm)=t_cpm$Row.names
@@ -323,16 +407,16 @@ prepare_file_4gsea = function(counts,samples,prefix)
 # cols are not clustered to save sample order
 plot_heatmap = function(prefix,expression_table)
 {
-  rows = nrow(expression_table)
-  cellheight = 10
-  res = 300
-  filename = paste0(prefix,".",res,"ppi.png")
+    rows = nrow(expression_table)
+    cellheight = 10
+    res = 300
+    filename = paste0(prefix,".",res,"ppi.png")
   
-  png(filename,res = res,height=rows * cellheight * 5,width=1500)
-  pheatmap(expression_table,scale="row",treeheight_row=0,treeheight_col=0,
+    png(filename,res = res,height=rows * cellheight * 5+500,width=1500)
+    pheatmap(expression_table,scale="row",treeheight_row=0,treeheight_col=0,
            display_numbers = T,cellheight = cellheight,cellwidth = 30,
            cluster_rows = F, cluster_cols = F)
-  dev.off()
+    dev.off()
 }
 
 # plot separate heatmaps for upregulated and downregulated genes 
@@ -344,112 +428,29 @@ plot_heatmap = function(prefix,expression_table)
 # ntop - how many top genes to plot
 plot_heatmap_separate = function(counts,samples,de_results,prefix,ntop = NULL)
 {
-  logcpm = cpm(counts,prior.count=1,log=T)
-  #cpm0  = log(cpm(y$counts+1))
-  top_genes_cpm = logcpm[de_results$Ensembl_gene_id,]
-  top_genes_cpm = top_genes_cpm[,samples]
-  rownames(top_genes_cpm) = de_results$Gene_name
+    logcpm = cpm(counts,prior.count=1,log=T)
+    #cpm0  = log(cpm(y$counts+1))
+    top_genes_cpm = logcpm[de_results$Ensembl_gene_id,]
+    top_genes_cpm = top_genes_cpm[,samples]
+    rownames(top_genes_cpm) = de_results$Gene_name
   
-  #expressed higher in WNT-dependent cells.
-  upregulated_genes = de_results[de_results$logFC<0,]$Gene_name
-  downregulated_genes = de_results[de_results$logFC>0,]$Gene_name
+    #expressed higher in WNT-dependent cells.
+    upregulated_genes = de_results[de_results$logFC<0,]$Gene_name
+    downregulated_genes = de_results[de_results$logFC>0,]$Gene_name
   
-  if (!is.null(ntop))
-  {
-    upregulated_genes = head(upregulated_genes,ntop)
-    downregulated_genes = head(downregulated_genes,ntop)
-  }
+    if (!is.null(ntop))
+    {
+        upregulated_genes = head(upregulated_genes,ntop)
+        downregulated_genes = head(downregulated_genes,ntop)
+    }
   
-  #sort genes alphabetically - it is much easier to read heatmap
-  #upregulated_genes = sort(upregulated_genes)
-  #downregulated_genes = sort (downregulated_genes)
-  
-  plot_heatmap(paste0(prefix,".left"),top_genes_cpm[upregulated_genes,])
-  plot_heatmap(paste0(prefix,".right"),top_genes_cpm[downregulated_genes,])
+    #sort genes alphabetically - it is much easier to read heatmap
+    #upregulated_genes = sort(upregulated_genes)
+    #downregulated_genes = sort (downregulated_genes)
+    # upregulated_genes has 1 gene, simple subsetting does not work
+    plot_heatmap(paste0(prefix,".left"),subset(top_genes_cpm,row.names(top_genes_cpm) %in% upregulated_genes))
+    plot_heatmap(paste0(prefix,".right"),subset(top_genes_cpm,row.names(top_genes_cpm) %in% downregulated_genes))
 }   
-
-mh_panel=c("CACNA1S","RYR1","STAC3","TRDN","ASPH","JPH2","CASQ1","ATP2A1","ATP2A2","CALM1","FKBP1A")
-
-#panels
-panel_list = c("congenital_myopathy",
-               "congenital_muscular_dystrophies",
-               "congenital_myastenic_syndromes",
-               "channelopathies", 
-               "vacuolar_and_others",
-               "limb_girdle",
-               "distal_myopathies",
-               "muscular_dystrophies")
-
-congenital_myopathy = c("ACTA1","BIN1","CACNA1S","CCDC78","CFL2","CNTN1","DNM2","KBTBD13","KLHL40","KLHL41",
-                        "LMOD3","MEGF10","MLTK","MTM1", "MTMR14","MYH2","MYH7","MYO18B","MYPN","NEB",
-                        "ORAI1","PTPLA","RYR1","SEPN1","SPEG","STAC3","STIM1","TNNT1","TPM2","TPM3", 
-                        "TTN")
-
-congenital_muscular_dystrophies=c("ACTA1","ALG13","B3GALNT2","B3GNT1","CHKB","COL6A1","COL6A2","COL6A3","DNM2","DPM1",
-                                  "DPM2","FHL1","FKRP","FKTN","GMPPB","ISPD","ITGA7","LAMA2","LARGE","LMNA",
-                                  "POMGNT1","POMGNT2","POMK","POMT1","POMT2","SEPN1","TCAP","TMEM5","TRAPPC11")
-
-congenital_myastenic_syndromes = c("AGRN","ALG14","ALG2","CHAT","CHRNA1","CHRNB1","CHRND","CHRNE","CHRNG","COLQ",
-                                   "DOK7","DPAGT1","GFPT1","LAMB2","MUSK","PLEC","PREPL","RAPSN","SCN4A","SYT2")
-
-channelopathies = c("ATP2A1","CACNA1A","CACNA1S","CAV3","CLCN1","CNBP","DMPK","HSPG2","KCNA1","KCNE3",
-                    "KCNJ12","SCN4A")
-
-vacuolar_and_others = c("ACVR1","CAV3","CLN3","FHL1","ISCU","LAMP2","MCOLN1","MSTN","PABPN1","PLEC",
-                        "TTN","VMA21")
-
-limb_girdle = c("ANO5","CAPN3","CAV3","DAG1","DES","DNAJB6","DPM3","DYSF","FKRP","FKTN",
-                "GAA","GMPPB","HNRNPDL","ISPD","LIMS2","LMNA","MYOT","PLEC","POMGNT1","POMT1",
-                "POMT2","SGCA","SGCB","SGCD","SGCG","TCAP","TNPO3","TRAPPC11","TRIM32","TTN",
-                "VCP" )
-
-distal_myopathies=c("ANO5","BAG3","CRYAB","DES","DNM2","DYSF","FLNC","FLNC","GNE","KLHL9",
-                    "LDB3","LDB3","MATR3","MYH7","MYOT","NEB","SEPN1","TIA1","TRIM54","TRIM63",
-                    "TTN","VCP")
-
-muscular_dystrophies= c("DMD","DUX4","EMD","FHL1","LMNA","PTRF","SMCHD1","SYNE1","SYNE2","TMEM43",
-                        "TOR1AIP1")
-
-#gene panels for linkage region on chr19
-linkage_region1 = c("GAMT", "DAZAP1", "RPS15", "APC2", "C19orf25", "PCSk4", "REEP6","ADAMTSL5","PLK5","MEX3D", 
-                    "MBD3", "UQCR11", "TCF3", "ONECUT3", "ATP8B3", "REX01", "MIR1909", "KLF16", "ABHD17A", "SCAMP4", 
-                    "ADAT3", "CSNK1G2", "CSNK1G2-AS1", "BTBD2", "MKNK2", "MOB3A", "IZUMO4", "AP3D1", "DOT1L", "PLEKHJ1")
-
-linkage_region2 = c("MIR1227", "MIR6789", "SF3A2", "AMH", "MIR4321", "JSRP1", "OAZ1", "C19orf35", "LINGO3", "LSM7", 
-                    "SPPL2B", "TMPRSS9", "TIMM13", "LMNB2", "MIR7108", "GADD45B", "GNG7", "MIR7850", "DIRAS1", "SLC39A3",
-                    "SGTA", "THOP1", "ZNF554", "ZNF555", "ZNF556", "ZNF57", "NF77", "TLE6", "TLE2", "MIR1268A")
-
-linkage_region3 = c("AES", "GNA11", "GNA15", "S1PR4", "NCLN", "CELF5", "NFIC", "SMIM24", "DOHH", "FZR1", 
-                    "SNORD38", "FZR1", "C19orf71", "MFSD12", "HMG20B", "GIPC3", "TBXA2R", "CACTIN-AS1", "CACTIN", 
-                    "PIP5K1C", "TJP3", "APBA3", "MRPL54", "RAX2", "MATK", "ZFR2", "ATCAY", "NMRK2", "DAPK3")
-
-linkage_region4 = c("MIR637", "EEF2", "SNORD37", "PIAS4", "ZBTB7A", "MAP2K2", "CREBL3L3", "SIRT6", "ANKRD24", "EBI3",
-                    "CCDC94", "SHD", "TMIGD2", "FSD1", "STAP2", "MPND", "SH3GL1", "CHAF1A","UBXN6", "MIR4746", 
-                    "PLIN4", "PLIN5", "LRG1", "SEMA6B", "TNFAIP8L1", "MYDGF", "DPP9", "DPP9-AS1", "MIR7-3HG", "MIR7-3")
-
-linkage_region5 = c("FEM1A", "TICAM1","PLIN3", "ARRDC5", "UHRF1", "MIR4747", "KDM4B", "PTPRS", "ZNRF4", "TINCR", 
-                    "SAFB2", "SAFB", "C19orf70", "HSD11B1L", "RPL36", "LONP1", "CATSPERD", "PRR22", "DUS3L","NRTN",
-                    "FUT6","FUT5","NDUFA11","VMAC","CAPS","RANBP3", "RFX2","ACSBG2","MLLT1","ACER1")
-
-linkage_region6 = c("CLPP", "ALKBH7", "PSPN", "GTF2F1", "MIR6885", "MIR6790", "KHSRP", "MIR3940", "SLC25A41", "SLC25A23",
-                    "CRB3", "DEND1C", "TUBB4A", "TNFSF9", "CD70", "TNFSF14", "C3", "GPR108", "MIR6791", "TRIP10", 
-                    "SH2D3A", "VAV1", "ADGRE1", "MBD3L5", "MBD3L4", "MBD3L2", "MBD3L3", "ZNF557", "INSR",  "ARHGEF18")
-
-linkage_region7 = c("PEX11G", "C19orf45", "ZNF358", "MCOLN1", "PNPLA6", "CAMPSAP3", "MIR6792", "XAB2", "PET100", "PCP2",  
-                    "STXBP2", "RETN", "MCEMP1", "TRAPPC5", "FCER2", "CLEC4G", "CD209", "CLEC4M", "EVI5L", "PRR36",
-                    "LRRC8E", "MAP2K7","SNAPC2","CTXN1","TIMM44","ELAVL1","CCL25","FBN3","CERS4","CD320")
-
-linkage_region8 = c("NDUFA7", "RPS28", "KANK3", "ANGPTL4", "RAB11B-AS1", "MIR4999", "RAB11B", "MARCH2", "HNRNPM", 
-                    "PRAM1", "ZNF414", "MYO1F", "ADAMTS10", "ACTL9", "OR2Z1", "ZNF558", "MBD3L1", "OR1M1", "MUC16")
-
-gtex_rpkm_file = "/home/sergey/Desktop/stories/4_RNAseq_diagnostics/rnaseq_article/expression_plots/gtex.muscle_genes.rpkm.txt"
-if (file.exists(gtex_rpkm_file))
-{
-    gtex_rpkm = read.csv(gtex_rpkm_file, sep="", stringsAsFactors = F)
-}
-
-ensembl_w_description = read.delim2("~/cre/ensembl_w_description.txt", row.names=1, stringsAsFactors=F)
-#gene_lengths = read.delim("~/Desktop/project_RNAseq_diagnostics/reference/gene_lengths.txt", stringsAsFactors=F, row.names=1)
 
 # plots the heatmap of title.png for gene_panel using sample_rpkm and gtex_rpkm
 plot_panel= function(gene_panel, sample_rpkm, filename,title, breaks)
