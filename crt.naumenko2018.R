@@ -19,12 +19,16 @@ init = function()
 
 # among genes expressed in muscle, what % is expressed in myo w > 10x coverage
 # trios = families 9, 12, 14-1, 14-2, 17
-trio_analysis = function()
+expression.trio_analysis = function()
 {
     setwd("~/Desktop/work/")
-    protein_coding_genes <- read.csv("~/Desktop/work/protein_coding_genes.list", sep="", stringsAsFactors=FALSE)
-
-    rpkms.muscle <- read.csv("~/Desktop/work/rpkms.muscle.txt", sep="", stringsAsFactors=FALSE)
+    
+    table_s2.samples = read.csv("table_s2.samples.csv", stringsAsFactors=F)
+    samples.muscle = subset(table_s2.samples,Trio=="y" & Tissue_type=="Muscle",select=c("Bioinf_sample_id","Sample_name"))
+    samples.muscle = gsub("-","//.",samples.muscle)
+    
+    rpkms.muscle = read.csv("rpkms.muscle.txt", sep="", stringsAsFactors=F)
+    
     columns = c("S12_9.1.M","S20_12.1.Mpv","S43_14.1.M","S44_14.2.M","S46_17.1.M","external_gene_name")
     rpkms.muscle = subset(rpkms.muscle,select = columns)
     rpkms.muscle = rpkms.muscle[rpkms.muscle$external_gene_name %in% protein_coding_genes$Gene_name,]
@@ -503,14 +507,14 @@ dexpression = function()
     
     counts = counts[row.names(counts) %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
     
-    counts = counts[,c("S84_GOR1.1.F.Fiech","S85_GOR1.2.F.Fieja1","S86_GOR1.3.F.Fiejo2","S87_GOR1.4.F.Avoel",
-                       "S08_5.1.F","S09_6.1.F","S10_7.1.F","S25_15.1.F","S26_15.2.F",
-                       "S27_15.3.F","S28_17.1.F","S29_20.1.F","S30_27.1.F","S31_16.1.F",
-                       "S33_18.1.F","S35_21.1.F","S36_22.1.F","S37_12.1.F","S38_24.1.F",
-                       "S39_25.1.F","S40_28.1.F","S41_29.1.F","S42_30.1.F","S59_14.1.F",
-                       "S60_14.2.F","S61_3.2.F","S62_9.1.F","S75_26.1.F","S76_41.1.F")]
+    #counts = counts[,c("S84_GOR1.1.F.Fiech","S85_GOR1.2.F.Fieja1","S86_GOR1.3.F.Fiejo2","S87_GOR1.4.F.Avoel",
+    #                   "S08_5.1.F","S09_6.1.F","S10_7.1.F","S25_15.1.F","S26_15.2.F",
+    #                   "S27_15.3.F","S28_17.1.F","S29_20.1.F","S30_27.1.F","S31_16.1.F",
+    #                   "S33_18.1.F","S35_21.1.F","S36_22.1.F","S37_12.1.F","S38_24.1.F",
+    #                   "S39_25.1.F","S40_28.1.F","S41_29.1.F","S42_30.1.F","S59_14.1.F",
+    #                   "S60_14.2.F","S61_3.2.F","S62_9.1.F","S75_26.1.F","S76_41.1.F")]
     
-    counts = counts[,c("S85_GOR1.2.F.Fieja1","S84_GOR1.1.F.Fiech","S86_GOR1.3.F.Fiejo2","S87_GOR1.4.F.Avoel")]
+    counts = counts[,c("S84_GOR1.1.F.Fiech","S85_GOR1.2.F.Fieja1","S86_GOR1.3.F.Fiejo2","S87_GOR1.4.F.Avoel")]
     
     #attach(counts)
     #counts$fibro_average = (S08_5.1.F+S09_6.1.F+S10_7.1.F+S25_15.1.F+S26_15.2.F+
