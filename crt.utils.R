@@ -79,8 +79,10 @@ linkage_region8 = c("NDUFA7", "RPS28", "KANK3", "ANGPTL4", "RAB11B-AS1", "MIR499
 
 gtex_rpkm_file = "/home/sergey/Desktop/stories/4_RNAseq_diagnostics/rnaseq_article/expression_plots/gtex.muscle_genes.rpkm.txt"
 
-protein_coding_genes <- read.table("~/cre/protein_coding_genes.txt", stringsAsFactors=F)
+protein_coding_genes <- read.table("~/cre/protein_coding_genes.txt", stringsAsFactors=F, header=T)
 protein_coding_genes.ens_ids <- read.table("~/cre/protein_coding_genes.ens_ids.txt", stringsAsFactors=F,header=T)
+omim = read.csv("~/Desktop/reference_tables/omim_inheritance.csv", sep=";", stringsAsFactors=FALSE)
+omim = subset(omim,select=c("Gene","Omim"))
 
 if (file.exists(gtex_rpkm_file))
 {
@@ -768,7 +770,7 @@ coverage_plot = function ()
 }
 
 # statistics based on the output of crt.filter_junctions.sh
-read_novel_splice_events_dir = function()
+splicing.read_novel_splice_events_dir = function()
 {
     files = list.files(".","*n_gtex_184")
     events = read_novel_splice_events(files[1])
@@ -787,9 +789,6 @@ read_novel_splice_events_dir = function()
     }
     events = events[events$gene %in% panel_genes,]
     
-    
-    
-    
     eoutliers <- read.csv("~/Desktop/work/eoutliers.txt", stringsAsFactors=FALSE)
     eoutliers = subset(eoutliers,select=c("Sample","Gene","Regulation","Abs_FC_cohort","Abs_FC_GTex"))
     eoutliers$Sample = gsub("[.]","-",eoutliers$Sample)
@@ -799,14 +798,21 @@ read_novel_splice_events_dir = function()
     
     write.table(res,"splicing.gene_panels.txt",quote=F,row.names = F)
 }
-read_novel_splice_events = function(file)
+splicing.read_novel_splice_events = function(file)
 {
-    #setwd("~/Desktop/work")
-    #file = "S12_9-1-M.bam_specific_rc5_norm_rc0.05_n_gtex_184"
+    ############################################################
+    # debug
+    # setwd("~/Desktop/work/splicing")
+    # file = "S12_9-1-M.bam_specific_rc5_norm_rc0.05_n_gtex_184"
+    ############################################################
+    
     sample = strsplit(file,".",fixed=T)[[1]][1]
     print(sample)
     splice_events = read.csv(file,stringsAsFactors=FALSE)
     splice_events$sample = sample
+    splice_events = merge(splice_events,omim,by.x = "gene", by.y = "Gene",all.x = T)
+    splice_events = splice_events[,c("sample","gene","pos","annotation","read_count","norm_read_count","Omim")]
+    write.csv(splice_events,file = paste0(sample,".csv"),row.names = F)
     return(splice_events)
 }
 

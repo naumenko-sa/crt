@@ -25,15 +25,24 @@ expression.trio_analysis = function()
     
     table_s2.samples = read.csv("table_s2.samples.csv", stringsAsFactors=F)
     samples.muscle = subset(table_s2.samples,Trio=="y" & Tissue_type=="Muscle",select=c("Bioinf_sample_id","Sample_name"))
-    samples.muscle = gsub("-","//.",samples.muscle)
+    samples.muscle = paste0(samples.muscle$Bioinf_sample_id,"_",samples.muscle$Sample_name)
+    samples.muscle = gsub("-",".",samples.muscle)
     
     rpkms.muscle = read.csv("rpkms.muscle.txt", sep="", stringsAsFactors=F)
     
-    columns = c("S12_9.1.M","S20_12.1.Mpv","S43_14.1.M","S44_14.2.M","S46_17.1.M","external_gene_name")
+    columns = c(samples.muscle,"external_gene_name")
+    
     rpkms.muscle = subset(rpkms.muscle,select = columns)
     rpkms.muscle = rpkms.muscle[rpkms.muscle$external_gene_name %in% protein_coding_genes$Gene_name,]
-    rpkms.muscle$mean = (rpkms.muscle$S12_9.1.M+rpkms.muscle$S20_12.1.Mpv+rpkms.muscle$S43_14.1.M + 
-                             rpkms.muscle$S44_14.2.M + rpkms.muscle$S46_17.1.M)/5
+    
+    rpkms.muscle$mean = rep(0,nrow(rpkms.muscle))
+    
+    for (sample in samples.muscle)
+    {
+        rpkms.muscle$mean = rpkms.muscle$mean + subset(rpkms.muscle,select=sample)
+    }
+    rpkms.muscle$mean = rpkms.muscle$mean / length(samples.muscle)
+    
     rpkms.muscle = rpkms.muscle[rpkms.muscle$mean > 1,]
     
     genes_expressed_in_muscle = row.names(rpkms.muscle)
@@ -629,34 +638,51 @@ dexpression = function()
 # output expression outliers as a table eoutliers.txt
 # test is within cohort, fold change reported vs cohort and gtex
 # this test is too sensitive to apply for all protein coding genes
-expression_outliers.table()
+expression.outliers.table = function(for_panels = T, file.rpkms)
 {
-    setwd("~/Desktop/work")
-    cat("Sample,Gene_panel_name,Gene,Regulation,Abs_FC_cohort,Abs_FC_GTex,Pvalue",file="eoutliers.txt",append=F,sep="\n")
-    counts = read.table("rpkms.muscle.txt")
+    # DEBUG
+    #for_panels = T
+    #setwd("~/Desktop/work")
+    #file.rpkms = "rpkms.muscle.txt"
+    # DEBUG
+    
+    output = gsub("txt","expression.outliers.txt",file.rpkms)
+    cat("Sample,Gene_panel_name,Gene,Regulation,Abs_FC_cohort,Abs_FC_GTex,Pvalue",file=output,append=F,sep="\n")
+    
+    counts = read.table(file.rpkms)
     
     for (wrong_gene in c("ENSG00000261832","ENSG00000264813","ENSG00000258529","ENSG00000273170"))
     {
         counts = counts[setdiff(rownames(counts),wrong_gene),]
     }
     
-    counts = counts[counts$external_gene_name %in% protein_coding_genes$V1,]
+    counts = counts[counts$external_gene_name %in% protein_coding_genes$Gene_name,]
     samples = head(colnames(counts),-1)
-    gene_panel_name = "panel"
-    for (sample in samples)
+    
+    if (for_panels)
     {
+        gene_list = c()
         for (gene_panel_name in panel_list)
         {
             gene_panel = get(gene_panel_name)
-            for (gene in gene_panel)
-            {
-                    expression4gene.table(gene,sample,counts,gene_panel_name)
-            }
+            gene_list = unique(c(gene_list,gene_panel))
+        }
+        gene_panel_name = "muscular_genes"
+    }else{
+        gene_panel_name = "protein_coding_genes"
+        gene_list = protein_coding_genes$Gene_name
+    }
+    
+    for (sample in samples)
+    {
+        for (gene in gene_list)
+        {
+            expression4gene.table(gene,sample,counts,gene_panel_name,output)
         }
     }
 }
 
-expression4gene.table = function(gene,sample,counts,gene_panel_name)
+expression4gene.table = function(gene,sample,counts,gene_panel_name,output)
 {
     #gene = "AQP1"
     #sample = "S08_5.1.F"
@@ -692,7 +718,7 @@ expression4gene.table = function(gene,sample,counts,gene_panel_name)
         
             #if ((fold_change.cohort > 1.5 || fold_change.gtex > 1.5) && (ttest$p.value < 0.01)){
             if (fold_change.cohort > 2 && (ttest$p.value < 0.01)){
-                cat(paste(sample,gene_panel_name,gene,regulation,fold_change.cohort,fold_change.gtex,ttest$p.value,sep = ","),file="eoutliers.txt",append=T,sep="\n")   
+                cat(paste(sample,gene_panel_name,gene,regulation,fold_change.cohort,fold_change.gtex,ttest$p.value,sep = ","),file = output,append=T,sep="\n")   
             }
         }
     }
