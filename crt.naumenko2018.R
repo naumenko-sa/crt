@@ -572,9 +572,9 @@ dexpression = function()
 expression.outliers.table = function(for_panels = T, file.rpkms)
 {
     # DEBUG
-    #for_panels = T
-    #setwd("~/Desktop/work")
-    #file.rpkms = "rpkms.muscle.txt"
+    for_panels = F
+    setwd("~/Desktop/work")
+    file.rpkms = "rpkms.muscle.txt"
     # DEBUG
     
     output = gsub("txt","expression.outliers.txt",file.rpkms)
@@ -599,21 +599,23 @@ expression.outliers.table = function(for_panels = T, file.rpkms)
             gene_list = unique(c(gene_list,gene_panel))
         }
         gene_panel_name = "muscular_genes"
+        fc_threshold = 2
     }else{
         gene_panel_name = "protein_coding_genes"
         gene_list = protein_coding_genes$Gene_name
+        fc_threshold = 50
     }
     
     for (sample in samples)
     {
         for (gene in gene_list)
         {
-            expression4gene.table(gene,sample,counts,gene_panel_name,output)
+            expression4gene.table(gene,sample,counts,gene_panel_name,output,fc_threshold)
         }
     }
 }
 
-expression4gene.table = function(gene,sample,counts,gene_panel_name,output)
+expression4gene.table = function(gene,sample,counts,gene_panel_name,output,fc_threshold)
 {
     #gene = "AQP1"
     #sample = "S08_5.1.F"
@@ -648,7 +650,7 @@ expression4gene.table = function(gene,sample,counts,gene_panel_name,output)
             }
         
             #if ((fold_change.cohort > 1.5 || fold_change.gtex > 1.5) && (ttest$p.value < 0.01)){
-            if (fold_change.cohort > 2 && (ttest$p.value < 0.01)){
+            if (fold_change.cohort > fc_threshold && (ttest$p.value < 0.01)){
                 cat(paste(sample,gene_panel_name,gene,regulation,fold_change.cohort,fold_change.gtex,ttest$p.value,sep = ","),file = output,append=T,sep="\n")   
             }
         }

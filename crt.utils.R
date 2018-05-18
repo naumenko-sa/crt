@@ -301,7 +301,17 @@ mds_plot = function(refresh_files = F)
     {
         sample_labels[i] = substr(sname,1,3) #i.e. S01
         
-        if (grepl("GTEX",sname))
+        if (grepl("GTEXBLOOD",sname))
+        {
+            sample_names[i]="GTEXBLOOD"
+            sample_labels[i]=""
+        }
+        else if (grepl("GTEXFIBRO",sname))
+        {
+            sample_names[i]="GTEXFIBRO"
+            sample_labels[i]=""
+        }
+        else if (grepl("GTEX",sname))
         {
             sample_names[i]="GTEX"
             sample_labels[i]=""
@@ -332,6 +342,10 @@ mds_plot = function(refresh_files = F)
                 clr = "red"
             }else if (group[i] == "GTEX"){
                 clr = "darkgreen"
+            }else if (group[i] == "GTEXBLOOD"){
+                clr = "cornflowerblue"
+            }else if (group[i] == "GTEXFIBRO"){
+                clr = "yellow"
             }else{ #muscle
                 clr = "chartreuse"
             }
@@ -773,15 +787,19 @@ coverage_plot = function ()
 splicing.read_novel_splice_events_dir = function()
 {
     files = list.files(".","*n_gtex_184")
-    events = read_novel_splice_events(files[1])
+    events = splicing.read_novel_splice_events(files[1])
     for (file in tail(files,-1))
     {
-        events_buf = read_novel_splice_events(file)
+        events_buf = splicing.read_novel_splice_events(file)
         events = rbind(events,events_buf)
     }
     filtered = events[events$norm_read_count >= 0.5,]
     filtered = filtered[filtered$read_count > 30,]
-    write.table(filtered,"splicing.all_genes.txt",quote=F, row.names = F)
+    
+    filtered$dup = c(duplicated(filtered$pos,fromLast=T) | duplicated(filtered$pos))
+    filtered = filtered[filtered$dup == F,]
+    
+    write.csv(filtered,"splicing.all_genes.csv",quote=T, row.names = F)
     
     panel_genes = c()
     for (p in panel_list){
@@ -789,14 +807,15 @@ splicing.read_novel_splice_events_dir = function()
     }
     events = events[events$gene %in% panel_genes,]
     
-    eoutliers <- read.csv("~/Desktop/work/eoutliers.txt", stringsAsFactors=FALSE)
+    eoutliers <- read.csv("~/Desktop/work/expression/outliers_panels/rpkms.myo.expression.outliers.txt", stringsAsFactors=FALSE)
     eoutliers = subset(eoutliers,select=c("Sample","Gene","Regulation","Abs_FC_cohort","Abs_FC_GTex"))
     eoutliers$Sample = gsub("[.]","-",eoutliers$Sample)
     eoutliers = unique(eoutliers)
     
     res = merge(events,eoutliers,by.x = c("sample","gene"),by.y = c("Sample","Gene"),all.x=T,all.y=F)
     
-    write.table(res,"splicing.gene_panels.txt",quote=F,row.names = F)
+    res$Omim = NULL
+    write.csv(res,"splicing.gene_panels.csv",quote=T,row.names = F)
 }
 splicing.read_novel_splice_events = function(file)
 {
