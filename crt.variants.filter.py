@@ -25,6 +25,7 @@ with open(original_report,'rb') as f_original_report:
 	    f_panel_report.write('"'+'","'.join(header)+'"')
 	    for row in reader:
 		if (row['Gene'] in muscle_genes):
+		    row['UCSC_Link'] = 'UCSC_Link' #a bug with quotes
 		    values = []
 		    for column in header:
 			values.append(row[column])

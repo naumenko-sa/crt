@@ -6,7 +6,7 @@ import sqlite3
 from AddJunctionsToDatabase import connectToDB, commitAndClose
 
 def tableHeader():
-	header = ['gene','pos', 'annotation', 'read_count', 'norm_read_count']
+	header = ['gene','pos', 'annotation', 'read_count', 'norm_read_count','n_gtex_seen','total_gtex_read_count']
 	return (','.join(header) + '\n')
 
 def countGTEX(cur):
@@ -79,13 +79,15 @@ def sampleSpecificJunctions(cur, sample, min_read, min_norm_read):
 			when junction_ref.gencode_annotation = 4 then 'EXON_SKIP'
 		END as annotation, 
 		junction_ref.total_patient_read_count,
-		junction_counts.norm_read_count
+		junction_counts.norm_read_count,
+		junction_ref.n_gtex_seen,
+		junction_ref.total_gtex_read_count
 		from junction_counts, sample_ref, junction_ref, gene_ref
 		where 
 			sample_ref.sample_name = ? and
 			junction_counts.read_count >= ? and
 			junction_counts.norm_read_count >= ? and junction_counts.norm_read_count!='NULL' and
-			junction_ref.n_gtex_seen <= 0 and
+			junction_ref.n_gtex_seen <= 5 and
 			sample_ref.rowid=junction_counts.bam_id and
 			junction_counts.junction_id = junction_ref.rowid and
 			junction_ref.rowid = gene_ref.junction_id;''',
