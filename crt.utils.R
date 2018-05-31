@@ -794,10 +794,10 @@ splicing.read_novel_splice_events_dir = function()
         events = rbind(events,events_buf)
     }
     filtered = events[events$norm_read_count >= 0.5,]
-    filtered = filtered[filtered$read_count > 30,]
+    filtered = filtered[filtered$read_count > 10,]
     
     filtered$dup = c(duplicated(filtered$pos,fromLast=T) | duplicated(filtered$pos))
-    filtered = filtered[filtered$dup == F,]
+    #filtered = filtered[filtered$dup == F,]
     
     write.csv(filtered,"splicing.all_genes.csv",quote=T, row.names = F)
     
@@ -807,7 +807,7 @@ splicing.read_novel_splice_events_dir = function()
     }
     events = events[events$gene %in% panel_genes,]
     
-    eoutliers <- read.csv("~/Desktop/work/expression/outliers_panels/rpkms.myo.expression.outliers.txt", stringsAsFactors=FALSE)
+    eoutliers <- read.csv("~/Desktop/work/expression/outliers_panels/outliers.txt", stringsAsFactors=F)
     eoutliers = subset(eoutliers,select=c("Sample","Gene","Regulation","Abs_FC_cohort","Abs_FC_GTex"))
     eoutliers$Sample = gsub("[.]","-",eoutliers$Sample)
     eoutliers = unique(eoutliers)
@@ -821,7 +821,7 @@ splicing.read_novel_splice_events = function(file)
 {
     ############################################################
     # debug
-    # setwd("~/Desktop/work/splicing")
+    # setwd("~/Desktop/work/splicing/muscle")
     # file = "S12_9-1-M.bam_specific_rc5_norm_rc0.05_n_gtex_184"
     ############################################################
     
@@ -830,7 +830,8 @@ splicing.read_novel_splice_events = function(file)
     splice_events = read.csv(file,stringsAsFactors=FALSE)
     splice_events$sample = sample
     splice_events = merge(splice_events,omim,by.x = "gene", by.y = "Gene",all.x = T)
-    splice_events = splice_events[,c("sample","gene","pos","annotation","read_count","norm_read_count","Omim")]
+    splice_events = splice_events[,c("sample","gene","pos","annotation","read_count","norm_read_count",
+                                     "n_gtex_seen","total_gtex_read_count","Omim")]
     write.csv(splice_events,file = paste0(sample,".csv"),row.names = F)
     return(splice_events)
 }
