@@ -806,6 +806,7 @@ splicing.read_novel_splice_events_dir = function()
         panel_genes = unique(c(panel_genes,get(p)))
     }
     events = events[events$gene %in% panel_genes,]
+    events$dup = c(duplicated(events$pos,fromLast=T) | duplicated(events$pos))
     
     eoutliers <- read.csv("~/Desktop/work/expression/outliers_panels/outliers.txt", stringsAsFactors=F)
     eoutliers = subset(eoutliers,select=c("Sample","Gene","Regulation","Abs_FC_cohort","Abs_FC_GTex"))

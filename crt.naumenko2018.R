@@ -572,7 +572,7 @@ dexpression = function()
 expression.outliers.table = function(for_panels = T, file.rpkms)
 {
     # DEBUG
-    for_panels = F
+    for_panels = T
     setwd("~/Desktop/work")
     file.rpkms = "rpkms.muscle.txt"
     # DEBUG
