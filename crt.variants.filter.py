@@ -1,4 +1,7 @@
 #!/bin/env python
+
+# reports variants only in muscular genes using csv report on rare variants
+
 import csv
 import sys
 import re
