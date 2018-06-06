@@ -305,11 +305,18 @@ mds_plot = function(refresh_files = F)
     i=1
     for (sname in sample_names)
     {
-        v_sname = strsplit(sname,"\\.")
-        sample_type = v_sname[[1]][3]
+        v_sname = strsplit(sname,"\\.")[[1]]
+        if (length(v_sname)>=3)
+        {
+            sample_type = v_sname[3]
+        }
+        else
+        {
+            sample_type = 'NA'
+        }
         sample_labels[i] = substr(sname,1,3) #i.e. S01
-        print(sname)
-        print(sample_type)
+        #print(sname)
+        #print(sample_type)
         if ((sample_type == "0005") || (sample_type == "0006")){
             sample_types[i]="GTEXBLOOD"
             sample_labels[i]=""
