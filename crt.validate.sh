@@ -24,7 +24,7 @@ bcftools filter -e "INFO/DP<10 || possible_rnaedit=1 || FILTER!='PASS'" $1 > $bn
 bgzip $bname.filtered.vcf
 tabix $bname.filtered.vcf.gz
 
-bcftools intersect -a $bname.filtered.vcf.gz -b $vpath/truth_regions.bed -header > $bname.filtered.in_truth_regions.vcf
+bedtools intersect -a $bname.filtered.vcf.gz -b $vpath/truth_regions.bed -header > $bname.filtered.in_truth_regions.vcf
 bgzip $bname.filtered.in_truth_regions.vcf
 tabix $bname.filtered.in_truth_regions.vcf.gz
 
