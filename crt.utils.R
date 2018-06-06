@@ -77,13 +77,17 @@ linkage_region7 = c("PEX11G", "C19orf45", "ZNF358", "MCOLN1", "PNPLA6", "CAMPSAP
 linkage_region8 = c("NDUFA7", "RPS28", "KANK3", "ANGPTL4", "RAB11B-AS1", "MIR4999", "RAB11B", "MARCH2", "HNRNPM", 
                     "PRAM1", "ZNF414", "MYO1F", "ADAMTS10", "ACTL9", "OR2Z1", "ZNF558", "MBD3L1", "OR1M1", "MUC16")
 
-gtex_rpkm_file = "/home/sergey/Desktop/stories/4_RNAseq_diagnostics/rnaseq_article/expression_plots/gtex.muscle_genes.rpkm.txt"
-
 protein_coding_genes <- read.table("~/cre/protein_coding_genes.txt", stringsAsFactors=F, header=T)
 protein_coding_genes.ens_ids <- read.table("~/cre/protein_coding_genes.ens_ids.txt", stringsAsFactors=F,header=T)
-omim = read.csv("~/Desktop/reference_tables/omim_inheritance.csv", sep=";", stringsAsFactors=FALSE)
-omim = subset(omim,select=c("Gene","Omim"))
 
+omim.file = "~/Desktop/reference_tables/omim_inheritance.csv"
+if (file.exists(omim.file))
+{
+    omim = read.csv(omim.file, sep=";", stringsAsFactors=FALSE)
+    omim = subset(omim,select=c("Gene","Omim"))
+}
+
+gtex_rpkm_file = "/home/sergey/Desktop/stories/4_RNAseq_diagnostics/rnaseq_article/expression_plots/gtex.muscle_genes.rpkm.txt"
 if (file.exists(gtex_rpkm_file))
 {
     gtex_rpkm = read.csv(gtex_rpkm_file, sep="", stringsAsFactors = F)
