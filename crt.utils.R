@@ -293,7 +293,7 @@ merge_row_names = function(df1,df2)
 
 mds_plot = function(refresh_files = F)
 {
-    refresh_files=F
+    #refresh_files=F
     print("Reading counts ...")
     counts = read.feature_counts_dir(update=refresh_files)
     #group = factor(c(rep(1,ncol(counts))))
