@@ -26,6 +26,7 @@ with open(original_report,'rb') as f_original_report:
 			'SYNE2','SYT2','TCAP','TIA1','TMEM43','TMEM5','TNNT1','TNPO3','TOR1AIP1','TPM2','TPM3','TRAPPC11','TRIM32','TRIM54','TRIM63','TTN','VCP','VMA21']
 
 	    f_panel_report.write('"'+'","'.join(header)+'"')
+	    f_panel_report.write('\n')
 	    for row in reader:
 		if (row['Gene'] in muscle_genes):
 		    row['UCSC_Link'] = 'UCSC_Link' #a bug with quotes
