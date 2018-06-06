@@ -325,7 +325,14 @@ mds_plot = function(refresh_files = F)
             sample_labels[i]=""
         }else if (grepl("GTEX",sname)){
             sample_types[i]="GTEX"
-            sample_labels[i] = v_sname[5] #i.e.2XCAL
+            if ( length(v_sname) >= 5 )
+            {
+                sample_labels[i] = v_sname[5] #i.e.2XCAL
+            }
+            else
+            {
+                sample_labels[i] = v_sname[2]
+            }
         }else if (grepl("Myo",sname)){
             sample_types[i]="Myo"
         }else if (grepl("F",sname)){
