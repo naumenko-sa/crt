@@ -305,40 +305,41 @@ mds_plot = function(refresh_files = F)
     i=1
     for (sname in sample_names)
     {
-        sample_type = substr(sname,12,15)
+        v_sname = strsplit(sname,"\\.")
+        sample_type = v_sname[[1]][3]
         sample_labels[i] = substr(sname,1,3) #i.e. S01
         
         if (sample_type == "0005" || sample_type == "0006")
         {
-            sample_names[i]="GTEXBLOOD"
+            sample_types[i]="GTEXBLOOD"
             sample_labels[i]=""
         }
         else if (sample_type == "0008")
         {
-            sample_names[i]="GTEXFIBRO"
+            sample_types[i]="GTEXFIBRO"
             sample_labels[i]=""
         }
         else if (grepl("GTEX",sname))
         {
-            sample_names[i]="GTEX"
+            sample_types[i]="GTEX"
             sample_labels[i] = substr(sname,20,24) #i.e. S01
         }
         else if (grepl("Myo",sname))
         {
-            sample_names[i]="Myo"
+            sample_types[i]="Myo"
         }
         else if (grepl("F",sname))
         {
-            sample_names[i]="F"
+            sample_types[i]="F"
         }
         else
         {
-            sample_names[i]="M"
+            sample_types[i]="M"
         }
         i=i+1
     }
-    print(sample_names)
-    group = factor(sample_names)    
+    print(sample_types)
+    group = factor(sample_types)    
     
     v_colors = c()
     for (i in 1:length(group))
@@ -381,8 +382,25 @@ mds_plot = function(refresh_files = F)
     )
     plot(mds,
          col = v_colors,
-         pch=19,xlab = "MDS dimension 1", 
+         pch=19,
+         xlab = "MDS dimension 1", 
          ylab = "MDS dimension 2")
+    
+    legend("topright",
+           title="Tissue",
+           c("GTEx_blood",
+              "Fibroblasts",
+              "GTEx_fibroblast",
+              "Myotubes",
+              "Muscle",
+              "GTEx_muscle"
+               ),
+            fill=c("cornflowerblue",
+                    "orange",
+                   "yellow",
+                   "red",
+                   "chartreuse",
+                   "darkgreen"))
     
     dev.off()
     
