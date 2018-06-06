@@ -567,16 +567,18 @@ dexpression = function()
 }
 
 # output expression outliers as a table eoutliers.txt
-# test is within cohort, fold change reported vs cohort and gtex
 # this test is too sensitive to apply for all protein coding genes
+# decided to compare with GTEx rpkms not with cohort,
+# fold change reported vs cohort and gtex
 expression.outliers.table = function(for_panels = T, file.rpkms)
 {
     # DEBUG
-    for_panels = T
-    setwd("~/Desktop/work")
-    file.rpkms = "rpkms.muscle.txt"
+    #for_panels = T
+    #setwd("~/Desktop/work/expression/muscle")
+    #file.rpkms = "rpkms.muscle.txt"
     # DEBUG
-    
+  
+    gtex.rpkms = read.table("~/Desktop/work/expression/gtex/gtex.50.rpkms.txt")  
     output = gsub("txt","expression.outliers.txt",file.rpkms)
     cat("Sample,Gene_panel_name,Gene,Regulation,Abs_FC_cohort,Abs_FC_GTex,Pvalue",file=output,append=F,sep="\n")
     
@@ -610,40 +612,51 @@ expression.outliers.table = function(for_panels = T, file.rpkms)
     {
         for (gene in gene_list)
         {
-            expression4gene.table(gene,sample,counts,gene_panel_name,output,fc_threshold)
+            expression4gene.table(gene,sample,counts,gene_panel_name,output,fc_threshold,gtex.rpkms)
         }
     }
 }
 
-expression4gene.table = function(gene,sample,counts,gene_panel_name,output,fc_threshold)
+expression4gene.table = function(gene,sample,counts,gene_panel_name,output,fc_threshold,gtex.rpkms)
 {
-    #gene = "AQP1"
-    #sample = "S08_5.1.F"
+    #gene = "DMD"
+    #sample = "S12_9.1.M"
     
     gene_expression = counts[counts$external_gene_name == gene,]
+    gtex_gene_expression = gtex.rpkms[gtex.rpkms$external_gene_name == gene,]
     
     if (nrow(gene_expression)>1)
     {
         gene_expression = head(gene_expression,1)
     }
     
+    if (nrow(gtex_gene_expression)>1)
+    {
+        gtex_gene_expression = head(gtex_gene_expression,1)
+    }
+    
     if (nrow(gene_expression)>0)
     {
         gene_expression$external_gene_name = NULL
-        v_muscle = as.numeric(gene_expression[1,])
-        muscle_mean.cohort = mean(v_muscle)
-    
+        gtex_gene_expression$external_gene_name = NULL
+        
+        v_cohort = as.numeric(gene_expression[1,])
+        v_gtex = as.numeric(gtex_gene_expression[1,])
+        
+        v_cohort.mean = mean(v_cohort)
+        v_gtex.mean = mean(v_gtex)
+        
         muscle_mean.gtex = as.numeric(gtex_rpkm[gtex_rpkm$gene_name %in% c(gene),]$GTEX)
     
         expression_sample = gene_expression[[sample]]
         #significance
-        ttest = t.test(v_muscle,mu=expression_sample)
+        ttest = t.test(v_gtex,mu=expression_sample)
     
-        if ((muscle_mean.cohort > 0) && (expression_sample > 0)){
-            fold_change.cohort = (max(muscle_mean.cohort, expression_sample)/min(muscle_mean.cohort,expression_sample))
-            fold_change.gtex = (max(muscle_mean.gtex, expression_sample)/min(muscle_mean.gtex,expression_sample))
+        if ((v_cohort.mean > 0) && (expression_sample > 0)){
+            fold_change.cohort = (max(v_cohort.mean, expression_sample)/min(v_cohort.mean,expression_sample))
+            fold_change.gtex = (max(v_gtex.mean, expression_sample)/min(v_gtex.mean,expression_sample))
         
-            if (expression_sample > muscle_mean.cohort){
+            if (expression_sample > v_gtex.mean){
                 regulation = "UP"
             }else{
                 regulation = "DOWN"

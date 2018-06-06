@@ -221,6 +221,7 @@ read.rpkm_counts_dir = function(update=F)
         counts = feature_counts2rpkm(files[1])
         for (file in tail(files,-1))
         {
+            print(file)
             counts_buf = feature_counts2rpkm(file)
             counts = merge_row_names(counts,counts_buf)
         }
