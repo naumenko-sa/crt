@@ -309,31 +309,20 @@ mds_plot = function(refresh_files = F)
         sample_type = v_sname[[1]][3]
         sample_labels[i] = substr(sname,1,3) #i.e. S01
         
-        if (sample_type == "0005" || sample_type == "0006")
-        {
+        if ((sample_type == "0005") || (sample_type == "0006")){
             sample_types[i]="GTEXBLOOD"
             sample_labels[i]=""
-        }
-        else if (sample_type == "0008")
-        {
+        }else if (sample_type == "0008"){
             sample_types[i]="GTEXFIBRO"
             sample_labels[i]=""
-        }
-        else if (grepl("GTEX",sname))
-        {
+        }else if (grepl("GTEX",sname)){
             sample_types[i]="GTEX"
-            sample_labels[i] = substr(sname,20,24) #i.e. S01
-        }
-        else if (grepl("Myo",sname))
-        {
+            sample_labels[i] = v_sname[5] #i.e.2XCAL
+        }else if (grepl("Myo",sname)){
             sample_types[i]="Myo"
-        }
-        else if (grepl("F",sname))
-        {
+        }else if (grepl("F",sname)){
             sample_types[i]="F"
-        }
-        else
-        {
+        }else{
             sample_types[i]="M"
         }
         i=i+1
