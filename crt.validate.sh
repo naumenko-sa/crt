@@ -17,23 +17,28 @@ then
 fi
 
 vpath=/hpf/largeprojects/ccmbio/naumenko/tools/bcbio/genomes/Hsapiens/GRCh37/validation/giab-NA12878
+protein_coding_exons.bed=/home/naumenko/Desktop/reference_tables/protein_coding_genes.exons.fixed.bed
 
 bname=`basename $1 .vcf.gz`
 
-bcftools filter -e "INFO/DP<10 || possible_rnaedit=1 || FILTER!='PASS'" $1 > $bname.filtered.vcf
+bcftools filter -e "INFO/DP<10 || possible_rnaedit=1 || FILTER!='PASS'" $1 > $bname.nornaediting.vcf
+bgzip $bname.nornaediting.vcf
+tabix $bname.nornaediting.vcf.gz
+
+bedtools intersect -a $bname.nornaediting.vcf.gz -b $vpath/truth_regions.bed -header > $bname.in_truth_regions.vcf
+bgzip $bname.in_truth_regions.vcf
+tabix $bname.in_truth_regions.vcf.gz
+
+bedtools intersect -a $bname.in_truth_regions.vcf.gz -b ${protein_coding_exons.bed} -header > $bname.filtered.vcf
 bgzip $bname.filtered.vcf
 tabix $bname.filtered.vcf.gz
 
-bedtools intersect -a $bname.filtered.vcf.gz -b $vpath/truth_regions.bed -header > $bname.filtered.in_truth_regions.vcf
-bgzip $bname.filtered.in_truth_regions.vcf
-tabix $bname.filtered.in_truth_regions.vcf.gz
-
 #uses PASS variants only
-  export RTG_JAVA_OPTS='-Xms750m' && export RTG_MEM=9100m && \
+export RTG_JAVA_OPTS='-Xms750m' && export RTG_MEM=9100m && \
    rtg vcfeval --threads 5 \
    -b $vpath/truth_small_variants.vcf.gz \
    --bed-regions $vpath/truth_regions.bed \
-   -c $bname.filtered.in_truth_regions.vcf.gz \
+   -c $bname.filtered.vcf.gz \
    -t /hpf/largeprojects/ccmbio/naumenko/tools/bcbio/genomes/Hsapiens/GRCh37/rtg/GRCh37.sdf \
    -o rtg --vcf-score-field='GQ' 
 #   --all-records
