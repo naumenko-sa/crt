@@ -289,25 +289,27 @@ merge_row_names = function(df1,df2)
 
 mds_plot = function(refresh_files = F)
 {
+    refresh_files=F
     print("Reading counts ...")
-    library(edgeR)   
     counts = read.feature_counts_dir(update=refresh_files)
     #group = factor(c(rep(1,ncol(counts))))
     
     sample_names = colnames(counts)
     sample_labels = colnames(counts)
+    sample_types = colnames(counts)
     
     i=1
     for (sname in sample_names)
     {
+        sample_type = substr(sname,12,15)
         sample_labels[i] = substr(sname,1,3) #i.e. S01
         
-        if (grepl("GTEXBLOOD",sname))
+        if (sample_type == "0005" || sample_type == "0006")
         {
             sample_names[i]="GTEXBLOOD"
             sample_labels[i]=""
         }
-        else if (grepl("GTEXFIBRO",sname))
+        else if (sample_type == "0008")
         {
             sample_names[i]="GTEXFIBRO"
             sample_labels[i]=""
@@ -315,7 +317,7 @@ mds_plot = function(refresh_files = F)
         else if (grepl("GTEX",sname))
         {
             sample_names[i]="GTEX"
-            sample_labels[i]=""
+            sample_labels[i] = substr(sname,20,24) #i.e. S01
         }
         else if (grepl("Myo",sname))
         {
@@ -355,9 +357,9 @@ mds_plot = function(refresh_files = F)
     
     print("Subsetting protein coding genes ...")
     #a file with ENSEMBL IDs
-    if (file.exists("protein_coding_genes.list"))
+    if (file.exists("~/Desktop/reference_tables/protein_coding_genes.list"))
     {
-        protein_coding_genes <- read.csv("protein_coding_genes.list", sep="", stringsAsFactors=FALSE)
+        protein_coding_genes <- read.csv("~/Desktop/reference_tables/protein_coding_genes.list", sep="", stringsAsFactors=FALSE)
         counts = counts[row.names(counts) %in% protein_coding_genes$ENS_GENE_ID,]
     }else{
         print("Please provide protein_coding_genes.list with ENS_GENE_ID")
@@ -838,6 +840,6 @@ splicing.read_novel_splice_events = function(file)
     return(splice_events)
 }
 
-#args = commandArgs(trailingOnly = T)
-#print(args[1])
-#mds_plot(refresh_files = as.logical(args[1]))
+args = commandArgs(trailingOnly = T)
+print(args[1])
+mds_plot(refresh_files = as.logical(args[1]))
