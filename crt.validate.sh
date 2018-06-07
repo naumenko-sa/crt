@@ -17,7 +17,7 @@ then
 fi
 
 vpath=/hpf/largeprojects/ccmbio/naumenko/tools/bcbio/genomes/Hsapiens/GRCh37/validation/giab-NA12878
-protein_coding_exons.bed=/home/naumenko/Desktop/reference_tables/protein_coding_genes.exons.fixed.bed
+protein_coding_exons=/home/naumenko/Desktop/reference_tables/protein_coding_genes.exons.fixed.bed
 
 bname=`basename $1 .vcf.gz`
 
@@ -29,7 +29,7 @@ bedtools intersect -a $bname.nornaediting.vcf.gz -b $vpath/truth_regions.bed -he
 bgzip $bname.in_truth_regions.vcf
 tabix $bname.in_truth_regions.vcf.gz
 
-bedtools intersect -a $bname.in_truth_regions.vcf.gz -b ${protein_coding_exons.bed} -header > $bname.filtered.vcf
+bedtools intersect -a $bname.in_truth_regions.vcf.gz -b $protein_coding_exons -header > $bname.filtered.vcf
 bgzip $bname.filtered.vcf
 tabix $bname.filtered.vcf.gz
 
