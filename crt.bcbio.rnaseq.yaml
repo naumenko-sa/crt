@@ -2,6 +2,8 @@ details:
 - algorithm:
     aligner: star
     variantcaller: gatk-haplotype
+    tools_off:
+    - gatk4
   analysis: RNA-seq
   description: project
   files:
