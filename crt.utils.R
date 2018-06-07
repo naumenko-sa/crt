@@ -413,6 +413,83 @@ mds_plot = function(refresh_files = F)
     dev.off()
 }
 
+mds_plot_colored_by_muscle_age = function()
+{
+    
+    setwd("~/Desktop/work/mds/")
+    muscle_samples = read.csv("muscle_samples.csv", stringsAsFactors=F)
+    muscle_samples$Sample_name = gsub("-",".",muscle_samples$Sample_name)
+    
+    muscle_samples$Bioinf_sample_id = paste0(muscle_samples$Bioinf_sample_id,"_",muscle_samples$Sample_name)
+    
+    refresh_files=T
+    print("Reading counts ...")
+    counts = read.feature_counts_dir(update=refresh_files)
+    #group = factor(c(rep(1,ncol(counts))))
+    
+    sample_names = colnames(counts)
+    
+    i=1
+    
+    group = factor(rep(1,length(sample_names)))    
+    
+    v_colors = c()
+    for (i in 1:length(group))
+    {
+        sample_id = muscle_samples$Bioinf_sample_id[i]
+        v_colors[i] = muscle_samples$Color[i]
+    }
+    
+    print("Subsetting protein coding genes ...")
+    #a file with ENSEMBL IDs
+    if (file.exists("~/Desktop/reference_tables/protein_coding_genes.list"))
+    {
+        protein_coding_genes <- read.csv("~/Desktop/reference_tables/protein_coding_genes.list", sep="", stringsAsFactors=FALSE)
+        counts = counts[row.names(counts) %in% protein_coding_genes$ENS_GENE_ID,]
+    }else{
+        print("Please provide protein_coding_genes.list with ENS_GENE_ID")
+    }
+    
+    print("Removing zeroes ...")
+    
+    y=DGEList(counts=counts,group=group,remove.zeros = T)
+    png("mds.muscle_age.png",res=300,width=2000,height=2000)
+    
+    print("Plotting ...")
+    
+    mds = plotMDS(y,
+                  labels=sample_names
+    )
+    plot(mds,
+         col = v_colors,
+         pch=19,
+         xlab = "MDS dimension 1", 
+         ylab = "MDS dimension 2")
+    
+    legend("bottomleft",
+           title="Tissue age",
+           c("10 days",
+             "<=2 y",
+             "2-10y",
+             "10-20y",
+             "20-35y",
+             ">35y"
+           ),
+           fill=c("cornflowerblue",
+                  "yellow",
+                  "orange",
+                  "red",
+                  "chartreuse",
+                  "darkgreen"))
+    
+    dev.off()
+    
+    png("mds.muscle_age.labels.png",res=300,width=2000,height=2000)
+    plotMDS(y, labels=sample_names)
+    dev.off()
+    
+}
+
 #  prepares an expression profile for GSEA
 #  http://software.broadinstitute.org/cancer/software/gsea/wiki/index.php/Data_formats#Expression_Data_Formats
 #  for GSEA it is important to report all genes - genome wide
@@ -866,6 +943,6 @@ splicing.read_novel_splice_events = function(file)
     return(splice_events)
 }
 
-args = commandArgs(trailingOnly = T)
-print(args[1])
-mds_plot(refresh_files = as.logical(args[1]))
+#args = commandArgs(trailingOnly = T)
+#print(args[1])
+#mds_plot(refresh_files = as.logical(args[1]))

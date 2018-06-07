@@ -740,10 +740,29 @@ expression.outliers.trio_analysis = function()
     print(paste0(nrow(test)," outlier myotubes genes detected in 10 fibroblasts"))
 }
 
+expression.tissue_comparison.tableS12 = function()
+{
+    rpkms.muscle = read.csv("rpkms.muscle.txt", sep="", stringsAsFactors=F)
+    rpkms.muscle = rpkms.muscle[rpkms.muscle$external_gene_name %in% protein_coding_genes$Gene_name,]
+    
+    rpkms.gtex_blood = read.csv("rpkms.gtex_blood.txt", sep="", stringsAsFactors=F)
+    rpkms.gtex_blood = rpkms.gtex_blood[rpkms.gtex_blood$external_gene_name %in% protein_coding_genes$Gene_name,]
+    
+    rpkms.muscle$external_gene_name = NULL
+    rpkms.gtex_blood$external_gene_name = NULL
+    
+    rpkms.muscle$avg = rowMeans(rpkms.muscle)
+    rpkms.gtex_blood$avg = rowMeans(rpkms.gtex_blood)
+    
+    rpkms.muscle = rpkms.muscle[rpkms.muscle$avg > 1,]
+    
+    rpkms.gtex_blood = rpkms.gtex_blood[rpkms.gtex_blood$avg > 1,]
+    
+    test = rpkms.gtex_blood[row.names(rpkms.gtex_blood) %in% row.names(rpkms.muscle),]
+}
 
 # among genes expressed in muscle, what % is expressed in myo w > 10x coverage
 # trios = families 9, 12, 14-1, 14-2, 17
-# Table S12. 
 expression.tableS12.tissues.all_genes.average = function()
 {
     trios = paste0(c("12.1","14.1","14.2","17.1","18.1","26.1","28.1","5.1","6.1","9.1"),".Myo")
