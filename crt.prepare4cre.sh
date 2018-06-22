@@ -8,7 +8,8 @@
 #50g is crucial -20,30 crashes sometimes
 
 # prepares bcbio rna-seq variant for cre report generation
-# $1 = family = project = case = S11 (example)
+# family = project = case = S11 (example)
+# clenaup = 1
 
 
 function f_cleanup
