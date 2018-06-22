@@ -5,20 +5,19 @@
 #PBS -d .
 #PBS -l vmem=50g,mem=50g
 
-#50g is crucial -20,30 crashes sometimes
+# 50g is crucial -20,30 crashes sometimes
 
 # prepares bcbio rna-seq variant for cre report generation
-# family = project = case = S11 (example)
+# case = family = project = S11 (example)
 # clenaup = 1
-
 
 function f_cleanup
 {
     # better to look for project-summary than hardcode the year
     # keep bam files for new samples
-    cd $family
+    cd $case
     result_dir=`find final -name project-summary.yaml | sed s/"\/project-summary.yaml"//`
-    echo $result_dir
+    echo "Result dir:" $result_dir
     
     #just to be on the safe side
     if [ -d $result_dir ]
@@ -27,10 +26,11 @@ function f_cleanup
 	rmdir final
 	
 	cd ..
-	rm -rf ${family}/work
-	cd $family
+	rm -rf ${case}/work
+	cd $case
 	
 	#rename bam files to match sample names
+	
 	for f in *ready.bam;do mv $f `echo $f | sed s/"-ready"//`;done;
 	for f in *ready.bam.bai;do mv $f `echo $f | sed s/"-ready"//`;done;
 	            
@@ -47,22 +47,27 @@ function f_cleanup
     cd ..
 }
 
+function f_get_sample_name
+{
+    cd $case
+    sample=`cat samples.txt | head -n1`
+    echo "Sample: " $sample
+    export sample=$sample
+    cd ..
+}
 
 function f_prepare
 {
-
     #downstream scripts use $vcf for current vcf file
-    cd $family
-    sample=`cat samples.txt | head -n1`
-    echo "Sample: " $sample
-    original_vcf=${family}-gatk-haplotype-annotated.vcf.gz
+    cd $case
+    original_vcf=${case}-gatk-haplotype-annotated.vcf.gz
 
     # to run cre immediately after that
-    mkdir $family
+    mkdir $case
     
-    cp $original_vcf ${original_vcf}.tbi $family
+    cp $original_vcf ${original_vcf}.tbi $case
 
-    cd $family
+    cd $case
     
     gunzip -c $original_vcf | grep "^#"  > $sample.vcf
     gunzip -c $original_vcf | grep -v "^#" | grep PASS | grep -v possible_rnaedit  >> $sample.vcf
@@ -75,22 +80,23 @@ function f_prepare
     cre.gemini_load.sh $sample.decomposed.vepeffects.vcf.gz
     #gemini.gemini2txt.sh $sample.decomposed.vepeffects.db
 
-    mv $sample.decomposed.vepeffects.db ${family}-ensemble.db
-    mv $sample.decomposed.vepeffects.vcf.gz ${family}-ensemble-annotated-decomposed.vcf.gz
-    mv $sample.decomposed.vepeffects.vcf.gz.tbi ${family}-ensemble-annotated-decomposed.vcf.gz.tbi
+    mv $sample.decomposed.vepeffects.db ${case}-ensemble.db
+    mv $sample.decomposed.vepeffects.vcf.gz ${case}-ensemble-annotated-decomposed.vcf.gz
+    mv $sample.decomposed.vepeffects.vcf.gz.tbi ${case}-ensemble-annotated-decomposed.vcf.gz.tbi
 
-    ln -s ${family}-ensemble-annotated-decomposed.vcf.gz ${family}-gatk-haplotype-annotated-decomposed.vcf.gz
-    ln -s ${family}-ensemble-annotated-decomposed.vcf.gz.tbi ${family}-gatk-haplotype-annotated-decomposed.vcf.gz.tbi
+    ln -s ${case}-ensemble-annotated-decomposed.vcf.gz ${case}-gatk-haplotype-annotated-decomposed.vcf.gz
+    ln -s ${case}-ensemble-annotated-decomposed.vcf.gz.tbi ${case}-gatk-haplotype-annotated-decomposed.vcf.gz.tbi
     
     cd ..
     cd ..
 }
 
-if [ -z $family ] || [ ! -d $family ]
+if [ -z $case ] || [ ! -d $case ]
 then
-    echo "Project (family) folder does not exist. Exiting"
+    echo "Case (project,family) folder does not exist. Exiting"
     exit 1
 else
+    f_get_sample_name
     if [ $cleanup -eq 1 ]
     then
         f_cleanup
