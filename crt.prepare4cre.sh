@@ -23,16 +23,18 @@ function f_cleanup
     if [ -d $result_dir ]
     then
 	mv final/*/* .
-	rmdir final
 	
 	cd ..
 	rm -rf ${case}/work
+	rm -rf ${case}/final
+	rm -rf ${case}/transcriptome
 	cd $case
-	
+
 	#rename bam files to match sample names
-	
 	for f in *ready.bam;do mv $f `echo $f | sed s/"-ready"//`;done;
 	for f in *ready.bam.bai;do mv $f `echo $f | sed s/"-ready"//`;done;
+
+	rm ${sample}-transcriptome.bam
 	            
 	#make bam files read only
 	for f in *.bam;do chmod 444 $f;done;
@@ -77,7 +79,7 @@ function f_prepare
 
     cre.vt.decompose.sh $sample.vcf.gz
     cre.vep.sh $sample.decomposed.vcf.gz
-    cre.gemini_load.sh $sample.decomposed.vepeffects.vcf.gz
+    cre.gemini_load.sh $sample.decomposed.vepeffects.vcf.gz 10
     #gemini.gemini2txt.sh $sample.decomposed.vepeffects.db
 
     mv $sample.decomposed.vepeffects.db ${case}-ensemble.db
