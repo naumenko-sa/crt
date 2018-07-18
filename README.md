@@ -82,9 +82,7 @@ result: SpliceJunction.db
 
 result: junctions from a bam file (files) added to SpliceJunctions.db
 
-4. Filter junctions: a case vs controls.
-
-To print out splice sites only seen in a "disease" sample and not in any GTEx sample use:
+4. Filter out junctions present in GTEx controls, report rare junctions in a sample
 
 - [path2crt]/crt.filter_junctions.sh file.bam
 - or 
