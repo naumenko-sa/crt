@@ -950,7 +950,8 @@ TableS9.Splicing.Panels.Frequency = function()
     colnames(frequencies) = c("pos","frequency")
     events = merge(events,frequencies,by.x = "pos", by.y = "pos",all.x = T)
     
-    events$tissue = decode_tissue_type(events$sample)
+    events$tissue = ''
+    events$tissue = apply(events[,c("sample","tissue")],1,decode_tissue_type)
     
     #events$dup = c(duplicated(events$pos,fromLast=T) | duplicated(events$pos))
     
@@ -964,6 +965,7 @@ TableS9.Splicing.Panels.Frequency = function()
     res$Omim = NULL
     write.csv(res,"TableS9.Splicing.Panels.Frequency.csv",quote=T,row.names = F)
 }
+
 splicing.read_novel_splice_events = function(file)
 {
     ############################################################
