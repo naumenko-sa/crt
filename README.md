@@ -86,6 +86,8 @@ result: junctions from a bam file (files) added to SpliceJunctions.db
 
 To print out splice sites only seen in a "disease" sample and not in any GTEx sample use:
 
+- [path2crt]/crt.filter_junctions.sh file.bam
+- or 
 ``` 
 python3 [path2crt]/FilterSpliceJunctions.py \
     --sample [sample.bam] \

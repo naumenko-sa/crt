@@ -148,7 +148,8 @@ def getJunctionID(cur, chrom, start, end, flank):
 	if res:
 		ROWID, annotation = res
 
-	# if no such junction determine annotation of new junction: novel junction, only one annotated or a case of exon skipping (both annotated)?
+	# if no such junction determine annotation of new junction: 
+	# novel junction, only one annotated or a case of exon skipping (both annotated)?
 	else:
 
 		if flank > 0:

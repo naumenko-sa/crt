@@ -413,16 +413,19 @@ mds_plot = function(refresh_files = F)
     dev.off()
 }
 
+# fig 1B - expression profiles in muscular samples vs sample age
+# input = TableS1.Samples
 mds_plot_colored_by_muscle_age = function()
 {
-    
     setwd("~/Desktop/work/mds/")
-    muscle_samples = read.csv("muscle_samples.csv", stringsAsFactors=F)
+
+    muscle_samples = read.csv("TableS1.Samples.csv", stringsAsFactors=F)
     muscle_samples$Sample_name = gsub("-",".",muscle_samples$Sample_name)
-    
     muscle_samples$Bioinf_sample_id = paste0(muscle_samples$Bioinf_sample_id,"_",muscle_samples$Sample_name)
+    muscle_samples = muscle_samples[muscle_samples$Tissue_type == "Muscle",]
     
     refresh_files=T
+    
     print("Reading counts ...")
     counts = read.feature_counts_dir(update=refresh_files)
     #group = factor(c(rep(1,ncol(counts))))
@@ -437,7 +440,22 @@ mds_plot_colored_by_muscle_age = function()
     for (i in 1:length(group))
     {
         sample_id = muscle_samples$Bioinf_sample_id[i]
-        v_colors[i] = muscle_samples$Color[i]
+        #v_colors[i] = muscle_samples$Color[i]
+        age = muscle_samples$Age 
+        if (age == "10 days"){
+           clr = "cornflowerblue"
+        }else if (age == "<2"){
+           clr = "yellow"
+        }else if (is.numeric(age) && age <=10){
+           clr = "orange"
+        }else if (is.numeric(age) && age <=20){
+           clr = "red"
+        }else if (is.numeric(age) && age <=35){
+           clr = "charatreuse"
+        }else{
+           clr = darkgreen
+        }
+        v_colors[i] = clr
     }
     
     print("Subsetting protein coding genes ...")
@@ -453,6 +471,7 @@ mds_plot_colored_by_muscle_age = function()
     print("Removing zeroes ...")
     
     y=DGEList(counts=counts,group=group,remove.zeros = T)
+    
     png("mds.muscle_age.png",res=300,width=2000,height=2000)
     
     print("Plotting ...")
@@ -487,6 +506,7 @@ mds_plot_colored_by_muscle_age = function()
     png("mds.muscle_age.labels.png",res=300,width=2000,height=2000)
     plotMDS(y, labels=sample_names)
     dev.off()
+    
     
 }
 
@@ -889,9 +909,22 @@ coverage_plot = function ()
     }
 }
 
-# statistics based on the output of crt.filter_junctions.sh
-splicing.read_novel_splice_events_dir = function()
+decode_tissue_type = function (row)
 {
+    if (grepl("F",row[1])){
+       tissue = "Fibroblast"
+    }else if (grepl("Myo",row[1])){
+       tissue = "Myotubes"
+    }else{
+        tissue = "Muscle" 
+    }
+    return(tissue)
+}
+
+# statistics based on the output of crt.filter_junctions.sh
+TableS9.Splicing.Panels.Frequency = function()
+{
+    setwd("~/Desktop/work/splicing")
     files = list.files(".","*n_gtex_184")
     events = splicing.read_novel_splice_events(files[1])
     for (file in tail(files,-1))
@@ -912,7 +945,14 @@ splicing.read_novel_splice_events_dir = function()
         panel_genes = unique(c(panel_genes,get(p)))
     }
     events = events[events$gene %in% panel_genes,]
-    events$dup = c(duplicated(events$pos,fromLast=T) | duplicated(events$pos))
+    
+    frequencies = as.data.frame(table(events$pos))
+    colnames(frequencies) = c("pos","frequency")
+    events = merge(events,frequencies,by.x = "pos", by.y = "pos",all.x = T)
+    
+    events$tissue = decode_tissue_type(events$sample)
+    
+    #events$dup = c(duplicated(events$pos,fromLast=T) | duplicated(events$pos))
     
     eoutliers <- read.csv("~/Desktop/work/expression/outliers_panels/outliers.txt", stringsAsFactors=F)
     eoutliers = subset(eoutliers,select=c("Sample","Gene","Regulation","Abs_FC_cohort","Abs_FC_GTex"))
@@ -922,7 +962,7 @@ splicing.read_novel_splice_events_dir = function()
     res = merge(events,eoutliers,by.x = c("sample","gene"),by.y = c("Sample","Gene"),all.x=T,all.y=F)
     
     res$Omim = NULL
-    write.csv(res,"splicing.gene_panels.csv",quote=T,row.names = F)
+    write.csv(res,"TableS9.Splicing.Panels.Frequency.csv",quote=T,row.names = F)
 }
 splicing.read_novel_splice_events = function(file)
 {
@@ -936,10 +976,11 @@ splicing.read_novel_splice_events = function(file)
     print(sample)
     splice_events = read.csv(file,stringsAsFactors=FALSE)
     splice_events$sample = sample
-    splice_events = merge(splice_events,omim,by.x = "gene", by.y = "Gene",all.x = T)
+    #splice_events = merge(splice_events,omim,by.x = "gene", by.y = "Gene",all.x = T)
+    splice_events$Omim=""
     splice_events = splice_events[,c("sample","gene","pos","annotation","read_count","norm_read_count",
                                      "n_gtex_seen","total_gtex_read_count","Omim")]
-    write.csv(splice_events,file = paste0(sample,".csv"),row.names = F)
+    #write.csv(splice_events,file = paste0(sample,".csv"),row.names = F)
     return(splice_events)
 }
 
