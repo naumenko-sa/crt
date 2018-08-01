@@ -1250,7 +1250,7 @@ expression4gene = function(gene,sample,counts)
 }
 
 #calculate expression variability for genes downregulated in family gor1
-gor1.expression_variability()
+gor1.expression_variability = function()
 {
     gor1_panel = c("C2","CACNB2","CD70","CKB","CTGF","CXCL14", "EBF2", "EPB41L3", "F2R", "FABP3", 
                    "FAT3", "HES1","HSPB7", "IGFBP7", "ITGA8", "KCNE4", "MAMDC2", "NDUFA4L2","PCDHGB6", "PCSK9",
@@ -1261,7 +1261,7 @@ gor1.expression_variability()
     expression_variability(gor1_panel,rpkm.file,tissue)
 }
 
-expression.variability.tableS12()
+expression.variability.tableS12 = function()
 {
     panel = c("DMD","NEB","ACTA1","LMNA","RYR1","MTM1","KCNIP4","FKRP","CAV3","LAMA2")
     for (tissue in c("fibro","myo","muscle"))
