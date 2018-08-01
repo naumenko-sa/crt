@@ -996,7 +996,7 @@ expression4gene.table = function(gene,sample,counts,gene_panel_name,output,fc_th
 }
 
 #detect expression outliers among similar samples and plot pictures
-expression_outliers.pictures()
+expression_outliers.pictures = function()
 {
     setwd("~/Desktop/work")
     #read.rpkm_counts_dir()
