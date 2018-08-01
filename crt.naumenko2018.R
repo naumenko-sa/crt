@@ -17,6 +17,331 @@ init = function()
 }
 
 
+fig1A.mds_plot = function(refresh_files = F)
+{
+    #refresh_files=F
+    print("Reading counts ...")
+    counts = read.feature_counts_dir(update=refresh_files)
+    #group = factor(c(rep(1,ncol(counts))))
+  
+    sample_names = colnames(counts)
+    sample_labels = colnames(counts)
+    sample_types = colnames(counts)
+  
+    i=1
+    for (sname in sample_names)
+    {
+        v_sname = strsplit(sname,"\\.")[[1]]
+        if (length(v_sname)>=3)
+        {
+          sample_type = v_sname[3]
+        }
+        else
+        {
+            sample_type = 'NA'
+        }
+        sample_labels[i] = substr(sname,1,3) #i.e. S01
+        #print(sname)
+        #print(sample_type)
+        if ((sample_type == "0005") || (sample_type == "0006")){
+            sample_types[i]="GTEXBLOOD"
+            sample_labels[i]=""
+        }else if (sample_type == "0008"){
+            sample_types[i]="GTEXFIBRO"
+            sample_labels[i]=""
+        }else if (grepl("GTEX",sname)){
+            sample_types[i]="GTEX"
+      
+            if (length(v_sname) >= 5 ){
+                sample_labels[i] = v_sname[5] #i.e.2XCAL
+            }else{
+              sample_labels[i] = v_sname[2]
+            }
+        }else if (grepl("Myo",sname)){
+            sample_types[i]="Myo"
+        }else if (grepl("F",sname)){
+            sample_types[i]="F"
+        }else{
+            sample_types[i]="M"
+        }
+        i=i+1
+    }
+    print(sample_types)
+    group = factor(sample_types)    
+  
+    v_colors = c()
+    for (i in 1:length(group))
+    {
+        if(group[i] == "F"){
+          clr = "orange"
+        }else if (group[i] == "Myo"){
+          clr = "red"
+        }else if (group[i] == "GTEX"){
+          clr = "darkgreen"
+        }else if (group[i] == "GTEXBLOOD"){
+          clr = "cornflowerblue"
+        }else if (group[i] == "GTEXFIBRO"){
+          clr = "yellow"
+        }else{ #muscle
+          clr = "chartreuse"
+        }
+        v_colors[i] = clr
+    }
+  
+    print("Subsetting protein coding genes ...")
+    #a file with ENSEMBL IDs
+    if (file.exists("~/Desktop/reference_tables/protein_coding_genes.list"))
+    {
+        protein_coding_genes <- read.csv("~/Desktop/reference_tables/protein_coding_genes.list", sep="", stringsAsFactors=FALSE)
+        counts = counts[row.names(counts) %in% protein_coding_genes$ENS_GENE_ID,]
+    }else{
+        print("Please provide protein_coding_genes.list with ENS_GENE_ID")
+    }
+  
+    print("Removing zeroes ...")
+  
+    y=DGEList(counts=counts,group=group,remove.zeros = T)
+    png("mds.png",res=300,width=2000,height=2000)
+  
+    print("Plotting ...")
+  
+    mds = plotMDS(y,labels=sample_labels)
+  
+    plot(mds,
+       col = v_colors,
+       pch=19,
+       xlab = "MDS dimension 1", 
+       ylab = "MDS dimension 2")
+  
+    legend("topright",
+         title="Tissue",
+         c("GTEx blood",
+           "Primary fibroblasts",
+           "GTEx transformed fibroblasts",
+           "Transdifferentiated myotubes",
+           "Muscle",
+           "GTEx muscle"
+         ),
+         fill=c("cornflowerblue",
+                "orange",
+                "yellow",
+                "red",
+                "chartreuse",
+                "darkgreen"))
+  
+    dev.off()
+  
+    png("mds.labels.png",res=300,width=2000,height=2000)
+    plotMDS(y, labels=sample_labels)
+    dev.off()
+}
+
+# fig 1B - expression profiles in muscular samples vs sample age
+# input = TableS1.Samples
+fig1B.mds_plot_colored_by_muscle_age = function()
+{
+  setwd("~/Desktop/work/expression/muscle")
+  
+  muscle_samples = read.csv("TableS1.Samples.csv", stringsAsFactors=F)
+  muscle_samples$Sample_name = gsub("-",".",muscle_samples$Sample_name)
+  muscle_samples$Bioinf_sample_id = paste0(muscle_samples$Bioinf_sample_id,"_",muscle_samples$Sample_name)
+  muscle_samples = muscle_samples[muscle_samples$Tissue_type == "Muscle",]
+  
+  refresh_files=T
+  
+  print("Reading counts ...")
+  counts = read.feature_counts_dir(update=refresh_files)
+  #group = factor(c(rep(1,ncol(counts))))
+  
+  sample_names = colnames(counts)
+  
+  i=1
+  
+    group = factor(rep(1,length(sample_names)))    
+  
+    v_colors = c()
+    for (i in 1:nrow(muscle_samples))
+    {
+        sample_id = muscle_samples$Bioinf_sample_id[i]
+        #v_colors[i] = muscle_samples$Color[i]
+        age = muscle_samples$Age[i]
+        if (age == "10 days"){
+            clr = "cornflowerblue"
+        }else if (age == "<2"){
+            clr = "yellow"
+        }else{
+            iage = as.integer(age)
+            if (iage <=10){
+                clr = "orange"
+            }else if (iage <=20){
+                clr = "red"
+            }else if (iage <=35){
+                clr = "chartreuse"
+            }else{
+                clr = "darkgreen"
+            }
+        }
+        v_colors[i] = clr
+        print(paste(age,clr))
+    }
+  
+    print("Subsetting protein coding genes ...")
+    #a file with ENSEMBL IDs
+    if (file.exists("~/Desktop/reference_tables/protein_coding_genes.list"))
+    {
+        protein_coding_genes <- read.csv("~/Desktop/reference_tables/protein_coding_genes.list", sep="", stringsAsFactors=FALSE)
+        counts = counts[row.names(counts) %in% protein_coding_genes$ENS_GENE_ID,]
+    }else{
+        print("Please provide protein_coding_genes.list with ENS_GENE_ID")
+    }
+  
+    print("Removing zeroes ...")
+  
+    y=DGEList(counts=counts,group=group,remove.zeros = T)
+  
+    png("mds.muscle_age.png",res=300,width=2000,height=2000)
+  
+    print("Plotting ...")
+  
+    mds = plotMDS(y,
+                labels=sample_names
+    )
+    plot(mds,
+       col = v_colors,
+       pch=19,
+       xlab = "MDS dimension 1", 
+       ylab = "MDS dimension 2")
+  
+    legend("bottomleft",
+         title="Tissue age",
+         c("10 days",
+           "<=2 y",
+           "2-10y",
+           "10-20y",
+           "20-35y",
+           ">35y"
+         ),
+         fill=c("cornflowerblue",
+                "yellow",
+                "orange",
+                "red",
+                "chartreuse",
+                "darkgreen"))
+  
+    dev.off()
+  
+    png("mds.muscle_age.labels.png",res=300,width=2000,height=2000)
+    plotMDS(y, labels=sample_names)
+    dev.off()
+  
+}
+
+expression.outliers.outrider.installation = function()
+{
+    #using outrider: https://github.com/gagneurlab/OUTRIDER
+    install.packages('devtools')
+    source('https://bioconductor.org/biocLite.R')
+    biocLite('BiocInstaller')
+    devtools::install_github('gagneurlab/OUTRIDER', dependencies=TRUE)
+}
+
+expression.outliers.OUTRIDER = function()
+{
+    library(OUTRIDER)
+    setwd("~/Desktop/work")
+    patient_counts = read.table("muscle.raw_counts.txt")
+    patient_counts = patient_counts[row.names(patient_counts) %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
+    
+    gtex_counts = read.table("muscle.gtex.raw_counts.txt")
+    gtex_counts = gtex_counts[row.names(gtex_counts) %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
+    
+    gtex_counts = cbind(gtex_counts, patient_counts$S12_9.1.M)
+    
+    ods <- OutriderDataSet(countData=gtex_counts)
+    
+    
+    # 1 option) changing to minCounts (only filter genes with less then 1 read over all samples)
+    ods <- filterExpression(ods, minCounts=TRUE, filterGenes=TRUE)
+    
+    # 2 option) Use annotation to filter by FPKM values (basepair column are needed for that, as stated in the error)
+    library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+    library(org.Hs.eg.db)
+    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
+    map <- select(org.Hs.eg.db, keys=keys(txdb, keytype = "GENEID"),
+                  keytype="ENTREZID", columns=c("SYMBOL"))
+    ods <- filterExpression(ods, filterGenes=TRUE, mapping=map, gtf=txdb)
+    
+    
+    
+    ods <- OUTRIDER(ods)
+    
+    res = results(ods,all=T)   
+    
+    res.pvalue = res[order(pValue), p_rank:=1:.N, by=sampleID]
+    res.pvalue = res.pvalue[p_rank <= 10 & sampleID == 'patient_counts$S12_9.1.M']
+    
+    
+    # Rank by Z score
+    res.zscore = res[order(abs(zScore), decreasing=TRUE), z_rank:=1:.N, by=sampleID]
+    res.zscore = res.zscore[z_rank <= 10 & sampleID == 'patient_counts$S12_9.1.M']
+    
+    
+    pres = res[res$sampleID=="patient_counts$S12_9.1.M",]
+    pres = pres[pres$zScore < -2,]
+    
+    View(res)
+    
+    dim(res)
+    
+    head(res,10)
+    
+    ods = OutriderDataSet(countData=counts)
+    
+    plotAberrantPerSample(ods,padjCutoff=0.05)
+    
+  
+    URL <- paste0("https://media.nature.com/original/nature-assets/",
+                  "ncomms/2017/170612/ncomms15824/extref/ncomms15824-s1.txt")
+    ctsTable <- read.table(URL, sep="\t")
+    # create OutriderDataSet object
+    ods <- OutriderDataSet(countData=ctsTable)
+    
+    # get annotation
+    library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+    library(org.Hs.eg.db)
+    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
+    map <- select(org.Hs.eg.db, keys=keys(txdb, keytype = "GENEID"),
+                  keytype="ENTREZID", columns=c("SYMBOL"))
+    
+  
+    ods <- filterExpression(ods, txdb, mapping=map,
+                            filterGenes=FALSE, savefpkm=TRUE)  
+    
+    plotFPKM(ods)
+    
+    ods <- ods[mcols(ods)$passedFilter,]
+    
+    ods <- estimateSizeFactors(ods)
+    ods <- autoCorrect(ods, q=13)
+    
+    ods <- plotCountCorHeatmap(ods, normalized=FALSE, nCluster=4)
+    
+    ods = fit(ods)
+    plotDispEsts(ods)
+    
+    ods <- computePvalues(ods, alternative="two.sided", method="BY")
+    
+    ods <- computeZscores(ods)
+    
+    res = results(ods,all=T )   
+  
+    
+    gene="ENSG00000198947"  
+    plotVolcano(ods, gene, basePlot=TRUE)
+    plotExpressionRank(ods, gene, basePlot = F)
+    plotQQ(ods,res[1,])
+}
+
 junk=function()
 {
     png("Fig2.total_counts_after_filtration.png",width=1000)
@@ -972,3 +1297,9 @@ expression_variability = function(gene_panel,rpkm.file,tissue)
     colnames(result) = cnames
     write.table(result,paste0("expression_variability.",tissue,".csv"),sep = ",",row.names = F)
 }
+
+#run: Rscript crt.naumenko2018.R TRUE
+source("~/crt/crt.utils.R")
+args = commandArgs(trailingOnly = T)
+print(args[1])
+fig1A.mds_plot(refresh_files = as.logical(args[1]))
