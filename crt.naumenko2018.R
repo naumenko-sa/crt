@@ -113,8 +113,9 @@ fig1A.mds_plot = function(refresh_files = F)
        xlab = "MDS dimension 1", 
        ylab = "MDS dimension 2")
   
-    legend("topright",
+    legend("center",
          title="Tissue",
+         cex = 0.7,
          c("GTEx blood",
            "Primary fibroblasts",
            "GTEx transformed fibroblasts",
@@ -1298,7 +1299,7 @@ expression_variability = function(gene_panel,rpkm.file,tissue)
     write.table(result,paste0("expression_variability.",tissue,".csv"),sep = ",",row.names = F)
 }
 
-#run: Rscript crt.naumenko2018.R TRUE
+#run: qsub ~/crt.mds.pbs -v refresh=TRUE
 source("~/crt/crt.utils.R")
 args = commandArgs(trailingOnly = T)
 print(args[1])
