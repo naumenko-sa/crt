@@ -114,7 +114,6 @@ fig1A.mds_plot = function(refresh_files = F)
   
     legend("topright",
          title="Tissue",
-         cex = 0.7,
          c("GTEx blood",
            "Primary fibroblasts",
            "GTEx transformed fibroblasts",
