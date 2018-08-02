@@ -152,6 +152,38 @@ fig1B.mds_plot_colored_by_muscle_age = function()
     counts = read.feature_counts_dir(update=refresh_files)
     #group = factor(c(rep(1,ncol(counts))))
   
+    #https://gist.github.com/jdblischak/11384914
+    cpm_log <- cpm(counts, log = TRUE)
+    median_log2_cpm <- apply(cpm_log, 1, median)
+    hist(median_log2_cpm)
+    expr_cutoff <- -1
+    abline(v = expr_cutoff, col = "red", lwd = 3)
+    sum(median_log2_cpm > expr_cutoff)
+    data_clean <- counts[median_log2_cpm > expr_cutoff, ]
+    
+    
+    cpm_log <- cpm(data_clean, log = TRUE)
+    heatmap(cor(cpm_log))
+    
+    
+    png("fig1B.pca1_2.png",res=300,width=2000,height=2000)
+    pca <- prcomp(t(cpm_log), scale. = TRUE)
+    plot(pca$x[, 1], pca$x[, 2], pch = ".", xlab = "PC1", ylab = "PC2")
+    text(pca$x[, 1], pca$x[, 2], labels = colnames(cpm_log))
+    summary(pca)
+    dev.off()
+    
+    test = as.data.frame(pca$x[,1])
+    test = cbind(test, muscle_samples$Age)
+    
+    png("fig1B.pca1_vs_muscle_age.png",res=300,width=2000,height=2000)
+    plot(test$`pca$x[, 1]` ~ test$`muscle_samples$Age`)
+    model <- lm(test$`pca$x[, 1]` ~ test$`muscle_samples$Age`)
+    abline(model, col = "red")
+    dev.off()
+    summary(model)
+    coef(model)
+    
     sample_names = colnames(counts)
   
     i=1
@@ -164,23 +196,23 @@ fig1B.mds_plot_colored_by_muscle_age = function()
         sample_id = muscle_samples$Bioinf_sample_id[i]
         #v_colors[i] = muscle_samples$Color[i]
         age = muscle_samples$Age[i]
-        if (age == "10 days"){
-            clr = "cornflowerblue"
-        }else if (age == "<2"){
-            clr = "yellow"
-        }else{
-            iage = as.integer(age)
-            if (iage <=10){
-                clr = "orange"
-            }else if (iage <=20){
-                clr = "red"
-            }else if (iage <=35){
-                clr = "chartreuse"
-            }else{
-                clr = "darkgreen"
-            }
-        }
-        v_colors[i] = clr
+        
+        #iage = as.integer(age)
+        #if (iage == 0){
+        #    clr = "cornflowerblue"
+        #}else (age == 2){
+        #    clr = "yellow"
+        #}else if (iage <=10){
+        #    clr = "orange"
+        #}else if (iage <=20){
+        #    clr = "red"
+        #}else if (iage <=35){
+        #    clr = "chartreuse"
+        #}else{
+        #    clr = "darkgreen"
+        #}
+    
+        #v_colors[i] = clr
         print(paste(age,clr))
     }
   
@@ -239,6 +271,20 @@ fig1B.mds_plot_colored_by_muscle_age = function()
     plotMDS(y, labels=sample_names)
     dev.off()
   
+}
+
+#data from table S5
+fig1C = function()
+{
+    library("VennDiagram")
+    png("fig1C.global_expression.png")
+    
+    venn.plot3 = draw.triple.venn(9764,11199,10505,
+                                  8971,8529,10001,
+                                  8417,
+                                  c("Muscle","Myotubes","Primary fibroblasts"))
+    grid.draw(venn.plot3)
+    dev.off()
 }
 
 expression.outliers.outrider.installation = function()
