@@ -16,7 +16,6 @@ init = function()
     #gene_lengths = read.delim("~/Desktop/project_muscular/reference/gene_lengths.txt", stringsAsFactors=F, row.names=1)
 }
 
-
 fig1A.mds_plot = function(refresh_files = F)
 {
     #refresh_files=F
@@ -113,7 +112,7 @@ fig1A.mds_plot = function(refresh_files = F)
        xlab = "MDS dimension 1", 
        ylab = "MDS dimension 2")
   
-    legend("center",
+    legend("topright",
          title="Tissue",
          cex = 0.7,
          c("GTEx blood",
@@ -141,22 +140,22 @@ fig1A.mds_plot = function(refresh_files = F)
 # input = TableS1.Samples
 fig1B.mds_plot_colored_by_muscle_age = function()
 {
-  setwd("~/Desktop/work/expression/muscle")
+    setwd("~/Desktop/work/expression/muscle")
   
-  muscle_samples = read.csv("TableS1.Samples.csv", stringsAsFactors=F)
-  muscle_samples$Sample_name = gsub("-",".",muscle_samples$Sample_name)
-  muscle_samples$Bioinf_sample_id = paste0(muscle_samples$Bioinf_sample_id,"_",muscle_samples$Sample_name)
-  muscle_samples = muscle_samples[muscle_samples$Tissue_type == "Muscle",]
+    muscle_samples = read.csv("TableS1.Samples.csv", stringsAsFactors=F)
+    muscle_samples$Sample_name = gsub("-",".",muscle_samples$Sample_name)
+    muscle_samples$Bioinf_sample_id = paste0(muscle_samples$Bioinf_sample_id,"_",muscle_samples$Sample_name)
+    muscle_samples = muscle_samples[muscle_samples$Tissue_type == "Muscle",]
   
-  refresh_files=T
+    refresh_files=T
   
-  print("Reading counts ...")
-  counts = read.feature_counts_dir(update=refresh_files)
-  #group = factor(c(rep(1,ncol(counts))))
+    print("Reading counts ...")
+    counts = read.feature_counts_dir(update=refresh_files)
+    #group = factor(c(rep(1,ncol(counts))))
   
-  sample_names = colnames(counts)
+    sample_names = colnames(counts)
   
-  i=1
+    i=1
   
     group = factor(rep(1,length(sample_names)))    
   
@@ -200,9 +199,14 @@ fig1B.mds_plot_colored_by_muscle_age = function()
   
     y=DGEList(counts=counts,group=group,remove.zeros = T)
   
+    
+    
     png("mds.muscle_age.png",res=300,width=2000,height=2000)
   
     print("Plotting ...")
+    
+    set.seed(1)
+    par(xpd=F)
   
     mds = plotMDS(y,
                 labels=sample_names
@@ -213,7 +217,8 @@ fig1B.mds_plot_colored_by_muscle_age = function()
        xlab = "MDS dimension 1", 
        ylab = "MDS dimension 2")
   
-    legend("bottomleft",
+    par(xpd=T)
+    legend(0,0,
          title="Tissue age",
          c("10 days",
            "<=2 y",
