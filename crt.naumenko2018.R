@@ -1,4 +1,4 @@
-# Function for the RNA-seq article Gonorazky.Naumenko.2018
+# Function for the RNA-seq article Gonorazky.Naumenko.et_al.Dowling.2018
 install = function()
 {
     source("http://bioconductor.org/biocLite.R")
@@ -273,18 +273,87 @@ fig1B.mds_plot_colored_by_muscle_age = function()
   
 }
 
-#data from table S5
-fig1C = function()
+tableS5.get_1rpkm_genes = function(rpkms,samples,use_sample_names=T)
 {
-    library("VennDiagram")
-    png("fig1C.global_expression.png")
+    rpkms = rpkms[row.names(rpkms) %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
     
-    venn.plot3 = draw.triple.venn(9764,11199,10505,
-                                  8971,8529,10001,
-                                  8417,
-                                  c("Muscle","Myotubes","Primary fibroblasts"))
-    grid.draw(venn.plot3)
+    if (use_sample_names == T)
+    {
+        colnames(rpkms) = gsub("S.._","",colnames(rpkms))
+        rpkms = subset(rpkms,select = samples)
+    }
+    
+    rpkms$mean = rowMeans(rpkms)
+    rpkms = rpkms[rpkms$mean > 1,]
+    return(rpkms)
+}
+
+# intersect row names from two dataframes
+tableS5.intersect = function(tissue1,tissue2)
+{
+    tissue1.rpkms = get(paste0('rpkms.',tissue1))
+    tissue2.rpkms = get(paste0('rpkms.',tissue2))
+    print(paste0(tissue1,':',nrow(tissue1.rpkms)))
+    print(paste0(tissue2,':',nrow(tissue2.rpkms)))
+    print(paste0(tissue1,' vs ',tissue2,':',length(intersect(rownames(tissue1.rpkms),rownames(tissue2.rpkms)))))
+}
+
+# among genes expressed in muscle at 1RPKM, what is % expressed in myo at > 1RPKM
+# based on trios (muscle + myo + fibro) and GTEx blood controls
+# fig1C - genes expressed at 1RPKM in 4 tissues
+# data from tableS5
+fig1C.tableS5.genes_expressed_at_1rpkm = function()
+{
+    trios = c("12.1","14.1","14.2","17.1","18.1","26.1","28.1","5.1","6.1","9.1","40.1","40.2","4.1")
+    
+    # prepare muscle table
+    samples.muscle = paste0(trios,".M")
+    rpkms.muscle = read.csv("rpkms.muscle.txt", sep="", stringsAsFactors=F)
+    
+    # average two muscle tissues in 12.1
+    rpkms.muscle$"12.1.M" = (rpkms.muscle$S20_12.1.Mpv + rpkms.muscle$S21_12.1.Mvl)/2
+    rpkms.muscle$S20_12.1.Mpv = NULL
+    rpkms.muscle$S21_12.1.Mvl = NULL
+    
+    rpkms.muscle = tableS5.get_1rpkm_genes(rpkms.muscle,samples.muscle)
+    
+    # prepare myo table
+    samples.myo = paste0(trios,".Myo")
+    rpkms.myo = read.csv("rpkms.myo.txt", sep="", stringsAsFactors=F)
+    rpkms.myo = tableS5.get_1rpkm_genes(rpkms.myo,samples.myo)
+    
+    # prepare fibro table
+    samples.fibro = paste0(trios,".F")
+    rpkms.fibro = read.csv("rpkms.fibro.txt", sep="", stringsAsFactors = F)
+    rpkms.fibro = tableS5.get_1rpkm_genes(rpkms.fibro,samples.fibro)
+    
+    # prepare gtex blood table
+    rpkms.gtex_blood = read.csv("rpkms.gtex_blood.txt", sep="", stringsAsFactors = F)
+    rpkms.gtex_blood$external_gene_name = NULL
+    rpkms.gtex_blood = tableS5.get_1rpkm_genes(rpkms.gtex_blood,NULL,F)
+    
+    print("genes expressed in at 1RPKM")
+    tissues = c("muscle","myo","fibro","gtex_blood") 
+    tissue_labels = c("Muscle","Transdifferentiated \nmyotubes","Primary fibroblasts","Gtex blood")
+
+    library("VennDiagram")    
+    png("fig1C.genes_expressed_at_1_rpkm.png",res=300,width=2000,height=2000)
+    grid.draw(venn.diagram(list(rownames(rpkms.muscle),
+                      rownames(rpkms.myo),
+                      rownames(rpkms.fibro),
+                      rownames(rpkms.gtex_blood)),NULL,
+                    category.names = tissue_labels,
+                    print.mode = c("percent","raw"),
+                    sigdigs = 2,
+                    margin = 0.1))
     dev.off()
+    
+    # just checking
+    tissue_pairs = t(combn(tissues,2))
+    for (i in 1:nrow(tissue_pairs))
+    {
+        tableS5.intersect(tissue_pairs[i,1],tissue_pairs[i,2])
+    }
 }
 
 expression.outliers.outrider.installation = function()
@@ -1137,100 +1206,6 @@ expression.tissue_comparison.tableS12 = function()
     test = rpkms.gtex_blood[row.names(rpkms.gtex_blood) %in% row.names(rpkms.muscle),]
 }
 
-# among genes expressed in muscle, what % is expressed in myo w > 10x coverage
-# trios = families 9, 12, 14-1, 14-2, 17
-expression.tableS12.tissues.all_genes.average = function()
-{
-    trios = paste0(c("12.1","14.1","14.2","17.1","18.1","26.1","28.1","5.1","6.1","9.1"),".Myo")
-    rpkms.muscle = read.csv("rpkms.muscle.txt", sep="", stringsAsFactors=F)
-    rpkms.muscle$"12.1.M" = (rpkms.muscle$S20_12.1.Mpv + rpkms.muscle$S21_12.1.Mvl)/2
-    rpkms.muscle$S20_12.1.Mpv = NULL
-    rpkms.muscle$S21_12.1.Mvl = NULL
-    
-    colnames(rpkms.muscle) = gsub("S.._","",colnames(rpkms.muscle))
-    colnames(rpkms.muscle) = gsub("M","Myo",colnames(rpkms.muscle))
-    
-    rpkms.muscle = subset(rpkms.muscle,select = c(trios,"external_gene_name"))
-    rpkms.muscle = rpkms.muscle[rpkms.muscle$external_gene_name %in% protein_coding_genes$Gene_name,]
-    
-    rpkms.muscle$mean = rep(0,nrow(rpkms.muscle))
-    
-    for (sample in trios)
-    {
-        rpkms.muscle$mean = rpkms.muscle$mean + subset(rpkms.muscle,select=sample)
-    }
-    rpkms.muscle$mean = rpkms.muscle$mean / length(trios)
-    
-    rpkms.muscle = rpkms.muscle[rpkms.muscle$mean > 1,]
-    
-    print(paste0(nrow(rpkms.muscle)," genes expressed in muscle at 1RPKM"))
-    
-    genes_expressed_in_muscle = row.names(rpkms.muscle)
-    
-    #5.1 is calculating
-    trios.myo = paste0(c("12.1","14.1","14.2","17.1","18.1","26.1","28.1","6.1","9.1"),".Myo")
-    rpkms.myo = read.csv("rpkms.myo.txt",sep="",stringsAsFactors = F)
-    colnames(rpkms.myo) = gsub("S.._","",colnames(rpkms.myo))
-    rpkms.myo = subset(rpkms.myo,select = c(trios.myo,"external_gene_name"))
-    rpkms.myo = rpkms.myo[rpkms.myo$external_gene_name %in% protein_coding_genes$Gene_name,]
-    rpkms.myo$mean = rep(0,nrow(rpkms.myo))
-    for (sample in trios.myo)
-    {
-        rpkms.myo$mean = rpkms.myo$mean + subset(rpkms.myo,select=sample)
-    }
-    rpkms.myo$mean = rpkms.myo$mean / length(trios.myo)
-    rpkms.myo = rpkms.myo[rpkms.myo$mean > 1,]
-    genes_expressed_in_myo = row.names(rpkms.myo)
-    
-    print(paste0(nrow(rpkms.myo)," genes expressed in myo at 1RPKM"))
-    
-    test = rpkms.myo[row.names(rpkms.myo) %in% genes_expressed_in_muscle,]
-    print(paste0(nrow(test)," muscle genes expressed in myo at 1RPKM"))
-    
-    rpkms.fibro = read.csv("rpkms.fibro.txt", sep="", stringsAsFactors = F)
-    colnames(rpkms.fibro) = gsub("S.._","",colnames(rpkms.fibro))
-    colnames(rpkms.fibro) = gsub("F","Myo",colnames(rpkms.fibro))
-    rpkms.fibro = subset(rpkms.fibro,select = c(trios,"external_gene_name"))
-    rpkms.fibro = rpkms.fibro[rpkms.fibro$external_gene_name %in% protein_coding_genes$Gene_name,]
-    rpkms.fibro$mean = rep(0,nrow(rpkms.fibro))
-    for (sample in trios)
-    {
-        rpkms.fibro$mean = rpkms.fibro$mean + subset(rpkms.fibro,select=sample)
-    }
-    rpkms.fibro$mean = rpkms.fibro$mean / length(trios)
-    rpkms.fibro = rpkms.fibro[rpkms.fibro$mean > 1,]
-    
-    print(paste0(nrow(rpkms.fibro)," genes expressed in fibro at 1RPKM"))
-    
-    test = rpkms.fibro[row.names(rpkms.fibro) %in% genes_expressed_in_muscle,]
-    print(paste0(nrow(test)," muscle genes expressed in fibro at 1RPKM"))
-    
-    test = rpkms.fibro[row.names(rpkms.fibro) %in% genes_expressed_in_myo,]
-    print(paste0(nrow(test)," myo genes expressed in fibro at 1RPKM"))
-    
-    test = test[row.names(test) %in% genes_expressed_in_muscle,]
-    print(paste0(nrow(test)," muscle genes expressed in fibro and myo at 1RPKM"))
-    
-    # coverage
-    genes_expressed_in_myo = sort(unique(myo.expressed$external_gene_name))
-    
-    myo_coverage = read.delim("~/Desktop/work/S13_9-1-Myo.bam.coverage", comment.char="!", stringsAsFactors=FALSE)
-    S58_12.1.Myo = read.delim("~/Desktop/work/S58_12-1-Myo.bam.coverage", comment.char="!", stringsAsFactors=FALSE)
-    S23_14.1.Myo = read.delim("~/Desktop/work/S23_14-1-Myo.bam.coverage", comment.char="!", stringsAsFactors=FALSE)
-    S24_14.2.Myo = read.delim("~/Desktop/work/S24_14-2-Myo.bam.coverage", comment.char="!", stringsAsFactors=FALSE)
-    S45_17.1.Myo = read.delim("~/Desktop/work/S45_17-1-Myo.bam.coverage", comment.char="!", stringsAsFactors=FALSE)
-    
-    myo_coverage = cbind(myo_coverage,S58_12.1.Myo$avg,S23_14.1.Myo$avg,S24_14.2.Myo$avg,S45_17.1.Myo$avg)
-    
-    myo_coverage$mean = (myo_coverage$avg + myo_coverage$`S23_14.1.Myo$avg` + myo_coverage$`S58_12.1.Myo$avg` +
-                             myo_coverage$`S24_14.2.Myo$avg` + myo_coverage$`S45_17.1.Myo$avg`)/5
-    
-    myo_coverage = myo_coverage[myo_coverage$gene %in% genes_expressed_in_myo,]
-    myo_coverage = myo_coverage[myo_coverage$mean > 10,]
-    
-}
-
-
 expression4gene_in_a_gene_panel = function(sample,gene_panel,counts)
 {
     #sample = "S12_9.1.M"
@@ -1350,7 +1325,7 @@ expression_variability = function(gene_panel,rpkm.file,tissue)
 }
 
 #run: qsub ~/crt.mds.pbs -v refresh=TRUE
-source("~/crt/crt.utils.R")
-args = commandArgs(trailingOnly = T)
-print(args[1])
-fig1A.mds_plot(refresh_files = as.logical(args[1]))
+#source("~/crt/crt.utils.R")
+#args = commandArgs(trailingOnly = T)
+#print(args[1])
+#fig1A.mds_plot(refresh_files = as.logical(args[1]))
