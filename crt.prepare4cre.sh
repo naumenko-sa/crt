@@ -64,7 +64,7 @@ function f_prepare
 {
     #downstream scripts use $vcf for current vcf file
     cd $case
-    original_vcf=${case}-gatk-haplotype-annotated-rnaedie-annotated-gemini.vcf.gz
+    original_vcf=${case}-gatk-haplotype-annotated.vcf.gz
 
     # to run cre immediately after that
     mkdir $case
