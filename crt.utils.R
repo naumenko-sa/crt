@@ -241,7 +241,6 @@ read.rpkm_counts_dir = function(update=F)
         
         write.table(counts,"rpkms.txt",quote=F)
     }
-  
     return(counts)
 }
 
