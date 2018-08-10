@@ -11,6 +11,8 @@
 # case = family = project = S11 (example)
 # clenaup = 1
 
+# qsub ~/crt/crt/prepare4cre.sh -v case=<project>,cleanup=1
+
 function f_cleanup
 {
     # better to look for project-summary than hardcode the year
@@ -62,7 +64,7 @@ function f_prepare
 {
     #downstream scripts use $vcf for current vcf file
     cd $case
-    original_vcf=${case}-gatk-haplotype-annotated.vcf.gz
+    original_vcf=${case}-gatk-haplotype-annotated-rnaedie-annotated-gemini.vcf.gz
 
     # to run cre immediately after that
     mkdir $case
