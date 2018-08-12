@@ -11,6 +11,7 @@ init = function()
     library(RColorBrewer)
     library(org.Hs.eg.db)
     source("~/crt/crt.utils.R")
+    source("~/bioscripts/genes.R")
     setwd("~/Desktop/work")
     
     #gene_lengths = read.delim("~/Desktop/project_muscular/reference/gene_lengths.txt", stringsAsFactors=F, row.names=1)
@@ -296,6 +297,69 @@ tableS5.intersect = function(tissue1,tissue2)
     print(paste0(tissue1,':',nrow(tissue1.rpkms)))
     print(paste0(tissue2,':',nrow(tissue2.rpkms)))
     print(paste0(tissue1,' vs ',tissue2,':',length(intersect(rownames(tissue1.rpkms),rownames(tissue2.rpkms)))))
+}
+
+# how many genes are covered at 10X in blood from the muscular panel?
+# using output of bam.coverage.bamstats05.sh
+fig1C.genes_covered_at_10x_in_panel = function
+{
+    setwd("~/Desktop/work/coverage")
+    files = list.files(".","\\.coverage$")
+    #samples = unlist(read.table("samples.txt", stringsAsFactors=F))
+    
+    coverage = read.delim(files[1],header=T,stringsAsFactors = F)
+    coverage = coverage[,c("gene","avg")]
+    colnames(coverage)[2]=files[1]
+    
+    for (file in tail(files,-1))
+    {
+        sample_coverage = read.delim(file,header=T,stringsAsFactors = F)
+        sample_coverage = sample_coverage[,c("gene","avg")]
+        colnames(sample_coverage)[2]=file
+        coverage = cbind(coverage,sample_coverage[2])
+    }
+    row.names(coverage) = coverage$gene
+    coverage$gene=NULL
+    
+    coverage$mean = rowMeans(coverage)
+    
+    coverage = coverage[coverage$mean >= 10,]
+    
+    print(paste0(
+        nrow(coverage),
+        " genes out of ",
+        length(gene_list),
+        " covered at 10X"
+    ))
+}
+
+# how many genes expressed >1RPKM in blood in muscular gene panels?
+fig1C.genes_expressed_at_1rpkm_in_panel = function()
+{
+    # prepare gtex blood table
+    rpkms.gtex_blood = read.csv("rpkms.gtex_blood.txt", sep="", stringsAsFactors = F)
+    rpkms.gtex_blood$external_gene_name = NULL
+    rpkms.gtex_blood = tableS5.get_1rpkm_genes(rpkms.gtex_blood,NULL,F)
+    
+    gene_list = c()
+    for (gene_panel_name in panel_list)
+    {
+        gene_panel = get(gene_panel_name)
+        gene_list = unique(c(gene_list,gene_panel))
+    }
+    
+    mart = init_mart()
+    
+    ensembl_ids = get_ensemble_gene_ids_by_gene_names(gene_list)
+    
+    rpkms.gtex_blood = rpkms.gtex_blood[rownames(rpkms.gtex_blood) %in% ensembl_ids$ensembl_gene_id,]
+    
+    print(paste0(
+            nrow(rpkms.gtex_blood),
+            " genes out of ",
+            length(gene_list),
+            " expressed at 1RPKM"
+            ))
 }
 
 # among genes expressed in muscle at 1RPKM, what is % expressed in myo at > 1RPKM
@@ -829,8 +893,6 @@ sample_11_1_K = function()
              colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(length(breaks)-1),
              fontsize = 8)
     dev.off()
-    
-    
 }
 
 # use case: to plot exon coverage for muscular gene panel 
