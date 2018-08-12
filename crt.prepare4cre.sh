@@ -11,6 +11,8 @@
 # case = family = project = S11 (example)
 # clenaup = 1
 
+# qsub ~/crt/crt/prepare4cre.sh -v case=<project>,cleanup=1
+
 function f_cleanup
 {
     # better to look for project-summary than hardcode the year
