@@ -301,7 +301,7 @@ tableS5.intersect = function(tissue1,tissue2)
 
 # how many genes are covered at 10X in blood from the muscular panel?
 # using output of bam.coverage.bamstats05.sh
-fig1C.genes_covered_at_10x_in_panel = function
+fig1C.genes_covered_at_10x_in_panel = function()
 {
     setwd("~/Desktop/work/coverage")
     files = list.files(".","\\.coverage$")
@@ -368,8 +368,6 @@ fig1C.genes_expressed_at_1rpkm_in_panel = function()
 # data from tableS5
 fig1C.tableS5.genes_expressed_at_1rpkm = function()
 {
-    trios = c("12.1","14.1","14.2","17.1","18.1","26.1","28.1","5.1","6.1","9.1","40.1","40.2","4.1")
-    
     # prepare muscle table
     samples.muscle = paste0(trios,".M")
     rpkms.muscle = read.csv("rpkms.muscle.txt", sep="", stringsAsFactors=F)
@@ -1386,8 +1384,109 @@ expression_variability = function(gene_panel,rpkm.file,tissue)
     write.table(result,paste0("expression_variability.",tissue,".csv"),sep = ",",row.names = F)
 }
 
+# statistics based on the output of crt.filter_junctions.sh
+TableS9.Splicing.Panels.Frequency = function()
+{
+    setwd("~/Desktop/work/splicing")
+    files = list.files(".","*n_gtex_184")
+    events = splicing.read_novel_splice_events(files[1])
+    for (file in tail(files,-1))
+    {
+        events_buf = splicing.read_novel_splice_events(file)
+        events = rbind(events,events_buf)
+    }
+    filtered = events[events$norm_read_count >= 0.5,]
+    filtered = filtered[filtered$read_count > 10,]
+    
+    filtered$dup = c(duplicated(filtered$pos,fromLast=T) | duplicated(filtered$pos))
+    #filtered = filtered[filtered$dup == F,]
+    
+    write.csv(filtered,"splicing.all_genes.csv",quote=T, row.names = F)
+    
+    panel_genes = c()
+    for (p in panel_list){
+        panel_genes = unique(c(panel_genes,get(p)))
+    }
+    events = events[events$gene %in% panel_genes,]
+    
+    frequencies = as.data.frame(table(events$pos))
+    colnames(frequencies) = c("pos","frequency")
+    events = merge(events,frequencies,by.x = "pos", by.y = "pos",all.x = T)
+    
+    events$tissue = ''
+    events$tissue = apply(events[,c("sample","tissue")],1,decode_tissue_type)
+    
+    #events$dup = c(duplicated(events$pos,fromLast=T) | duplicated(events$pos))
+    
+    eoutliers <- read.csv("~/Desktop/work/expression/outliers_panels/outliers.txt", stringsAsFactors=F)
+    eoutliers = subset(eoutliers,select=c("Sample","Gene","Regulation","Abs_FC_cohort","Abs_FC_GTex"))
+    eoutliers$Sample = gsub("[.]","-",eoutliers$Sample)
+    eoutliers = unique(eoutliers)
+    
+    res = merge(events,eoutliers,by.x = c("sample","gene"),by.y = c("Sample","Gene"),all.x=T,all.y=F)
+    
+    res$Omim = NULL
+    
+    write.csv(res,"TableS9.Splicing.Panels.Frequency.csv",quote=T,row.names = F)
+}
+
+TableS10.S11.S12.Splicing.Statistics = function()
+{
+    setwd("~/Desktop/work/splicing")
+    junctions <- read.csv("TableS9.Splicing.Panels.Frequency.csv")
+
+    junctions.muscle = junctions[junctions$tissue =='Muscle',]
+    junctions.muscle.pos = junctions.muscle$pos
+    junctions.unique = unique(junctions.muscle[,c("gene","pos")])
+    
+    print(paste0(nrow(junctions.unique)," unique junctions discovered in muscle samples"))
+    
+    library(plyr)
+    junctions.muscle.frequency = count(junctions.muscle.pos)
+    junctions.muscle.frequency = merge(junctions.muscle.frequency,junctions.unique,by.x="x",by.y="pos",all.x=T,all.y=F)
+    colnames(junctions.muscle.frequency) = c("Junction","Frequency","Gene")
+    junctions.muscle.frequency = junctions.muscle.frequency[,c("Gene","Junction","Frequency")]
+    junctions.muscle.frequency = junctions.muscle.frequency[order(-junctions.muscle.frequency$Frequency),]
+    write.csv(junctions.muscle.frequency,"TableS10.Splicing_statistics_for_all_muscle_samples.csv",quote=T,row.names =F)
+    
+    frequency.by_sample = count(junctions.muscle$sample)
+    colnames(frequency.by_sample)=c("Sample","Novel_junctions")
+    frequency.by_sample = frequency.by_sample[order(-frequency.by_sample$Novel_junctions),]
+    write.csv(frequency.by_sample,"TableS11.Splicing.Novel_junctions.By_Sample.csv",quote=T,row.names =F)
+    
+    frequency.by_type = count(junctions.muscle$annotation)
+    colnames(frequency.by_type)=c("Even_type","Frequency")
+    frequency.by_type = frequency.by_type[order(-frequency.by_type$Frequency),]
+    write.csv(frequency.by_type,"TableS12.Splicing.Novel_junctions.By_type.csv",quote=T,row.names =F)
+}
+
+TableS13 = function()
+{
+    samples <- read.csv("TableS1.Samples.csv")
+    samples = samples[samples$Trio == 'y',]
+    samples$full_name = paste0(samples$Bioinf_sample_id,"_",samples$Sample_name)
+    
+    junctions.trios = junctions[junctions$sample %in% samples$full_name,]
+    
+    junctions.muscle = junctions.trios[junctions.trios$tissue == "Muscle",]
+    frequencies.muscle = as.data.frame(table(junctions.muscle$pos))
+    colnames(frequencies.muscle) = c("pos","frequency.muscle")
+    junctions.trios = merge(junctions.muscle,frequencies.muscle,by.x = "pos", by.y = "pos",all.x = T)
+    
+    
+    junctions.myo = junctions.trios[junctions.trios$tissue == "Myotubes",]
+    frequencies.myo = as.data.frame(table(junctions.myo$pos))
+    colnames(frequencies.myo) = c("pos","frequency.myo")
+    junctions.trios = merge(junctions.trios,frequencies.myo,by.x = "pos", by.y = "pos",all.x = T)
+    
+    res$unique_in_myo = ifelse(res$frequency > res$frequency.myo, 'N', 'Y')
+}
+
+
 #run: qsub ~/crt.mds.pbs -v refresh=TRUE
 #source("~/crt/crt.utils.R")
 #args = commandArgs(trailingOnly = T)
 #print(args[1])
 #fig1A.mds_plot(refresh_files = as.logical(args[1]))
+
+

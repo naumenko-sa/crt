@@ -3,6 +3,8 @@ library(RColorBrewer)
 library(edgeR)   
 library(readr)
 
+trios = c("12.1","14.1","14.2","17.1","18.1","26.1","28.1","5.1","6.1","9.1","40.1","40.2","4.1")
+
 mh_panel=c("CACNA1S","RYR1","STAC3","TRDN","ASPH","JPH2","CASQ1","ATP2A1","ATP2A2","CALM1","FKBP1A")
 
 #panels
@@ -699,51 +701,6 @@ decode_tissue_type = function (row)
         tissue = "Muscle" 
     }
     return(tissue)
-}
-
-# statistics based on the output of crt.filter_junctions.sh
-TableS9.Splicing.Panels.Frequency = function()
-{
-    setwd("~/Desktop/work/splicing")
-    files = list.files(".","*n_gtex_184")
-    events = splicing.read_novel_splice_events(files[1])
-    for (file in tail(files,-1))
-    {
-        events_buf = splicing.read_novel_splice_events(file)
-        events = rbind(events,events_buf)
-    }
-    filtered = events[events$norm_read_count >= 0.5,]
-    filtered = filtered[filtered$read_count > 10,]
-    
-    filtered$dup = c(duplicated(filtered$pos,fromLast=T) | duplicated(filtered$pos))
-    #filtered = filtered[filtered$dup == F,]
-    
-    write.csv(filtered,"splicing.all_genes.csv",quote=T, row.names = F)
-    
-    panel_genes = c()
-    for (p in panel_list){
-        panel_genes = unique(c(panel_genes,get(p)))
-    }
-    events = events[events$gene %in% panel_genes,]
-    
-    frequencies = as.data.frame(table(events$pos))
-    colnames(frequencies) = c("pos","frequency")
-    events = merge(events,frequencies,by.x = "pos", by.y = "pos",all.x = T)
-    
-    events$tissue = ''
-    events$tissue = apply(events[,c("sample","tissue")],1,decode_tissue_type)
-    
-    #events$dup = c(duplicated(events$pos,fromLast=T) | duplicated(events$pos))
-    
-    eoutliers <- read.csv("~/Desktop/work/expression/outliers_panels/outliers.txt", stringsAsFactors=F)
-    eoutliers = subset(eoutliers,select=c("Sample","Gene","Regulation","Abs_FC_cohort","Abs_FC_GTex"))
-    eoutliers$Sample = gsub("[.]","-",eoutliers$Sample)
-    eoutliers = unique(eoutliers)
-    
-    res = merge(events,eoutliers,by.x = c("sample","gene"),by.y = c("Sample","Gene"),all.x=T,all.y=F)
-    
-    res$Omim = NULL
-    write.csv(res,"TableS9.Splicing.Panels.Frequency.csv",quote=T,row.names = F)
 }
 
 splicing.read_novel_splice_events = function(file)
