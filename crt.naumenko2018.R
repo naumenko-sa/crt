@@ -10,6 +10,7 @@ init = function()
     library(edgeR)
     library(RColorBrewer)
     library(org.Hs.eg.db)
+    library(plyr)
     source("~/crt/crt.utils.R")
     source("~/bioscripts/genes.R")
     setwd("~/Desktop/work")
@@ -1441,13 +1442,16 @@ TableS10.S11.S12.Splicing.Statistics = function()
     
     print(paste0(nrow(junctions.unique)," unique junctions discovered in muscle samples"))
     
-    library(plyr)
     junctions.muscle.frequency = count(junctions.muscle.pos)
     junctions.muscle.frequency = merge(junctions.muscle.frequency,junctions.unique,by.x="x",by.y="pos",all.x=T,all.y=F)
     colnames(junctions.muscle.frequency) = c("Junction","Frequency","Gene")
+    
+    junctions.muscle.type = unique(junctions.muscle[,c("pos","annotation")])
+    colnames(junctions.muscle.type) = c("pos","Annotation")
     junctions.muscle.frequency = junctions.muscle.frequency[,c("Gene","Junction","Frequency")]
+    junctions.muscle.frequency = merge(junctions.muscle.frequency,junctions.muscle.type,by.x="Junction",by.y="pos",all.x=T,all.y=F)
     junctions.muscle.frequency = junctions.muscle.frequency[order(-junctions.muscle.frequency$Frequency),]
-    write.csv(junctions.muscle.frequency,"TableS10.Splicing_statistics_for_all_muscle_samples.csv",quote=T,row.names =F)
+    write.csv(junctions.muscle.frequency,"TableS10.Splicing.Statistics.By_junction.csv",quote=T,row.names =F)
     
     frequency.by_sample = count(junctions.muscle$sample)
     colnames(frequency.by_sample)=c("Sample","Novel_junctions")

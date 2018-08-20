@@ -79,8 +79,8 @@ linkage_region7 = c("PEX11G", "C19orf45", "ZNF358", "MCOLN1", "PNPLA6", "CAMPSAP
 linkage_region8 = c("NDUFA7", "RPS28", "KANK3", "ANGPTL4", "RAB11B-AS1", "MIR4999", "RAB11B", "MARCH2", "HNRNPM", 
                     "PRAM1", "ZNF414", "MYO1F", "ADAMTS10", "ACTL9", "OR2Z1", "ZNF558", "MBD3L1", "OR1M1", "MUC16")
 
-protein_coding_genes <- read.table("~/cre/protein_coding_genes.txt", stringsAsFactors=F, header=T)
-protein_coding_genes.ens_ids <- read.table("~/cre/protein_coding_genes.ens_ids.txt", stringsAsFactors=F,header=T)
+protein_coding_genes <- read.table("~/cre/data/protein_coding_genes.txt", stringsAsFactors=F, header=T)
+protein_coding_genes.ens_ids <- read.table("~/cre/data/protein_coding_genes.ens_ids.txt", stringsAsFactors=F,header=T)
 
 omim.file = "~/Desktop/reference_tables/omim_inheritance.csv"
 if (file.exists(omim.file))
@@ -95,7 +95,7 @@ if (file.exists(gtex_rpkm_file))
     gtex_rpkm = read.csv(gtex_rpkm_file, sep="", stringsAsFactors = F)
 }
 
-ensembl_w_description = read.delim2("~/cre/ensembl_w_description.txt", row.names=1, stringsAsFactors=F)
+ensembl_w_description = read.delim2("~/cre/data/ensembl_w_description.txt", row.names=1, stringsAsFactors=F)
 #gene_lengths = read.delim("~/Desktop/project_RNAseq_diagnostics/reference/gene_lengths.txt", stringsAsFactors=F, row.names=1)
 
 installation = function()
