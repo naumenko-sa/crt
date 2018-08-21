@@ -83,6 +83,7 @@ protein_coding_genes <- read.table("~/cre/data/protein_coding_genes.txt", string
 protein_coding_genes.ens_ids <- read.table("~/cre/data/protein_coding_genes.ens_ids.txt", stringsAsFactors=F,header=T)
 
 omim.file = "~/Desktop/reference_tables/omim_inheritance.csv"
+
 if (file.exists(omim.file))
 {
     omim = read.csv(omim.file, sep=";", stringsAsFactors=FALSE)
@@ -104,6 +105,18 @@ installation = function()
     biocLite("edgeR")
     
     install.packages("pheatmap")
+}
+
+
+get_genes_in_panels = function()
+{
+    gene_list = c()
+    for (gene_panel_name in panel_list)
+    {
+        gene_panel = get(gene_panel_name)
+        gene_list = unique(c(gene_list,gene_panel))
+    }
+    return(gene_list)
 }
 
 # calculates RPKMs using ~/bioscripts/bam.raw_coverage.sh input - 

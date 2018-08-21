@@ -421,54 +421,89 @@ fig1C.tableS5.genes_expressed_at_1rpkm = function()
 
 expression.outliers.outrider.installation = function()
 {
-    #using outrider: https://github.com/gagneurlab/OUTRIDER
+    # using outrider: https://github.com/gagneurlab/OUTRIDER
+    # https://github.com/gagneurlab/OUTRIDER/issues/8
     install.packages('devtools')
     source('https://bioconductor.org/biocLite.R')
     biocLite('BiocInstaller')
     devtools::install_github('gagneurlab/OUTRIDER', dependencies=TRUE)
 }
 
-expression.outliers.OUTRIDER = function()
+TableS6.expression.outliers.OUTRIDER = function()
 {
     library(OUTRIDER)
     setwd("~/Desktop/work")
-    patient_counts = read.table("muscle.raw_counts.txt")
-    patient_counts = patient_counts[row.names(patient_counts) %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
+    patients_counts = read.table("muscle.raw_counts.txt")
+    patients_counts = patients_counts[row.names(patients_counts) %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
     
     gtex_counts = read.table("muscle.gtex.raw_counts.txt")
     gtex_counts = gtex_counts[row.names(gtex_counts) %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
     
-    gtex_counts = cbind(gtex_counts, patient_counts$S12_9.1.M)
+    ensembl_ids_names = read.csv("~/cre/data/genes.transcripts.csv")
+    ensembl_ids_names$Ensembl_transcript_id=NULL
+    ensembl_ids_names = unique(ensembl_ids_names)
+    ensembl_ids_names = ensembl_ids_names[ensembl_ids_names$Ensembl_gene_id %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
     
-    ods <- OutriderDataSet(countData=gtex_counts)
+    genes = get_genes_in_panels()
+    omim.genes = read.csv("~/cre/data/omim.genes.csv")
     
+    outliers.panels = data.frame()
+    outliers.omim = data.frame()
     
-    # 1 option) changing to minCounts (only filter genes with less then 1 read over all samples)
-    ods <- filterExpression(ods, minCounts=TRUE, filterGenes=TRUE)
+    for (sample in colnames(patient_counts))
+    {
+        print(sample)
+        patient_count = subset(patients_counts,select=sample)
+        counts = cbind(gtex_counts, patient_count)
     
-    # 2 option) Use annotation to filter by FPKM values (basepair column are needed for that, as stated in the error)
-    library(TxDb.Hsapiens.UCSC.hg19.knownGene)
-    library(org.Hs.eg.db)
-    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
-    map <- select(org.Hs.eg.db, keys=keys(txdb, keytype = "GENEID"),
-                  keytype="ENTREZID", columns=c("SYMBOL"))
-    ods <- filterExpression(ods, filterGenes=TRUE, mapping=map, gtf=txdb)
+        ods <- OutriderDataSet(countData = counts)
     
+        # 1 option) changing to minCounts (only filter genes with less then 1 read over all samples)
+        ods <- filterExpression(ods, minCounts=TRUE, filterGenes=TRUE)
     
+        # 2 option) Use annotation to filter by FPKM values (basepair column are needed for that, as stated in the error)
+        #library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+        #library(org.Hs.eg.db)
+        #txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
+        #map <- select(org.Hs.eg.db, keys=keys(txdb, keytype = "GENEID"),
+        #              keytype="ENTREZID", columns=c("SYMBOL"))
+        #ods <- filterExpression(ods, filterGenes=TRUE, mapping=map, gtf=txdb)
     
-    ods <- OUTRIDER(ods)
+        ods <- OUTRIDER(ods)
     
-    res = results(ods,all=T)   
+        res = results(ods,all=T)   
     
-    res.pvalue = res[order(pValue), p_rank:=1:.N, by=sampleID]
-    res.pvalue = res.pvalue[p_rank <= 10 & sampleID == 'patient_counts$S12_9.1.M']
+        #res.pvalue = res[order(pValue), p_rank:=1:.N, by=sampleID]
+        #res.pvalue = res.pvalue[p_rank <= 10 & sampleID == 'patient_counts$S12_9.1.M']
     
+        # Rank by Z score
+        res.zscore = res[order(abs(zScore), decreasing=TRUE), z_rank:=1:.N, by=sampleID]
+        res.zscore = res.zscore[sampleID == sample,]
+        
+        res.zscore = merge(res.zscore,ensembl_ids_names,by.x='geneID',by.y='Ensembl_gene_id',all.x=T,all.y=F)
     
-    # Rank by Z score
-    res.zscore = res[order(abs(zScore), decreasing=TRUE), z_rank:=1:.N, by=sampleID]
-    res.zscore = res.zscore[z_rank <= 10 & sampleID == 'patient_counts$S12_9.1.M']
+        res.zscore.mgenes = res.zscore[res.zscore$external_gene_name %in% genes,]
+        res.zscore.mgenes = res.zscore.mgenes[abs(res.zscore.mgenes$zScore)>=2]
+        res.zscore.mgenes = res.zscore.mgenes[order(abs(res.zscore.mgenes$zScore),decreasing = T)]
+        
+        outliers.panels = rbind(outliers.panels,res.zscore.mgenes)
+        
+        res.zscore.omim = res.zscore[res.zscore$geneID %in% omim.genes$Ensembl_gene_id,]
+        res.zscore.omim = res.zscore.omim[abs(res.zscore.omim$zScore)>=2]
+        res.zscore.omim = res.zscore.omim[order(abs(res.zscore.omim$zScore),decreasing = T)]
+        
+        outliers.omim = rbind(outliers.omim,res.zscore.omim)
+    }
     
+    outliers.panels = outliers.panels[,c("sampleID","external_gene_name","geneID","zScore","l2fc","rawcounts","normcounts","mu","disp","meanCorrected")]
+    write.csv(outliers.panels,"outliers.panels.csv",row.names=F)
+    outliers.omim = outliers.omim [,c("sampleID","external_gene_name","geneID","zScore","l2fc","rawcounts","normcounts","mu","disp","meanCorrected")]
+    write.csv(outliers.omim,"outliers.omim.csv",row.names=F)
     
+}
+
+expression.outliers.outrider.test = function()
+{
     pres = res[res$sampleID=="patient_counts$S12_9.1.M",]
     pres = pres[pres$zScore < -2,]
     
@@ -1076,15 +1111,15 @@ dexpression = function()
 # this test is too sensitive to apply for all protein coding genes
 # decided to compare with GTEx rpkms not with cohort,
 # fold change reported vs cohort and gtex
-expression.outliers.table = function(for_panels = T, file.rpkms)
+TableS6.Expression.Outliers.Panels.Naive.Ttest = function(for_panels = T, file.rpkms)
 {
     # DEBUG
-    #for_panels = T
-    #setwd("~/Desktop/work/expression/muscle")
-    #file.rpkms = "rpkms.muscle.txt"
+    for_panels = T
+    setwd("~/Desktop/work/expression")
+    file.rpkms = "rpkms.muscle.txt"
     # DEBUG
   
-    gtex.rpkms = read.table("~/Desktop/work/expression/gtex/gtex.50.rpkms.txt")  
+    gtex.rpkms = read.table("rpkms.50gtex.txt")  
     output = gsub("txt","expression.outliers.txt",file.rpkms)
     cat("Sample,Gene_panel_name,Gene,Regulation,Abs_FC_cohort,Abs_FC_GTex,Pvalue",file=output,append=F,sep="\n")
     
