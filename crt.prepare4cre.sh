@@ -81,12 +81,12 @@ function f_prepare
 
     cre.vt.decompose.sh $sample.vcf.gz
     cre.vep.sh $sample.decomposed.vcf.gz
-    cre.gemini_load.sh $sample.decomposed.vepeffects.vcf.gz 10
-    #gemini.gemini2txt.sh $sample.decomposed.vepeffects.db
+    cre.vcfanno.sh $sample.decomposed.vepeffects.vcf.gz
+    echo -e $case"\t"$sample"\t0\t0\t0\t0\n" > $case.ped
+    vcf2db.py $sample.decomposed.vepeffects.annotated.vcf.gz 	$case.ped	${case}-ensemble.db
 
-    mv $sample.decomposed.vepeffects.db ${case}-ensemble.db
-    mv $sample.decomposed.vepeffects.vcf.gz ${case}-ensemble-annotated-decomposed.vcf.gz
-    mv $sample.decomposed.vepeffects.vcf.gz.tbi ${case}-ensemble-annotated-decomposed.vcf.gz.tbi
+    mv $sample.decomposed.vepeffects.annotated.vcf.gz ${case}-ensemble-annotated-decomposed.vcf.gz
+    mv $sample.decomposed.vepeffects.annotated.vcf.gz.tbi ${case}-ensemble-annotated-decomposed.vcf.gz.tbi
 
     ln -s ${case}-ensemble-annotated-decomposed.vcf.gz ${case}-gatk-haplotype-annotated-decomposed.vcf.gz
     ln -s ${case}-ensemble-annotated-decomposed.vcf.gz.tbi ${case}-gatk-haplotype-annotated-decomposed.vcf.gz.tbi
