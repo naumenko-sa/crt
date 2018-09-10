@@ -1528,4 +1528,17 @@ TableS13 = function()
 #print(args[1])
 #fig1A.mds_plot(refresh_files = as.logical(args[1]))
 
-
+TableS15.expression.1rpkm = function(rpkms.file)
+{
+    genes = get_genes_in_panels()
+    rpkms.muscle <- read.csv(rpkms.file, sep="", stringsAsFactors=FALSE)
+    rpkms.muscle = rpkms.muscle[rpkms.muscle$external_gene_name %in% genes,]
+    row.names(rpkms.muscle) = rpkms.muscle$external_gene_name
+    rpkms.muscle$external_gene_name = NULL
+    rpkms.muscle$average = rowMeans(rpkms.muscle)
+    print(paste0("Genes at >=1 RPKM:",length(row.names(rpkms.muscle[rpkms.muscle$average>=1,]))))
+    print(paste(sort(row.names(rpkms.muscle[rpkms.muscle$average>=1,])),collapse=","))
+    
+    print(paste0("Genes at <1 RPKM:",length(row.names(rpkms.muscle[rpkms.muscle$average<1,]))))
+    print(paste(sort(row.names(rpkms.muscle[rpkms.muscle$average<1,])),collapse=","))
+}
