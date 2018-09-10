@@ -8,6 +8,7 @@ details:
     - gatk4
     tools_on:
     - bcbiornaseq
+    - gemini
     expression_caller: [cufflinks, express, stringtie, sailfish, dexseq, kallisto, salmon]
   analysis: RNA-seq
   description: project_sample
