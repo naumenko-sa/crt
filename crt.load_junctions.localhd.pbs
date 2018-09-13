@@ -15,7 +15,7 @@ cd /localhd/$PBS_JOBID
 
 module load python/3.5.2
 module load sqlite/3.20.0
-python3 $CRT_HOME/AddJunctionsToDatabase1.py \
+python3 $CRT_HOME/AddJunctionsToDatabase.py \
 	--addBAM \
 	-bam=$bam
 cd -

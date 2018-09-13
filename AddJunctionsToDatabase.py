@@ -10,44 +10,12 @@ import sqlite3
 import re
 from datetime import datetime
 
-# databasePath = ""
-
 def connectToDB():
-
-	"""
-	Establishes a single unique connection to the database SpliceJunction.db
-	and a cursor
-
-	Args:
-	    None
-
-	Returns:
-	    The connection and a cursor to that connection
-
-	Raises:
-	    None
-	"""
-
 	conn = sqlite3.connect('SpliceJunction.db', timeout=80)
 	cur = conn.cursor()
-
 	return conn, cur
 
 def commitAndClose(conn):
-
-	"""
-	Commits any changes and closes a database connection
-	
-	Args:
-	    conn: A single connection to a database
-
-	Returns:
-	    None
-
-	Raises:
-	    None
-	"""
-
 	conn.commit()
 	conn.close()
 
@@ -55,9 +23,6 @@ def initializeDB():
 
 	"""
 	Sets up the tables and SQLite settings required for the splice junction database
-
-	WAL mode - Write ahead logging, allows for reading while another worker process is
-	writing to the database. Needed for concurrency reasons.
 
 	SAMPLE_REF: Contains all BAM file names and their experiment type
 		type = {0, 1} 
@@ -78,24 +43,10 @@ def initializeDB():
 	parameter. This is table is only used as a reference for gencode annotation and normalization
 	and has no actual relevance to the other tables.
 
-	Args:
-		None
-
-	Returns:
-	    None
-
-	Raises:
-	    None
 	"""
 
 	conn, cur = connectToDB()
-
-	# WAL mode is only present in SQLite versions 3.7.0 or above
-	# Make sure your sqlite3 Python library is based off of the same SQLite3 or higher!
-	# It is critical to having multiple writers and readers 
-	cur.execute('''PRAGMA journal_mode = WAL;''') # WAL - write ahead logging - allows reading while writing. Needed for concurrency
 	cur.execute('''PRAGMA foreign_keys = ON;''')
-
 	cur.execute('''create table if not exists SAMPLE_REF (
 		sample_name varchar(50) primary key, 
 		type tinyint not null);''') 
@@ -145,7 +96,63 @@ def initializeDB():
 
 	commitAndClose(conn)
 
-def getJunctionID(cur, chrom, start, stop, flank):
+def annotateJunction(cur, chrom, start, end, flank):
+	"""
+		Annotates a junction with gencode
+	"""
+	if flank > 0:
+		cur.execute('''select * from TRANSCRIPT_MODEL_JUNCTIONS where 
+				chromosome is ? and
+				start >= ? and
+				start <= ? and
+				stop >= ? and
+				stop <= ?;''', (chrom, (start - flank), (start + flank), (end - flank), (end + flank)) )
+		isBothAnnotated = cur.fetchone()
+
+		if not isBothAnnotated:
+			cur.execute('''select * from TRANSCRIPT_MODEL_JUNCTIONS where 
+					chromosome = ? and
+					start >= ? and
+					start <= ?;''', (chrom, (start - flank), (start + flank)) )
+			isStartAnnotated = cur.fetchone()
+
+			cur.execute('''select * from TRANSCRIPT_MODEL_JUNCTIONS where 
+					chromosome = ? and
+					stop >= ? and
+					stop <= ?;''', (chrom, (end - flank), (end + flank)))
+			isStopAnnotated = cur.fetchone()
+	else:
+		cur.execute('''select * from TRANSCRIPT_MODEL_JUNCTIONS where 
+				chromosome = ? and
+				start = ?
+				stop is = ?;''', (chrom, start, end) )
+		isBothAnnotated = cur.fetchone()
+
+		if not isBothAnnotated:
+			cur.execute('''select * from TRANSCRIPT_MODEL_JUNCTIONS where 
+					chromosome = ? and
+					start = ?;''', (chrom, start))
+			isStartAnnotated = cur.fetchone()
+
+			cur.execute('''select * from TRANSCRIPT_MODEL_JUNCTIONS where 
+					chromosome = ? and
+					stop = ?;''', (chrom, end))
+			isStopAnnotated = cur.fetchone()
+
+	if isBothAnnotated:
+		annotation = 3 # both annotated
+	elif isStopAnnotated and isStartAnnotated:
+		annotation = 4 # exon skipping
+	elif isStopAnnotated:
+		annotation = 2 # only stop
+	elif isStartAnnotated:
+		annotation = 1 # only start
+	else:
+		annotation = 0 # novel junction
+
+	return annotation
+
+def getJunctionID(cur, chrom, start, end, flank):
 
 	"""
 	Retrieves the ROWID and annotation of a junction from the database
@@ -163,138 +170,60 @@ def getJunctionID(cur, chrom, start, stop, flank):
 
 	Returns:
 	    ROWID (junction_id), gencode_annotation of a junction
-
-	Raises:
-	    None
 	"""
-
 	# gencode_annotation = {0, 1, 2, 3, 4}
 	# none, only start, only stop, both, exon skipping
 	# thus, gencode junctions will always have a gencode_annotation value of 3
 
-	# check if start and stop are apart of an existing gencode annotation
+	# check if junction exists in the database (probably from GTEx controls or another sample)
+	# if junction exists, but the annotation is different, overwrite the annotation
+	
+	# reannotate junction
+	new_annotation = annotateJunction(cur, chrom, start, end, flank)
+	
 	cur.execute('''select ROWID, gencode_annotation from JUNCTION_REF where 
 		chromosome is ? and
 		start is ? and 
-		stop is ?;''', (chrom, start, stop))
+		stop is ?;''', (chrom, start, end))
 	res = cur.fetchone()
 
 	if res:
 		ROWID, annotation = res
-
-	# if no such junction determine annotation of new junction: novel junction, only one annotated or a case of exon skipping?
+		if new_annotation != annotation:
+			cur.execute('''update JUNCTION_REF 
+				set gencode_annotation = ?
+				where 
+					chromosome is ? and
+					start is ? and 
+					stop is ?;''', (new_annotation,chrom, start, end))
 	else:
-
-		if flank > 0:
-			cur.execute('''select * from TRANSCRIPT_MODEL_JUNCTIONS where 
-				chromosome is ? and
-				start >= ? and
-				start <= ? and
-				stop >= ? and
-				stop <= ?;''', (chrom, (start - flank), (start + flank), (stop - flank), (stop + flank)) )
-			isBothAnnotated = cur.fetchone()
-
-			if not isBothAnnotated:
-				cur.execute('''select * from TRANSCRIPT_MODEL_JUNCTIONS where 
-					chromosome = ? and
-					start >= ? and
-					start <= ?;''', (chrom, (start - flank), (start + flank)) )
-				isStartAnnotated = cur.fetchone()
-
-				cur.execute('''select * from TRANSCRIPT_MODEL_JUNCTIONS where 
-					chromosome = ? and
-					stop >= ? and
-					stop <= ?;''', (chrom, (stop - flank), (stop + flank)))
-				isStopAnnotated = cur.fetchone()
-
-		else:
-			cur.execute('''select * from TRANSCRIPT_MODEL_JUNCTIONS where 
-				chromosome = ? and
-				start = ?
-				stop is = ?;''', (chrom, start, stop) )
-			isBothAnnotated = cur.fetchone()
-
-			if not isBothAnnotated:
-				cur.execute('''select * from TRANSCRIPT_MODEL_JUNCTIONS where 
-					chromosome = ? and
-					start = ?;''', (chrom, start))
-				isStartAnnotated = cur.fetchone()
-
-				cur.execute('''select * from TRANSCRIPT_MODEL_JUNCTIONS where 
-					chromosome = ? and
-					stop = ?;''', (chrom, stop))
-				isStopAnnotated = cur.fetchone()
-
-		if isBothAnnotated:
-			annotation = 3 # both annotated
-		elif isStopAnnotated and isStartAnnotated:
-			annotation = 4 # exon skipping
-		elif isStopAnnotated:
-			annotation = 2 # only stop
-		elif isStartAnnotated:
-			annotation = 1 # only start
-		else:
-			annotation = 0 # novel junction
-
-		try:
-			cur.execute('''insert into JUNCTION_REF (
+		cur.execute('''insert into JUNCTION_REF (
 				chromosome, 
 				start, 
 				stop, 
 				gencode_annotation) 
-				values (?, ?, ?, ?);''', (chrom, start, stop, annotation))
+				values (?, ?, ?, ?);''', (chrom, start, end, new_annotation))
 
-			ROWID = cur.lastrowid
-		except sqlite3.IntegrityError: # if another worker process has inserted the same junction in between this code block's execution, then just return the junction_id from the database
-			cur.execute('''select ROWID, gencode_annotation from JUNCTION_REF where 
-			chromosome is ? and 
-			start is ? and 
-			stop is ?;''', (chrom, start, stop))
-
-			ROWID, annotation = cur.fetchone()
+		ROWID = cur.lastrowid
 		
-	return ROWID, annotation
+		
+	return ROWID, new_annotation
 
-def makeSpliceDict(gene_file):
-
-	"""
-	Makes a dictionary containing junction positions and their read counts from a text file generated
-	by SpliceJunctionDiscovery.py
-
-	The format of the text file is as follows:
-
-	chromosome	StartPos	StopPos	ReadCount
-
-	Args:
-		gene_file, the path to a text file produced by SpliceJunctionDiscovery.py
-
-	Returns:
-	    spliceDict, a dictionary of junction positions and their read counts
-
-	Raises:
-	    None
-	"""
-
+def makeSpliceDict(junction_file,gene):
 	spliceDict = {}
-
-	with open(gene_file, "r") as gf:
+	with open(junction_file, "r") as gf:
 		for line in gf:
-
-			chrom, start, stop, count = line.strip().split()
-			uniqueSplice = (chrom, start, stop) 
-
-			spliceDict[uniqueSplice] = int(count)
-
+			chrom, start, stop, count, j_gene = line.strip().split()
+			if j_gene == gene:
+			    uniqueSplice = (chrom, start, stop) 
+			    spliceDict[uniqueSplice] = int(count)
 	return spliceDict
 
-def normalizeReadCount(spliceDict, junction, annotation, annotated_counts):
-
+def normalizeReadCount(spliceDict, junction, annotation, max_counts):
 	"""
-	Normalizes the read count of a splice site depending on junction's annotation
-
-	One site is annotated, then normalize that site
+	Normalizes the read count of a splice site
+	One splice site (junction start or end) is annotated, then normalize that site
 	Neither site is annotated, don't perform normalization
-	
 	If both sites are annotated or there is a case of exon skipping, perform normalization
 	on the site which has the largest read count.
 
@@ -305,12 +234,10 @@ def normalizeReadCount(spliceDict, junction, annotation, annotated_counts):
 	    norm_count, the ratio between an annotated splice site's read count to that of
 	    the annotated splice site belonging to a junction with the largest read count 
 
-	Raises:
-	    None
 	"""
 
 	# gencode_annotation = {0, 1, 2, 3, 4}
-	# none, only start, only stop, both, exon skipping
+	# none, only start, only end, both, exon skipping
 
 	chrom, start, stop = junction
 	annotation = int(annotation)
@@ -325,79 +252,25 @@ def normalizeReadCount(spliceDict, junction, annotation, annotated_counts):
 	elif annotation == 2:
 		key = stopString
 	elif (annotation == 3) or (annotation == 4):
-
 		# use the bigger read count for normalization
-		if annotated_counts[startString] > annotated_counts[stopString]:
+		if max_counts[startString] > max_counts[stopString]:
 			key = startString
 		else:
 			key = stopString
-
-	norm_count = round((float(spliceDict[junction]) / float(annotated_counts[key])), 3)
-
+	norm_count = round((float(spliceDict[junction]) / float(max_counts[key])), 3)
 	return str(norm_count)
 
 def makeStartString(chrom, start):
-
-	"""
-	Makes a string that distinguishes a junction position as the 5' end of a junction
-	for use in a Python dictionary (hash map)
-
-	Args:
-		chrom, the chromosome a junction lies on
-		start, the 5' splice site of a junction
-
-	Returns:
-	    string
-
-	Raises:
-	    None
-	"""
-
 	return ''.join([chrom,':','START',':',start])
 
 def makeStopString(chrom, stop):
-
-	"""
-	Makes a string that distinguishes a junction position as the 3' end of a junction
-	for use in a Python dictionary (hash map)
-
-	Args:
-		chrom, the chromosome a junction lies on
-		stop, the 3' splice site of a junction
-
-	Returns:
-	    string
-
-	Raises:
-	    None
-	"""
-
 	return ''.join([chrom,':','STOP',':',stop])
 
-def get_annotated_counts(spliceDict):
-
-	"""
-	Creates a dictionary containing maximum read counts for splice sites in a gene
-	This function distinguishes between different ends of a junction to be consistent
-	when normalizing.
-
-	Args:
-		spliceDict, a dictionary containing junctions and their read counts
-
-	Returns:
-	    count_dict, a dictionary containing maximum read counts for start and stop positions
-	    of junctions in spliceDict
-
-	Raises:
-	    None
-	"""
-
+def getMaxCounts(spliceDict):
+	"""max read counts for normalization"""
 	count_dict = {}
-
 	for junction in spliceDict:
-
 		chrom, start, stop = junction
-
 		startString = makeStartString(chrom, start)
 		stopString = makeStopString(chrom, stop)
 
@@ -412,78 +285,28 @@ def get_annotated_counts(spliceDict):
 				count_dict[stopString] = spliceDict[junction]
 		else:
 			count_dict[stopString] = spliceDict[junction]
-
 	return count_dict
 
-def summarizeGeneFile(poolArguement):
-
-	"""
-	The function each worker process must go through.
-
-	Each process is assigned a gene, and finds the corresponding gene text file in each
-	sample folder. The worker process performs transcript_model annotation, normalization, 
-	and finally adds the junction information to the database.
-
-	Args:
-		poolArgument, is composed of:
-
-			bamList, a list of bams to be used to access each sample's folder
-			gene, the gene text file in which each worker process should read from each sample
-			flank, the flanking region for each transcript_model junction
-
-	Returns:
-	    None
-
-	Raises:
-	    None
-	"""
-
-	bamList, gene, flank = poolArguement
+def addJunctionsForAGene(bam,gene,flank,bam_id,bam_type,sample):
 	conn, cur = connectToDB()
-
-	print ('processing ' + gene)
-
-	for bam in bamList:
-
-		bam_id, bam_type = get_bam_id_and_type(cur, bam)
-
-		sample = bam[:-4]
-		gene_file = ''.join([os.getcwd(), "/", sample, "/", gene, ".txt"])
-
-		if not os.path.isfile(gene_file):
-			continue
-
-		spliceDict = makeSpliceDict(gene_file)
-		annotated_counts = get_annotated_counts(spliceDict)
-
-		for junction in spliceDict:
-
-			chrom, start, stop = junction
-			reads = spliceDict[junction]
-
-			junction_id, annotation = getJunctionID(cur, chrom, int(start), int(stop), flank)
-
-			try:
-				norm_read_count = normalizeReadCount(spliceDict, junction, annotation, annotated_counts)
-			except ZeroDivisionError:
-				print("Zero division error when normalizing %s:%s-%s in genefile %s.txt in sample %s with annotation %d"%(chrom, start, stop, gene, sample, annotation))
-				norm_read_count = 'null'
-
-			annotateJunctionWithGene(gene, junction_id, cur)
-
-			# locks are needed to maintain total read count integrity
-			lock.acquire()
-			updateJunctionInformation(junction_id, bam_id, bam_type, gene, sample, reads, norm_read_count, cur)
-			lock.release()
-
-		del spliceDict, annotated_counts
-	
+	junction_file = bam+'.junctions.txt'
+	spliceDict = makeSpliceDict("gene_buf.txt",gene)
+	max_counts = getMaxCounts(spliceDict)
+	for junction in spliceDict:
+		chrom, start, end = junction
+		reads = spliceDict[junction]
+		junction_id, annotation = getJunctionID(cur, chrom, int(start), int(end), flank)
+		try:
+			norm_read_count = normalizeReadCount(spliceDict, junction, annotation, max_counts)
+		except ZeroDivisionError:
+			print("Zero division error when normalizing %s:%s-%s in genefile %s.txt in sample %s with annotation %d"%(chrom, start, end, gene, sample, annotation))
+			norm_read_count = 'null'
+		annotateJunctionWithGene(gene, junction_id, cur)
+		updateJunctionInformation(junction_id, bam_id, bam_type, gene, sample, reads, norm_read_count, cur)
+	del spliceDict, max_counts
 	commitAndClose(conn)
 
-	print ('finished ' + gene)
-
 def updateJunctionInformation(junction_id, bam_id, bam_type, gene, sample, new_read_count, new_norm_read_count, cur):
-
 	"""
 	Adds a junction's position and its read counts to the database. Logic for total read counts has also been implemented.
 
@@ -510,7 +333,6 @@ def updateJunctionInformation(junction_id, bam_id, bam_type, gene, sample, new_r
 	Raises:
 	    None
 	"""
-
 	# check if sample already has the junction in the database
 	cur.execute('''select ROWID, read_count from JUNCTION_COUNTS where junction_id is ? and bam_id is ?;''', (junction_id, bam_id))
 	res = cur.fetchone()
@@ -552,7 +374,6 @@ def updateJunctionInformation(junction_id, bam_id, bam_type, gene, sample, new_r
 				where ROWID = ?;''', (new_read_count, new_read_count, junction_id))
 
 def get_bam_id_and_type(cur, bam):
-
 	"""
 	Gets the ROWID and the experiment type of a sample in the database. 
 	This function works on the assumption that the sample already exists in the database.
@@ -570,140 +391,51 @@ def get_bam_id_and_type(cur, bam):
 	Raises:
 	    None
 	"""
-
 	cur.execute('''select ROWID, type from SAMPLE_REF where sample_name = ?;''', (bam, ))
 	bam_id, bam_type = cur.fetchone()
-
 	return bam_id, bam_type
 
-def makeLockGlobal(poolLock):
-
-	"""
-	Makes a lock global for worker processes to use
-
-	Args:
-		poolLock, a multiprocessing lock to be used by worker processes
-
-	Returns:
-	    None
-
-	Raises:
-	    None
-	"""
-
-	global lock
-	lock = poolLock
-
-def addSamplesToDatabase(bam_files):
-
-	"""
-	Adds all bam files found in the text file bamList to the database.
-
-	Returns a list of successfully added bam files. Bam files which were not successfully added
-	are assumed to already exist in the database and thus their junction information should not be
-	processed again. Hence they are not added to bamList.
-
-	Args:
-		bam_files, path to a file containing the names of bams to be processed in the database each on
-		a seperate line
-
-	Returns:
-	    bamList, a list of successfully added bam files. This list is to be used to access folders
-	    generated by SpliceJunctionDiscovery.py which are named after the bam files they contain
-	    information from.
-
-	Raises:
-	    None
-	"""
-
+def addSampleToDatabase(bam):
 	conn, cur = connectToDB()
-	bamList = []
-
-	with open(bam_files, "r") as bf:
-		for line in bf:
-
-			bam = line.strip()
-
-			try: # insert sample names into SAMPLE_REF
-				if 'GTEX' in bam:
-					cur.execute('''insert into SAMPLE_REF (sample_name, type) values (?, 0);''', (bam, ))
-				else: # sample is a patient
-					cur.execute('''insert into SAMPLE_REF (sample_name, type) values (?, 1);''', (bam, ))
-			except sqlite3.IntegrityError as e:
-				continue # if sample already in DB, don't process it
-
-			bamList.append(bam) # if the script has passed over the continue statement, then the sample was succesfully added. Append to bamList.
-
+	if 'GTEX' in bam:
+		cur.execute('''insert into SAMPLE_REF (sample_name, type) values (?, 0);''', (bam, ))
+	else: # sample is a patient
+		cur.execute('''insert into SAMPLE_REF (sample_name, type) values (?, 1);''', (bam, ))
 	commitAndClose(conn)
 
-	return bamList
-
-def gene_file_names(transcript_file):
-
-	"""
-	Makes a list of gene names. This set is to be used by worker processes to access their corresponding
-	text file.
-
-	Args:
-		transcript_file, the same transcript_file used for SpliceJunctionDiscovery.py and thus contains
-		the names of each gene file produced by the script in the first column of the file
-
-	Returns:
-	    gene_set, a list of gene names to be used when accessing text files in worker processes
-
-	Raises:
-	    None
-	"""
-
-	gene_set = set() # why a set? sets can only contain unique elements
-
-	with open(transcript_file, "r") as gf:
+def getGeneNames(bam):
+	geneDict = {}
+	geneList = []
+	with open(bam+".junctions.txt", "r") as gf:
 		for line in gf:
-			gene = line.strip().split()[0]
+			gene = line.strip().split()[4]
+			if not gene in geneDict:
+			    geneDict[gene]=1
+			    geneList.append(gene)
+	return geneList
 
-			gene_set.add(gene)
-
-	return gene_set
-
-def parallel_process_gene_files(num_processes, bam_files, transcript_file, flank):
-
-	"""
-	Initializes all parameters needed for worker processes and then runs them.
-
-	Parameters include: 
-		bamList, a list of sample folder names
-		gene_set, a list of gene text files
-		poolLock, a global lock for worker processes
-
-	Args:
-		num_processes, the number of worker processes to run at a given time. A larger number means more ram use.
-		bam_files, path to a file containing the names of all bam files to be processes
-		gene_list, path to a file containing a list of gene names in its first column
-		flank, the allowed +/- range for gencode annotation  
-
-	Returns:
-	    None
-
-	Raises:
-	    None
-	"""
-
+def addJunctions(bam, genes, flank):
 	flank = int(flank)
-	poolArguements = []
-	gene_set = gene_file_names(transcript_file)
-	bamList = addSamplesToDatabase(bam_files)
-	poolLock = multiprocessing.Lock()
-
-	for gene in gene_set:
-		poolArguements.append((bamList, gene, flank))
-
-	print ("Creating a pool with " + str(num_processes) + " processes")
-	pool = multiprocessing.Pool(initializer=makeLockGlobal, initargs=(poolLock, ), processes=int(num_processes))
-	print ('pool: ' + str(pool))
-
-	pool.map(summarizeGeneFile, poolArguements)
-	pool.close()
-	pool.join()
+	addSampleToDatabase(bam)
+	geneList = getGeneNames(bam)
+	conn, cur = connectToDB()
+	bam_id, bam_type = get_bam_id_and_type(cur, bam)
+	commitAndClose(conn)
+	sample = bam[:-4]
+	prev_gene=""
+	gene_file = open("gene_buf.txt","w")
+	with open(bam+".junctions.txt","r") as f:
+		for line in f:
+			gene = line.strip().split()[4]
+			if (gene != prev_gene):
+				if (prev_gene!= ""):
+					gene_file.close()
+					addJunctionsForAGene(bam,prev_gene,flank,bam_id,bam_type,sample)
+					gene_file = open("gene_buf.txt","w")
+			gene_file.write(line)
+			prev_gene=gene
+	gene_file.close()
+	addJunctionsForAGene(bam,prev_gene,flank,bam_id,bam_type,sample)
 
 def annotateJunctionWithGene(gene, junction_id, cur):
 	
@@ -721,7 +453,6 @@ def annotateJunctionWithGene(gene, junction_id, cur):
 	Raises:
 	    None
 	"""
-
 	cur.execute('''insert or ignore into GENE_REF (gene, junction_id) values (?, ?);''', (gene, junction_id))
 
 def addTranscriptModelJunction(chrom, start, stop, cur):
@@ -837,13 +568,18 @@ if __name__=="__main__":
 	print ('AddJunctionsToDatabase.py started on ' + datetime.now().strftime("%Y-%m-%d_%H:%M:%S.%f"))
 
 	parser = argparse.ArgumentParser(description = 'Summarize the read counts of the junctions reported by SpliceJunctionDiscovery.py')
-	parser.add_argument('-transcript_model',help="Transcript model of canonical splicing, e.g. gencode v19. Default is set to [crt-home]/gencode.comprehensive.splice.junctions.txt",action='store',
-			    default = "/hpf/largeprojects/ccmbio/naumenko/tools/MendelianRNA-seq-DB/gencode.comprehensive.splice.junctions.txt")
-	parser.add_argument('-genes',help="The same transcript_file used in SpliceJunctionDiscovery.py",action='store',
-			    default = "/home/naumenko/crt/genes.bed")
-	parser.add_argument('-processes',help='Number of worker processes to parse gene files, default=10.',default=10)
-	parser.add_argument('-bamlist',help='A text file containing the names of bam files you want to discover splice junctions in each on a seperate line, default=bamlist.list',default='bamlist.list')
-	parser.add_argument('-flank',help='Add a +/- flanking region for gencode annotation. Specify 0 if you don\'t want to use this feature, default=1',default=1)
+	parser.add_argument('-transcript_model',
+						 help="Transcript model of canonical splicing, e.g. gencode v19. Default is set to [crt-home]/gencode.comprehensive.splice.junctions.txt",
+						 action='store',
+			    		default = "/home/naumenko/crt/gencode.comprehensive.splice.junctions.txt")
+	parser.add_argument('-genes',
+						help="The same transcript_file used in SpliceJunctionDiscovery.py",
+						action='store',
+			    		default = "/home/naumenko/crt/genes.bed")
+	parser.add_argument('-bam',help='A bam file')
+	parser.add_argument('-flank',
+						help='Add a +/- flanking region for gencode annotation. Specify 0 if you don\'t want to use this feature, default=1',
+						default=1)
 	parser.add_argument('-sample',help='to be used with --delete, the name of the sample you want to remove from the database')
 	# parser.add_argument('-db',help='The name of the database you are storing junction information in, default=SpliceJunction.db',default='SpliceJunction.db')
 
@@ -863,8 +599,8 @@ if __name__=="__main__":
 		print ('Storing junctions from the transcript model file ' + args.transcript_model)
 		storeTranscriptModelJunctions(args.transcript_model)
 	elif args.addBAM:
-		print ('Storing junctions from bam files found in the file ' + args.bamlist)
-		parallel_process_gene_files(args.processes, args.bamlist, args.transcript_file, args.flank)
+		print ('Storing junctions from bam files found in the file ' + args.bam)
+		addJunctions(args.bam, args.genes, args.flank)
 	elif args.delete:
 		sample = args.sample
 
