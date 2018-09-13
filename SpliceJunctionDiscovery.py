@@ -163,8 +163,9 @@ def getJunctions(genes, bam):
 if __name__=="__main__":
 	print ('SpliceJunctionDiscover.py started on ' + datetime.now().strftime("%Y-%m-%d_%H:%M:%S.%f"))
 	parser = argparse.ArgumentParser(description = 'Discover splice junctions in a bam file')
-	parser.add_argument('-genes',help="A bed file of gene coordinates to discover junctions in",action='store',
-			    default = "/home/naumenko/crt/genes.bed")
+	parser.add_argument('-genes',help="A bed file of gene coordinates to discover junctions in",
+						action='store',
+			    		default = "/home/naumenko/crt/genes.bed")
 	parser.add_argument('-bam',help='A bam file')
 	args=parser.parse_args()
 

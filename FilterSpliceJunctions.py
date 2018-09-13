@@ -41,7 +41,7 @@ def writeToFile(res, file):
 def sampleSpecificJunctions(cur, sample, min_read, min_norm_read):
 
 	"""
-	Generates a file containing junctions which are seen in a sample and not seen in any
+	Generates a file with junctions seen in a sample and not seen in any
 	GTEx samples with a read count equal to or greater than the specified minimum read count. 
 
 	Note that this function does not discriminate against junctions seen in other patient samples.

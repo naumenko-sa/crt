@@ -63,7 +63,7 @@ According to Beryl Cummings, the minimal number of controls should be 30, in the
 - or `qsub [path-to-crt]/crt.splice_junction_discovery.pbs -v genes=my_gene_panel.bed,bam=file.bam`
 - or `python3 [path-to-crt]/SpliceJunctionDiscovery.py -bam=file.bam`
 
-Result: file.bam.junction.txt
+Result: file.bam.junctions.txt
 
 2. Load GENCODE junctions to the database
 ```

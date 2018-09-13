@@ -10,8 +10,6 @@ import sqlite3
 import re
 from datetime import datetime
 
-# databasePath = ""
-
 def connectToDB():
 	conn = sqlite3.connect('SpliceJunction.db', timeout=80)
 	cur = conn.cursor()
@@ -25,9 +23,6 @@ def initializeDB():
 
 	"""
 	Sets up the tables and SQLite settings required for the splice junction database
-
-	WAL mode - Write ahead logging, allows for reading while another worker process is
-	writing to the database. Needed for concurrency reasons.
 
 	SAMPLE_REF: Contains all BAM file names and their experiment type
 		type = {0, 1} 
@@ -48,24 +43,10 @@ def initializeDB():
 	parameter. This is table is only used as a reference for gencode annotation and normalization
 	and has no actual relevance to the other tables.
 
-	Args:
-		None
-
-	Returns:
-	    None
-
-	Raises:
-	    None
 	"""
 
 	conn, cur = connectToDB()
-
-	# WAL mode is only present in SQLite versions 3.7.0 or above
-	# Make sure your sqlite3 Python library is based off of the same SQLite3 or higher!
-	# It is critical to having multiple writers and readers 
-	#cur.execute('''PRAGMA journal_mode = WAL;''') # WAL - write ahead logging - allows reading while writing. Needed for concurrency
 	cur.execute('''PRAGMA foreign_keys = ON;''')
-
 	cur.execute('''create table if not exists SAMPLE_REF (
 		sample_name varchar(50) primary key, 
 		type tinyint not null);''') 
@@ -234,11 +215,9 @@ def makeSpliceDict(junction_file,gene):
 
 def normalizeReadCount(spliceDict, junction, annotation, max_counts):
 	"""
-	Normalizes the read count of a splice site depending on junction's annotation
-
-	One site is annotated, then normalize that site
+	Normalizes the read count of a splice site
+	One splice site (junction start or end) is annotated, then normalize that site
 	Neither site is annotated, don't perform normalization
-	
 	If both sites are annotated or there is a case of exon skipping, perform normalization
 	on the site which has the largest read count.
 
@@ -249,12 +228,10 @@ def normalizeReadCount(spliceDict, junction, annotation, max_counts):
 	    norm_count, the ratio between an annotated splice site's read count to that of
 	    the annotated splice site belonging to a junction with the largest read count 
 
-	Raises:
-	    None
 	"""
 
 	# gencode_annotation = {0, 1, 2, 3, 4}
-	# none, only start, only stop, both, exon skipping
+	# none, only start, only end, both, exon skipping
 
 	chrom, start, stop = junction
 	annotation = int(annotation)
@@ -585,12 +562,18 @@ if __name__=="__main__":
 	print ('AddJunctionsToDatabase.py started on ' + datetime.now().strftime("%Y-%m-%d_%H:%M:%S.%f"))
 
 	parser = argparse.ArgumentParser(description = 'Summarize the read counts of the junctions reported by SpliceJunctionDiscovery.py')
-	parser.add_argument('-transcript_model',help="Transcript model of canonical splicing, e.g. gencode v19. Default is set to [crt-home]/gencode.comprehensive.splice.junctions.txt",action='store',
-			    default = "/home/naumenko/crt/gencode.comprehensive.splice.junctions.txt")
-	parser.add_argument('-genes',help="The same transcript_file used in SpliceJunctionDiscovery.py",action='store',
-			    default = "/home/naumenko/crt/genes.bed")
-	parser.add_argument('-bam',help='A file file')
-	parser.add_argument('-flank',help='Add a +/- flanking region for gencode annotation. Specify 0 if you don\'t want to use this feature, default=1',default=1)
+	parser.add_argument('-transcript_model',
+						 help="Transcript model of canonical splicing, e.g. gencode v19. Default is set to [crt-home]/gencode.comprehensive.splice.junctions.txt",
+						 action='store',
+			    		default = "/home/naumenko/crt/gencode.comprehensive.splice.junctions.txt")
+	parser.add_argument('-genes',
+						help="The same transcript_file used in SpliceJunctionDiscovery.py",
+						action='store',
+			    		default = "/home/naumenko/crt/genes.bed")
+	parser.add_argument('-bam',help='A bam file')
+	parser.add_argument('-flank',
+						help='Add a +/- flanking region for gencode annotation. Specify 0 if you don\'t want to use this feature, default=1',
+						default=1)
 	parser.add_argument('-sample',help='to be used with --delete, the name of the sample you want to remove from the database')
 	# parser.add_argument('-db',help='The name of the database you are storing junction information in, default=SpliceJunction.db',default='SpliceJunction.db')
 
