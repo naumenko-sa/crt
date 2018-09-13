@@ -96,6 +96,62 @@ def initializeDB():
 
 	commitAndClose(conn)
 
+def annotateJunction(cur, chrom, start, end, flank)
+	"""
+		Annotates a junction with gencode
+	"""
+	if flank > 0:
+		cur.execute('''select * from TRANSCRIPT_MODEL_JUNCTIONS where 
+				chromosome is ? and
+				start >= ? and
+				start <= ? and
+				stop >= ? and
+				stop <= ?;''', (chrom, (start - flank), (start + flank), (end - flank), (end + flank)) )
+		isBothAnnotated = cur.fetchone()
+
+		if not isBothAnnotated:
+			cur.execute('''select * from TRANSCRIPT_MODEL_JUNCTIONS where 
+					chromosome = ? and
+					start >= ? and
+					start <= ?;''', (chrom, (start - flank), (start + flank)) )
+			isStartAnnotated = cur.fetchone()
+
+			cur.execute('''select * from TRANSCRIPT_MODEL_JUNCTIONS where 
+					chromosome = ? and
+					stop >= ? and
+					stop <= ?;''', (chrom, (end - flank), (end + flank)))
+			isStopAnnotated = cur.fetchone()
+	else:
+		cur.execute('''select * from TRANSCRIPT_MODEL_JUNCTIONS where 
+				chromosome = ? and
+				start = ?
+				stop is = ?;''', (chrom, start, end) )
+		isBothAnnotated = cur.fetchone()
+
+		if not isBothAnnotated:
+			cur.execute('''select * from TRANSCRIPT_MODEL_JUNCTIONS where 
+					chromosome = ? and
+					start = ?;''', (chrom, start))
+			isStartAnnotated = cur.fetchone()
+
+			cur.execute('''select * from TRANSCRIPT_MODEL_JUNCTIONS where 
+					chromosome = ? and
+					stop = ?;''', (chrom, end))
+			isStopAnnotated = cur.fetchone()
+
+	if isBothAnnotated:
+		annotation = 3 # both annotated
+	elif isStopAnnotated and isStartAnnotated:
+		annotation = 4 # exon skipping
+	elif isStopAnnotated:
+		annotation = 2 # only stop
+	elif isStartAnnotated:
+		annotation = 1 # only start
+	else:
+		annotation = 0 # novel junction
+
+	return annotation
+
 def getJunctionID(cur, chrom, start, end, flank):
 
 	"""
@@ -119,7 +175,12 @@ def getJunctionID(cur, chrom, start, end, flank):
 	# none, only start, only stop, both, exon skipping
 	# thus, gencode junctions will always have a gencode_annotation value of 3
 
-	# check if start and stop are apart of an existing gencode annotation
+	# check if junction exists in the database (probably from GTEx controls or another sample)
+	# if junction exists, but the annotation is different, overwrite the annotation
+	
+	# reannotate junction
+	new_annotation = annotateJunction(cur, chrom, start, end, flank)
+	
 	cur.execute('''select ROWID, gencode_annotation from JUNCTION_REF where 
 		chromosome is ? and
 		start is ? and 
@@ -128,80 +189,25 @@ def getJunctionID(cur, chrom, start, end, flank):
 
 	if res:
 		ROWID, annotation = res
-
-	# if no such junction determine annotation of new junction: 
-	# novel junction, only one annotated or a case of exon skipping (both annotated)?
+		if new_annotation != annotation:
+			cur.execute('''update JUNCTION_REF 
+				set gencode_annotation = ?
+				where 
+					chromosome is ? and
+					start is ? and 
+					stop is ?;''', (new_annotation,chrom, start, end))
 	else:
-
-		if flank > 0:
-			cur.execute('''select * from TRANSCRIPT_MODEL_JUNCTIONS where 
-				chromosome is ? and
-				start >= ? and
-				start <= ? and
-				stop >= ? and
-				stop <= ?;''', (chrom, (start - flank), (start + flank), (end - flank), (end + flank)) )
-			isBothAnnotated = cur.fetchone()
-
-			if not isBothAnnotated:
-				cur.execute('''select * from TRANSCRIPT_MODEL_JUNCTIONS where 
-					chromosome = ? and
-					start >= ? and
-					start <= ?;''', (chrom, (start - flank), (start + flank)) )
-				isStartAnnotated = cur.fetchone()
-
-				cur.execute('''select * from TRANSCRIPT_MODEL_JUNCTIONS where 
-					chromosome = ? and
-					stop >= ? and
-					stop <= ?;''', (chrom, (end - flank), (end + flank)))
-				isStopAnnotated = cur.fetchone()
-
-		else:
-			cur.execute('''select * from TRANSCRIPT_MODEL_JUNCTIONS where 
-				chromosome = ? and
-				start = ?
-				stop is = ?;''', (chrom, start, end) )
-			isBothAnnotated = cur.fetchone()
-
-			if not isBothAnnotated:
-				cur.execute('''select * from TRANSCRIPT_MODEL_JUNCTIONS where 
-					chromosome = ? and
-					start = ?;''', (chrom, start))
-				isStartAnnotated = cur.fetchone()
-
-				cur.execute('''select * from TRANSCRIPT_MODEL_JUNCTIONS where 
-					chromosome = ? and
-					stop = ?;''', (chrom, end))
-				isStopAnnotated = cur.fetchone()
-
-		if isBothAnnotated:
-			annotation = 3 # both annotated
-		elif isStopAnnotated and isStartAnnotated:
-			annotation = 4 # exon skipping
-		elif isStopAnnotated:
-			annotation = 2 # only stop
-		elif isStartAnnotated:
-			annotation = 1 # only start
-		else:
-			annotation = 0 # novel junction
-
-		try:
-			cur.execute('''insert into JUNCTION_REF (
+		cur.execute('''insert into JUNCTION_REF (
 				chromosome, 
 				start, 
 				stop, 
 				gencode_annotation) 
-				values (?, ?, ?, ?);''', (chrom, start, end, annotation))
+				values (?, ?, ?, ?);''', (chrom, start, end, new_annotation))
 
-			ROWID = cur.lastrowid
-		except sqlite3.IntegrityError: # if another worker process has inserted the same junction in between this code block's execution, then just return the junction_id from the database
-			cur.execute('''select ROWID, gencode_annotation from JUNCTION_REF where 
-			chromosome is ? and 
-			start is ? and 
-			stop is ?;''', (chrom, start, end))
-
-			ROWID, annotation = cur.fetchone()
+		ROWID = cur.lastrowid
 		
-	return ROWID, annotation
+		
+	return ROWID, new_annotation
 
 def makeSpliceDict(junction_file,gene):
 	spliceDict = {}
