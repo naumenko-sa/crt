@@ -452,6 +452,8 @@ TableS6.expression.outliers.OUTRIDER = function()
     
     for (sample in colnames(patient_counts))
     {
+        #
+        sample="X10.1.M"
         print(sample)
         patient_count = subset(patients_counts,select=sample)
         counts = cbind(gtex_counts, patient_count)
@@ -473,7 +475,14 @@ TableS6.expression.outliers.OUTRIDER = function()
     
         res = results(ods,all=T)   
     
-        #res.pvalue = res[order(pValue), p_rank:=1:.N, by=sampleID]
+        #res.pvalue = res[order(abs(l2fc)), p_rank:=1:.N, by=sampleID]
+        #res.pvalue = res.pvalue[p_rank <= 10 & sampleID == 'patient_counts$S12_9.1.M']
+        
+        #rank by abc(lfc)
+        #res.lfc = res[res$sampleID=="X10.1.M",]
+        #res.lfc = merge(res.lfc,ensembl_ids_names,by.x="geneID",by.y="Ensembl_gene_id",all.x=T)
+        #res.lfc = res.lfc[order(abs(l2fc),decreasing=T)]
+        #write.csv(res.lfc,"10-1-M.table.csv",row.names = F)
         #res.pvalue = res.pvalue[p_rank <= 10 & sampleID == 'patient_counts$S12_9.1.M']
     
         # Rank by Z score
@@ -1530,7 +1539,7 @@ TableS13 = function()
 
 TableS15.expression.1rpkm = function(rpkms.file)
 {
-    genes = get_genes_in_panels()
+    genes=get_genes_in_panels()
     rpkms.muscle <- read.csv(rpkms.file, sep="", stringsAsFactors=FALSE)
     rpkms.muscle = rpkms.muscle[rpkms.muscle$external_gene_name %in% genes,]
     row.names(rpkms.muscle) = rpkms.muscle$external_gene_name
