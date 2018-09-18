@@ -74,7 +74,7 @@ function f_prepare
     cd $case
     
     gunzip -c $original_vcf | grep "^#"  > $sample.vcf
-    gunzip -c $original_vcf | grep -v "^#" | grep PASS | grep -v possible_rnaedit  >> $sample.vcf
+    gunzip -c $original_vcf | grep -v "^#" | grep PASS | grep -v possible_rnaedit | egrep -v "^GL000" >> $sample.vcf
 
     bgzip $sample.vcf
     tabix $sample.vcf.gz

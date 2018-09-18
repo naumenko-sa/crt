@@ -3,7 +3,7 @@
 import os
 import sys
 import sqlite3
-from AddJunctionsToDatabase1 import connectToDB, commitAndClose
+from AddJunctionsToDatabase import connectToDB, commitAndClose
 
 def tableHeader():
 	header = ['gene','pos', 'annotation', 'read_count', 'norm_read_count','n_gtex_seen','total_gtex_read_count']

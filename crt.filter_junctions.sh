@@ -15,6 +15,4 @@ fi
 
 python3 ~/crt/FilterSpliceJunctions.py --sample $bam 5 0.05
 
-
-#head -n1 ${bam}_specific_rc5_norm_rc0.05_n_gtex_184  > $bam.rare_junctions.txt
-#cat ${bam}_specific_rc5_norm_rc0.05_n_gtex_184 | grep -v NULL | grep -v NONE
+cat ${bam}_specific_rc5_norm_rc0.05_n_gtex_184 | grep -v BOTH >> $bam.rare_junctions.txt
