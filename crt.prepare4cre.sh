@@ -17,35 +17,49 @@ function f_cleanup
 {
     # better to look for project-summary than hardcode the year
     # keep bam files for new samples
-    cd $case
-    result_dir=`find final -name project-summary.yaml | sed s/"\/project-summary.yaml"//`
-    echo "Result dir:" $result_dir
-    
-    #just to be on the safe side
-    if [ -d $result_dir ]
+    if [ -z $case ] 
     then
-	mv final/*/* .
+       echo "Project (case,family) folder does not exist. Exiting"
+       exit 1
+    fi
+
+    cd $case
+    
+    project_summary=`find final -name project-summary.yaml`
+    echo "Project summary: " $project_summary
+
+    # if summary exists
+    if [ -f $project_summary ] 
+    then
+        result_dir=`echo $project_summary | sed s/"\/project-summary.yaml"//`
+        echo "Result dir:" $result_dir
+    
+        # if result_dir is empty that might cause copying entire /
+        if [ -d $result_dir ] && [ -n "$result_dir"]
+        then
+            mv final/*/* .
 	
-	cd ..
-	rm -rf ${case}/work
-	rm -rf ${case}/final
-	rm -rf ${case}/transcriptome
-	cd $case
+	       cd ..
+	       rm -rf ${case}/work
+	       rm -rf ${case}/final
+           rm -rf ${case}/transcriptome
+	       cd $case
 
-	#rename bam files to match sample names
-	for f in *ready.bam;do mv $f `echo $f | sed s/"-ready"//`;done;
-	for f in *ready.bam.bai;do mv $f `echo $f | sed s/"-ready"//`;done;
+	       #rename bam files to match sample names
+	       for f in *ready.bam;do mv $f `echo $f | sed s/"-ready"//`;done;
+	       for f in *ready.bam.bai;do mv $f `echo $f | sed s/"-ready"//`;done;
 
-	rm ${sample}-transcriptome.bam
+	       rm ${sample}-transcriptome.bam
 	            
-	#make bam files read only
-	for f in *.bam;do chmod 444 $f;done;
+	       #make bam files read only
+	       for f in *.bam;do chmod 444 $f;done;
 	        	        
-	#calculate md5 sums
-	for f in *.bam;do md5sum $f > $f.md5;done;
+	       #calculate md5 sums
+	       for f in *.bam;do md5sum $f > $f.md5;done;
 
-	#validate bam files
-	for f in *.bam;do	cre.bam.validate.sh $f;done;
+	       #validate bam files
+	       for f in *.bam;do	cre.bam.validate.sh $f;done;
+        fi
     fi
     
     cd ..

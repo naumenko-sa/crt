@@ -390,10 +390,18 @@ fig1C.tableS5.genes_expressed_at_1rpkm = function()
     rpkms.fibro = read.csv("rpkms.fibro.txt", sep="", stringsAsFactors = F)
     rpkms.fibro = tableS5.get_1rpkm_genes(rpkms.fibro,samples.fibro)
     
+    #rpkms.fibro$external_gene_name=NULL
+    #rpkms.fibro = tableS5.get_1rpkm_genes(rpkms.fibro,NULL,F)
+    
     # prepare gtex blood table
     rpkms.gtex_blood = read.csv("rpkms.gtex_blood.txt", sep="", stringsAsFactors = F)
     rpkms.gtex_blood$external_gene_name = NULL
     rpkms.gtex_blood = tableS5.get_1rpkm_genes(rpkms.gtex_blood,NULL,F)
+    
+    #prepare gtex fibro table
+    rpkms.gtex_fibro = read.csv("rpkms.gtex_fibro.txt", sep="", stringsAsFactors = F)
+    rpkms.gtex_fibro$external_gene_name = NULL
+    rpkms.gtex_fibro = tableS5.get_1rpkm_genes(rpkms.gtex_fibro,NULL,F)
     
     print("genes expressed in at 1RPKM")
     tissues = c("muscle","myo","fibro","gtex_blood") 
@@ -1550,4 +1558,39 @@ TableS15.expression.1rpkm = function(rpkms.file)
     
     print(paste0("Genes at <1 RPKM:",length(row.names(rpkms.muscle[rpkms.muscle$average<1,]))))
     print(paste(sort(row.names(rpkms.muscle[rpkms.muscle$average<1,])),collapse=","))
+}
+
+# input is from ~/crt/crt.vcf2imbalance.sh
+allelic_imbalance.het.csv2ai = function(infile,sample)
+{
+    #setwd("~/Desktop/work/imbalance/")
+    #infile ="S12-gatk-haplotype-annotated.vcf.gz.het.csv"
+    #sample = "S12_9-1-M"
+    sample.het = read.csv(infile, stringsAsFactors=F)
+    sample.het$ratio = with(sample.het,pmin(ref,alt)/pmax(ref,alt))
+    
+    protein_coding_genes = read.delim("~/cre/data/protein_coding_genes.bed", header=F, stringsAsFactors=F)
+    colnames(protein_coding_genes) = c("chrom","start","end","gene")
+    
+    protein_coding_genes$ai = NULL
+    
+    for (i in (1:nrow(protein_coding_genes)))
+    {
+        gene_chrom = protein_coding_genes[i,"chrom"]
+        gene_start = protein_coding_genes[i,"start"]
+        gene_end = protein_coding_genes[i,"end"]
+        gene_variants = subset(sample.het, chrom == gene_chrom & pos >= gene_start & pos <= gene_end)
+        
+        if (nrow(gene_variants)>=5)
+        {
+            protein_coding_genes[i,"ai"] = median(gene_variants$ratio)
+        }else
+        {
+            protein_coding_genes[i,"ai"] = NA
+        }
+    }
+    protein_coding_genes = protein_coding_genes [!is.na(protein_coding_genes$ai),]
+    protein_coding_genes = protein_coding_genes[,c("gene","ai")]
+    colnames(protein_coding_genes) = c("gene",sample)
+    write.csv(protein_coding_genes,paste0(sample,".ai.csv"),row.names = F)
 }
