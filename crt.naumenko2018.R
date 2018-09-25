@@ -1128,7 +1128,7 @@ dexpression = function()
 # this test is too sensitive to apply for all protein coding genes
 # decided to compare with GTEx rpkms not with cohort,
 # fold change reported vs cohort and gtex
-TableS6.Expression.Outliers.Panels.Naive.Ttest = function(for_panels = T, file.rpkms)
+TableS6.Expression.Outliers.Panels.Naive.Ttest = function(file.rpkms, for_panels = T)
 {
     # DEBUG
     for_panels = T
@@ -1438,28 +1438,40 @@ expression_variability = function(gene_panel,rpkm.file,tissue)
 }
 
 # statistics based on the output of crt.filter_junctions.sh
-TableS9.Splicing.Panels.Frequency = function()
+Supplementary_Table_9.Splicing.Panels.Frequency = function()
 {
-    setwd("~/Desktop/work/splicing")
-    files = list.files(".","*n_gtex_184")
+    setwd("~/Desktop/work/splicing_flank2/")
+    files = list.files(".","*rare_junctions.txt")
     events = splicing.read_novel_splice_events(files[1])
     for (file in tail(files,-1))
     {
         events_buf = splicing.read_novel_splice_events(file)
         events = rbind(events,events_buf)
     }
-    filtered = events[events$norm_read_count >= 0.5,]
-    filtered = filtered[filtered$read_count > 10,]
     
-    filtered$dup = c(duplicated(filtered$pos,fromLast=T) | duplicated(filtered$pos))
+    events$norm_read_count = as.numeric(events$norm_read_count)
+    events$read_count = as.numeric(events$read_count)
+    
+    filtered = events[events$norm_read_count >= 0.5,]
+    
+    filtered = filtered[filtered$read_count >= 30,]
+    
+    frequencies = as.data.frame(table(filtered$pos))
+    colnames(frequencies) = c("pos","frequency")
+    
+    filtered = merge(filtered,frequencies,by.x = "pos", by.y = "pos",all.x = T)
+    filtered = filtered[filtered$frequency <= 7,]
+    
     #filtered = filtered[filtered$dup == F,]
     
-    write.csv(filtered,"splicing.all_genes.csv",quote=T, row.names = F)
+    filtered$tissue = ''
+    filtered$tissue = apply(filtered[,c("sample","tissue")],1,decode_tissue_type)
     
-    panel_genes = c()
-    for (p in panel_list){
-        panel_genes = unique(c(panel_genes,get(p)))
-    }
+    filtered$Omim = NULL
+    
+    write.csv(filtered,"Supplemental_table_10.Splicing_all_genes.csv",quote=T, row.names = F)
+    
+    panel_genes = get_genes_in_panels()
     events = events[events$gene %in% panel_genes,]
     
     frequencies = as.data.frame(table(events$pos))
@@ -1485,7 +1497,7 @@ TableS9.Splicing.Panels.Frequency = function()
 
 TableS10.S11.S12.Splicing.Statistics = function()
 {
-    setwd("~/Desktop/work/splicing")
+    setwd("~/Desktop/work/splicing_flank2/")
     junctions <- read.csv("TableS9.Splicing.Panels.Frequency.csv")
 
     junctions.muscle = junctions[junctions$tissue =='Muscle',]
@@ -1560,37 +1572,52 @@ TableS15.expression.1rpkm = function(rpkms.file)
     print(paste(sort(row.names(rpkms.muscle[rpkms.muscle$average<1,])),collapse=","))
 }
 
-# input is from ~/crt/crt.vcf2imbalance.sh
-allelic_imbalance.het.csv2ai = function(infile,sample)
+# calculates median allelic imbalance ratio for every protein coding gene
+# sample = sample_name, i.e. 10-1-M
+# het file should be sample_name.het.csv in the wd
+# input is from ~/crt/crt.imbalance.get_het.sh
+# protein_coding_genes.bed is from the global namespace, recycled each time
+imbalance.get_imbalance = function(sample)
 {
     #setwd("~/Desktop/work/imbalance/")
     #infile ="S12-gatk-haplotype-annotated.vcf.gz.het.csv"
-    #sample = "S12_9-1-M"
+    #sample = "10-1-M"
+    infile = paste0(sample,".het.csv")
+    outfile = paste0(sample,".ai.csv")
     sample.het = read.csv(infile, stringsAsFactors=F)
     sample.het$ratio = with(sample.het,pmin(ref,alt)/pmax(ref,alt))
     
-    protein_coding_genes = read.delim("~/cre/data/protein_coding_genes.bed", header=F, stringsAsFactors=F)
-    colnames(protein_coding_genes) = c("chrom","start","end","gene")
+    protein_coding_genes.bed$ai = NULL
     
-    protein_coding_genes$ai = NULL
-    
-    for (i in (1:nrow(protein_coding_genes)))
+    for (i in (1:nrow(protein_coding_genes.bed)))
     {
-        gene_chrom = protein_coding_genes[i,"chrom"]
-        gene_start = protein_coding_genes[i,"start"]
-        gene_end = protein_coding_genes[i,"end"]
+        gene_chrom = protein_coding_genes.bed[i,"chrom"]
+        gene_start = protein_coding_genes.bed[i,"start"]
+        gene_end = protein_coding_genes.bed[i,"end"]
         gene_variants = subset(sample.het, chrom == gene_chrom & pos >= gene_start & pos <= gene_end)
         
-        if (nrow(gene_variants)>=5)
-        {
-            protein_coding_genes[i,"ai"] = median(gene_variants$ratio)
-        }else
-        {
-            protein_coding_genes[i,"ai"] = NA
+        if (nrow(gene_variants)>=5){
+            protein_coding_genes.bed[i,"ai"] = median(gene_variants$ratio)
+        }else{
+            protein_coding_genes.bed[i,"ai"] = NA
         }
     }
-    protein_coding_genes = protein_coding_genes [!is.na(protein_coding_genes$ai),]
-    protein_coding_genes = protein_coding_genes[,c("gene","ai")]
-    colnames(protein_coding_genes) = c("gene",sample)
-    write.csv(protein_coding_genes,paste0(sample,".ai.csv"),row.names = F)
+    protein_coding_genes.bed = protein_coding_genes.bed [!is.na(protein_coding_genes.bed$ai),]
+    protein_coding_genes.bed = protein_coding_genes.bed[,c("gene","ai")]
+    colnames(protein_coding_genes.bed) = c("gene",sample)
+    write.csv(protein_coding_genes.bed,outfile,row.names = F)
+}
+
+imbalance.combine = function()
+{
+    df = data.frame(row.names = genes)
+    
+    for (sample in samples){
+        print(sample)
+        buf = read.csv(paste0(sample,".ai.csv"), stringsAsFactors = F,header = T)
+        df = merge(df,buf,by.x="row.names",by.y="gene",all.x=T,all.y=F)
+        row.names(df) = df$Row.names
+        df$Row.names = NULL
+    }
+    
 }
