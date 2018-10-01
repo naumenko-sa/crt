@@ -7,10 +7,12 @@ install = function()
 
 init = function()
 {
-    library(edgeR)
-    library(RColorBrewer)
-    library(org.Hs.eg.db)
-    library(plyr)
+    library("edgeR")
+    library("RColorBrewer")
+    library("org.Hs.eg.db")
+    library("plyr")
+    library("VennDiagram")    
+    library("genefilter")
     source("~/crt/crt.utils.R")
     source("~/bioscripts/genes.R")
     setwd("~/Desktop/work")
@@ -367,7 +369,7 @@ fig1C.genes_expressed_at_1rpkm_in_panel = function()
 # based on trios (muscle + myo + fibro) and GTEx blood controls
 # fig1C - genes expressed at 1RPKM in 4 tissues
 # data from tableS5
-fig1C.tableS5.genes_expressed_at_1rpkm = function()
+supplementary_table_3.genes_expressed_at_1rpkm = function()
 {
     # prepare muscle table
     samples.muscle = paste0(trios,".M")
@@ -407,7 +409,6 @@ fig1C.tableS5.genes_expressed_at_1rpkm = function()
     tissues = c("muscle","myo","fibro","gtex_blood") 
     tissue_labels = c("Muscle","Transdifferentiated \nmyotubes","Primary fibroblasts","Gtex blood")
 
-    library("VennDiagram")    
     png("fig1C.genes_expressed_at_1_rpkm.png",res=300,width=2000,height=2000)
     grid.draw(venn.diagram(list(rownames(rpkms.muscle),
                       rownames(rpkms.myo),
@@ -1410,33 +1411,72 @@ expression.variability.tableS12 = function()
     }
 }
 
-# calculate a table for expression variabiliry in a gene_panel (list of genes) for 
+# calculate a df expression variability in a gene_panel (list of genes) for 
 # file like rpkms.muscle.txt - produced by crt.utils.read.coverage2counts_dir
-expression_variability = function(gene_panel,rpkm.file,tissue)
+expression.variability.get_cov = function(gene_panel,rpkm.file,tissue,debug=F)
 {
-    #rpkm.file = "rpkms.fibro.txt"
-    #tissue = "fibro"
-    #gene_panel = gor1_panel
+    if (debug == T)
+    {
+        rpkm.file = "rpkms.muscle.txt"
+        tissue = "Muscle"
+        genes = get_genes_in_panels()
+    }
+    
     rpkms = read.table(rpkm.file)
     
-    cnames = c("Tissue","Gene","Min","Mean","Max","SD","Var")
-    
-    result = data.frame()
-    for (gene in gene_panel)
-    {
-        gene_expression = rpkms[rpkms$external_gene_name==gene,]
-        gene_expression$external_gene_name=NULL
-        if (nrow(gene_expression) == 1)
-        {
-            df_temp = data.frame(tissue,gene,min(gene_expression),rowMeans(gene_expression)[[1]],
-                                 max(gene_expression),sd(gene_expression),var(as.numeric(gene_expression)))
-            result = rbind(result,df_temp)
-        }
+    agene = gene_panel[1]
+    if (grepl("ENSG",agene,fixed=T)){
+        rpkms = rpkms[rownames(rpkms) %in% genes,]
+    }else{
+        rpkms = rpkms[rpkms$external_gene_name %in% genes,]
+        row.names(rpkms)=rpkms$external_gene_name
     }
-    colnames(result) = cnames
-    write.table(result,paste0("expression_variability.",tissue,".csv"),sep = ",",row.names = F)
+    
+    rpkms$external_gene_name = NULL
+    
+    result.table = data.frame(row.names = row.names(rpkms))
+    result.table$mean = rowMeans(rpkms)
+    result.table$sd = rowSds(rpkms)
+    result.table$cov = with(result.table,100*sd/mean)
+    
+    result.table$mean = NULL
+    result.table$sd = NULL
+    
+    colnames(result.table)[1] = tissue
+    result.table = result.table[order(rownames(result.table)),,drop=F]
+    
+    return(result.table)
 }
 
+# boxplot of coefficient of variation (cov) for different tissue types
+expression.variation.boxplot = function(genes,png.file,title)
+{
+    variability.muscle = expression.variability.get_cov(genes,"rpkms.muscle.txt","Muscle")
+    variability.myotubes = expression.variability.get_cov(genes,"rpkms.myo.txt","Myotubes")
+    variability.fibro = expression.variability.get_cov(genes,"rpkms.fibro.txt","Fibroblast")
+    
+    variability.gtex.muscle = expression.variability.get_cov(genes,"rpkms.50gtex.txt","Gtex muscle")
+    variability.gtex.fibro = expression.variability.get_cov(genes,"rpkms.gtex_fibro.txt","Gtex fibroblast")
+    variability.gtex.blood = expression.variability.get_cov(genes,"rpkms.gtex_blood.txt","Gtex_blood")
+    
+    variability = cbind(variability.muscle,variability.myotubes,variability.fibro,
+                        variability.gtex.muscle,variability.gtex.fibro,variability.gtex.blood)
+    
+    png(png.file,res=300,width=3000,height=2000)
+    boxplot(variability,main=title)
+    dev.off()
+}
+
+expression.variation = function()
+{
+    genes = get_genes_in_panels()
+    expression.variation.boxplot(genes,"expression.cov.panels.png",
+                                 "Expression variation in muscular genes")
+    
+    genes = read.table("genes1rpkm_in_muscle.trios.txt",header=T,stringsAsFactors = F)$ensembl_gene_id
+    expression.variation.boxplot(genes,"expression.cov.1rpkm_genes.png",
+                                 "Expression variation in 1rpkm genes")
+}
 # statistics based on the output of crt.filter_junctions.sh
 Supplementary_Table_9.Splicing.Panels.Frequency = function()
 {
@@ -1610,14 +1650,20 @@ imbalance.get_imbalance = function(sample)
 
 imbalance.combine = function()
 {
+    setwd("~/Desktop/work/imbalance/")
+    genes = get_genes_in_panels()
     df = data.frame(row.names = genes)
+    samples = read.table("samples.txt",stringsAsFactors = F)
+    colnames(samples)=c("sample_name")
     
-    for (sample in samples){
+    for (sample in samples$V1){
         print(sample)
-        buf = read.csv(paste0(sample,".ai.csv"), stringsAsFactors = F,header = T)
+        filename = paste0(sample,".ai.csv")
+        buf = read.csv(filename, stringsAsFactors = F,header = T)
         df = merge(df,buf,by.x="row.names",by.y="gene",all.x=T,all.y=F)
         row.names(df) = df$Row.names
         df$Row.names = NULL
     }
-    
+    df = scale(df,center=T,scale=T)
+    write.csv(df,"Supplementary_table.SN.Allelic_imbalance.Z-scores.csv")
 }
