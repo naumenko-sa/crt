@@ -80,6 +80,10 @@ linkage_region8 = c("NDUFA7", "RPS28", "KANK3", "ANGPTL4", "RAB11B-AS1", "MIR499
                     "PRAM1", "ZNF414", "MYO1F", "ADAMTS10", "ACTL9", "OR2Z1", "ZNF558", "MBD3L1", "OR1M1", "MUC16")
 
 protein_coding_genes <- read.table("~/cre/data/protein_coding_genes.txt", stringsAsFactors=F, header=T)
+
+protein_coding_genes.bed = read.delim("~/cre/data/protein_coding_genes.bed", header=F, stringsAsFactors=F)
+colnames(protein_coding_genes.bed) = c("chrom","start","end","gene")
+
 protein_coding_genes.ens_ids <- read.table("~/cre/data/protein_coding_genes.ens_ids.txt", stringsAsFactors=F,header=T)
 
 omim.file = "~/Desktop/reference_tables/omim_inheritance.csv"
@@ -90,7 +94,7 @@ if (file.exists(omim.file))
     omim = subset(omim,select=c("Gene","Omim"))
 }
 
-gtex_rpkm_file = "/home/sergey/Desktop/stories/4_RNAseq_diagnostics/rnaseq_article/expression_plots/gtex.muscle_genes.rpkm.txt"
+gtex_rpkm_file = "/home/sergey/Desktop/stories/4_RNAseq_diagnostics/rnaseq_article/figures/expression_plots/gtex.muscle_genes.rpkm.txt"
 if (file.exists(gtex_rpkm_file))
 {
     gtex_rpkm = read.csv(gtex_rpkm_file, sep="", stringsAsFactors = F)
@@ -390,7 +394,7 @@ plot_heatmap_separate = function(counts,samples,de_results,prefix,ntop = NULL)
 }   
 
 # plots the heatmap of title.png for gene_panel using sample_rpkm and gtex_rpkm
-plot_panel= function(gene_panel, sample_rpkm, filename,title, breaks)
+plot_panel= function(gene_panel, sample_rpkm, filename,title, breaks,height=2000)
 {
     #test:
     #breaks = c(0,1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100,200,300,400,500,600,700,800,900,1000,2000,3000,4000,
@@ -407,7 +411,7 @@ plot_panel= function(gene_panel, sample_rpkm, filename,title, breaks)
     row.names(all_rpkm) = all_rpkm$external_gene_name
     all_rpkm$external_gene_name=NULL
   
-    png(filename,res=200,width=7000,height=2000)
+    png(filename,res=200,width=7000,height=height)
     pheatmap(all_rpkm,treeheight_row=0,treeheight_col=0,
            cellwidth = 40, cellheight = 10,
            display_number=T,cluster_rows=F, cluster_cols=T,
@@ -422,7 +426,17 @@ plot_panel= function(gene_panel, sample_rpkm, filename,title, breaks)
 plot_all_panels = function(rpkms)
 {
     #rpkms = read.rpkm_counts_dir(update = F)
+    all_genes = get_genes_in_panels()
     rpkms = read.table("rpkms.muscle.txt")
+    breaks = c(0,1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100,200,
+               300,400,500,600,700,800,900,1000,2000,3000,4000,
+               5000,6000,7000,8000,9000,10000,15000,17100,26000)
+    plot_panel(all_genes, rpkms, 
+               "muscular_genes.png",
+               "Muscular genes, RPKM",
+               breaks,
+               height=4000)
+    
     breaks = c(0,1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100,200,
                300,400,500,600,700,800,900,1000,2000,3000,4000,
                5000,6000,7000,8000,9000,10000,15000,17100,24000)

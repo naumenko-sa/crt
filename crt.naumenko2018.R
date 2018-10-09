@@ -7,10 +7,12 @@ install = function()
 
 init = function()
 {
-    library(edgeR)
-    library(RColorBrewer)
-    library(org.Hs.eg.db)
-    library(plyr)
+    library("edgeR")
+    library("RColorBrewer")
+    library("org.Hs.eg.db")
+    library("plyr")
+    library("VennDiagram")    
+    library("genefilter")
     source("~/crt/crt.utils.R")
     source("~/bioscripts/genes.R")
     setwd("~/Desktop/work")
@@ -367,7 +369,7 @@ fig1C.genes_expressed_at_1rpkm_in_panel = function()
 # based on trios (muscle + myo + fibro) and GTEx blood controls
 # fig1C - genes expressed at 1RPKM in 4 tissues
 # data from tableS5
-fig1C.tableS5.genes_expressed_at_1rpkm = function()
+supplementary_table_3.genes_expressed_at_1rpkm = function()
 {
     # prepare muscle table
     samples.muscle = paste0(trios,".M")
@@ -407,7 +409,6 @@ fig1C.tableS5.genes_expressed_at_1rpkm = function()
     tissues = c("muscle","myo","fibro","gtex_blood") 
     tissue_labels = c("Muscle","Transdifferentiated \nmyotubes","Primary fibroblasts","Gtex blood")
 
-    library("VennDiagram")    
     png("fig1C.genes_expressed_at_1_rpkm.png",res=300,width=2000,height=2000)
     grid.draw(venn.diagram(list(rownames(rpkms.muscle),
                       rownames(rpkms.myo),
@@ -1128,7 +1129,7 @@ dexpression = function()
 # this test is too sensitive to apply for all protein coding genes
 # decided to compare with GTEx rpkms not with cohort,
 # fold change reported vs cohort and gtex
-TableS6.Expression.Outliers.Panels.Naive.Ttest = function(for_panels = T, file.rpkms)
+TableS6.Expression.Outliers.Panels.Naive.Ttest = function(file.rpkms, for_panels = T)
 {
     # DEBUG
     for_panels = T
@@ -1410,56 +1411,107 @@ expression.variability.tableS12 = function()
     }
 }
 
-# calculate a table for expression variabiliry in a gene_panel (list of genes) for 
+# calculate a df expression variability in a gene_panel (list of genes) for 
 # file like rpkms.muscle.txt - produced by crt.utils.read.coverage2counts_dir
-expression_variability = function(gene_panel,rpkm.file,tissue)
+expression.variability.get_cov = function(gene_panel,rpkm.file,tissue,debug=F)
 {
-    #rpkm.file = "rpkms.fibro.txt"
-    #tissue = "fibro"
-    #gene_panel = gor1_panel
+    if (debug == T)
+    {
+        rpkm.file = "rpkms.muscle.txt"
+        tissue = "Muscle"
+        genes = get_genes_in_panels()
+    }
+    
     rpkms = read.table(rpkm.file)
     
-    cnames = c("Tissue","Gene","Min","Mean","Max","SD","Var")
-    
-    result = data.frame()
-    for (gene in gene_panel)
-    {
-        gene_expression = rpkms[rpkms$external_gene_name==gene,]
-        gene_expression$external_gene_name=NULL
-        if (nrow(gene_expression) == 1)
-        {
-            df_temp = data.frame(tissue,gene,min(gene_expression),rowMeans(gene_expression)[[1]],
-                                 max(gene_expression),sd(gene_expression),var(as.numeric(gene_expression)))
-            result = rbind(result,df_temp)
-        }
+    agene = gene_panel[1]
+    if (grepl("ENSG",agene,fixed=T)){
+        rpkms = rpkms[rownames(rpkms) %in% genes,]
+    }else{
+        rpkms = rpkms[rpkms$external_gene_name %in% genes,]
+        row.names(rpkms)=rpkms$external_gene_name
     }
-    colnames(result) = cnames
-    write.table(result,paste0("expression_variability.",tissue,".csv"),sep = ",",row.names = F)
+    
+    rpkms$external_gene_name = NULL
+    
+    result.table = data.frame(row.names = row.names(rpkms))
+    result.table$mean = rowMeans(rpkms)
+    result.table$sd = rowSds(rpkms)
+    result.table$cov = with(result.table,100*sd/mean)
+    
+    result.table$mean = NULL
+    result.table$sd = NULL
+    
+    colnames(result.table)[1] = tissue
+    result.table = result.table[order(rownames(result.table)),,drop=F]
+    
+    return(result.table)
 }
 
-# statistics based on the output of crt.filter_junctions.sh
-TableS9.Splicing.Panels.Frequency = function()
+# boxplot of coefficient of variation (cov) for different tissue types
+expression.variation.boxplot = function(genes,png.file,title)
 {
-    setwd("~/Desktop/work/splicing")
-    files = list.files(".","*n_gtex_184")
+    variability.muscle = expression.variability.get_cov(genes,"rpkms.muscle.txt","Muscle")
+    variability.myotubes = expression.variability.get_cov(genes,"rpkms.myo.txt","Myotubes")
+    variability.fibro = expression.variability.get_cov(genes,"rpkms.fibro.txt","Fibroblast")
+    
+    variability.gtex.muscle = expression.variability.get_cov(genes,"rpkms.50gtex.txt","Gtex muscle")
+    variability.gtex.fibro = expression.variability.get_cov(genes,"rpkms.gtex_fibro.txt","Gtex fibroblast")
+    variability.gtex.blood = expression.variability.get_cov(genes,"rpkms.gtex_blood.txt","Gtex_blood")
+    
+    variability = cbind(variability.muscle,variability.myotubes,variability.fibro,
+                        variability.gtex.muscle,variability.gtex.fibro,variability.gtex.blood)
+    
+    png(png.file,res=300,width=3000,height=2000)
+    boxplot(variability,main=title)
+    dev.off()
+}
+
+expression.variation = function()
+{
+    genes = get_genes_in_panels()
+    expression.variation.boxplot(genes,"expression.cov.panels.png",
+                                 "Expression variation in muscular genes")
+    
+    genes = read.table("genes1rpkm_in_muscle.trios.txt",header=T,stringsAsFactors = F)$ensembl_gene_id
+    expression.variation.boxplot(genes,"expression.cov.1rpkm_genes.png",
+                                 "Expression variation in 1rpkm genes")
+}
+# statistics based on the output of crt.filter_junctions.sh
+Supplementary_Table_9.Splicing.Panels.Frequency = function()
+{
+    setwd("~/Desktop/work/splicing_flank2/")
+    files = list.files(".","*rare_junctions.txt")
     events = splicing.read_novel_splice_events(files[1])
     for (file in tail(files,-1))
     {
         events_buf = splicing.read_novel_splice_events(file)
         events = rbind(events,events_buf)
     }
-    filtered = events[events$norm_read_count >= 0.5,]
-    filtered = filtered[filtered$read_count > 10,]
     
-    filtered$dup = c(duplicated(filtered$pos,fromLast=T) | duplicated(filtered$pos))
+    events$norm_read_count = as.numeric(events$norm_read_count)
+    events$read_count = as.numeric(events$read_count)
+    
+    filtered = events[events$norm_read_count >= 0.5,]
+    
+    filtered = filtered[filtered$read_count >= 30,]
+    
+    frequencies = as.data.frame(table(filtered$pos))
+    colnames(frequencies) = c("pos","frequency")
+    
+    filtered = merge(filtered,frequencies,by.x = "pos", by.y = "pos",all.x = T)
+    filtered = filtered[filtered$frequency <= 7,]
+    
     #filtered = filtered[filtered$dup == F,]
     
-    write.csv(filtered,"splicing.all_genes.csv",quote=T, row.names = F)
+    filtered$tissue = ''
+    filtered$tissue = apply(filtered[,c("sample","tissue")],1,decode_tissue_type)
     
-    panel_genes = c()
-    for (p in panel_list){
-        panel_genes = unique(c(panel_genes,get(p)))
-    }
+    filtered$Omim = NULL
+    
+    write.csv(filtered,"Supplemental_table_10.Splicing_all_genes.csv",quote=T, row.names = F)
+    
+    panel_genes = get_genes_in_panels()
     events = events[events$gene %in% panel_genes,]
     
     frequencies = as.data.frame(table(events$pos))
@@ -1485,7 +1537,7 @@ TableS9.Splicing.Panels.Frequency = function()
 
 TableS10.S11.S12.Splicing.Statistics = function()
 {
-    setwd("~/Desktop/work/splicing")
+    setwd("~/Desktop/work/splicing_flank2/")
     junctions <- read.csv("TableS9.Splicing.Panels.Frequency.csv")
 
     junctions.muscle = junctions[junctions$tissue =='Muscle',]
@@ -1560,37 +1612,58 @@ TableS15.expression.1rpkm = function(rpkms.file)
     print(paste(sort(row.names(rpkms.muscle[rpkms.muscle$average<1,])),collapse=","))
 }
 
-# input is from ~/crt/crt.vcf2imbalance.sh
-allelic_imbalance.het.csv2ai = function(infile,sample)
+# calculates median allelic imbalance ratio for every protein coding gene
+# sample = sample_name, i.e. 10-1-M
+# het file should be sample_name.het.csv in the wd
+# input is from ~/crt/crt.imbalance.get_het.sh
+# protein_coding_genes.bed is from the global namespace, recycled each time
+imbalance.get_imbalance = function(sample)
 {
     #setwd("~/Desktop/work/imbalance/")
     #infile ="S12-gatk-haplotype-annotated.vcf.gz.het.csv"
-    #sample = "S12_9-1-M"
+    #sample = "10-1-M"
+    infile = paste0(sample,".het.csv")
+    outfile = paste0(sample,".ai.csv")
     sample.het = read.csv(infile, stringsAsFactors=F)
     sample.het$ratio = with(sample.het,pmin(ref,alt)/pmax(ref,alt))
     
-    protein_coding_genes = read.delim("~/cre/data/protein_coding_genes.bed", header=F, stringsAsFactors=F)
-    colnames(protein_coding_genes) = c("chrom","start","end","gene")
+    protein_coding_genes.bed$ai = NULL
     
-    protein_coding_genes$ai = NULL
-    
-    for (i in (1:nrow(protein_coding_genes)))
+    for (i in (1:nrow(protein_coding_genes.bed)))
     {
-        gene_chrom = protein_coding_genes[i,"chrom"]
-        gene_start = protein_coding_genes[i,"start"]
-        gene_end = protein_coding_genes[i,"end"]
+        gene_chrom = protein_coding_genes.bed[i,"chrom"]
+        gene_start = protein_coding_genes.bed[i,"start"]
+        gene_end = protein_coding_genes.bed[i,"end"]
         gene_variants = subset(sample.het, chrom == gene_chrom & pos >= gene_start & pos <= gene_end)
         
-        if (nrow(gene_variants)>=5)
-        {
-            protein_coding_genes[i,"ai"] = median(gene_variants$ratio)
-        }else
-        {
-            protein_coding_genes[i,"ai"] = NA
+        if (nrow(gene_variants)>=5){
+            protein_coding_genes.bed[i,"ai"] = median(gene_variants$ratio)
+        }else{
+            protein_coding_genes.bed[i,"ai"] = NA
         }
     }
-    protein_coding_genes = protein_coding_genes [!is.na(protein_coding_genes$ai),]
-    protein_coding_genes = protein_coding_genes[,c("gene","ai")]
-    colnames(protein_coding_genes) = c("gene",sample)
-    write.csv(protein_coding_genes,paste0(sample,".ai.csv"),row.names = F)
+    protein_coding_genes.bed = protein_coding_genes.bed [!is.na(protein_coding_genes.bed$ai),]
+    protein_coding_genes.bed = protein_coding_genes.bed[,c("gene","ai")]
+    colnames(protein_coding_genes.bed) = c("gene",sample)
+    write.csv(protein_coding_genes.bed,outfile,row.names = F)
+}
+
+imbalance.combine = function()
+{
+    setwd("~/Desktop/work/imbalance/")
+    genes = get_genes_in_panels()
+    df = data.frame(row.names = genes)
+    samples = read.table("samples.txt",stringsAsFactors = F)
+    colnames(samples)=c("sample_name")
+    
+    for (sample in samples$V1){
+        print(sample)
+        filename = paste0(sample,".ai.csv")
+        buf = read.csv(filename, stringsAsFactors = F,header = T)
+        df = merge(df,buf,by.x="row.names",by.y="gene",all.x=T,all.y=F)
+        row.names(df) = df$Row.names
+        df$Row.names = NULL
+    }
+    df = scale(df,center=T,scale=T)
+    write.csv(df,"Supplementary_table.SN.Allelic_imbalance.Z-scores.csv")
 }
