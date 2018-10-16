@@ -1,4 +1,4 @@
-# Function for the RNA-seq article Gonorazky.Naumenko.et_al.Dowling.2018
+# Functions for the RNA-seq article Gonorazky.Naumenko.et_al.Dowling.2018
 install = function()
 {
     source("http://bioconductor.org/biocLite.R")
@@ -16,11 +16,10 @@ init = function()
     source("~/crt/crt.utils.R")
     source("~/bioscripts/genes.R")
     setwd("~/Desktop/work")
-    
     #gene_lengths = read.delim("~/Desktop/project_muscular/reference/gene_lengths.txt", stringsAsFactors=F, row.names=1)
 }
 
-fig1A.mds_plot = function(refresh_files = F)
+fig2A.mds = function(refresh_files = F)
 {
     #refresh_files=F
     print("Reading counts ...")
@@ -103,7 +102,7 @@ fig1A.mds_plot = function(refresh_files = F)
   
     print("Removing zeroes ...")
   
-    y=DGEList(counts=counts,group=group,remove.zeros = T)
+    y = DGEList(counts=counts,group=group,remove.zeros = T)
     png("mds.png",res=300,width=2000,height=2000)
   
     print("Plotting ...")
@@ -428,19 +427,27 @@ supplementary_table_3.genes_expressed_at_1rpkm = function()
     }
 }
 
-expression.outliers.outrider.installation = function()
+#######################################################################################################################
+###                  Expression outliers
+#######################################################################################################################
+expression.outliers.outrider.install = function()
 {
     # using outrider: https://github.com/gagneurlab/OUTRIDER
     # https://github.com/gagneurlab/OUTRIDER/issues/8
-    install.packages('devtools')
-    source('https://bioconductor.org/biocLite.R')
-    biocLite('BiocInstaller')
-    devtools::install_github('gagneurlab/OUTRIDER', dependencies=TRUE)
+    # https://bioconductor.org/packages/devel/bioc/html/OUTRIDER.html
+    # https://bioconductor.org/packages/devel/bioc/vignettes/OUTRIDER/inst/doc/OUTRIDER.pdf
+    
+    install.packages("devtools")
+    source("https://bioconductor.org/biocLite.R")
+    biocLite("BiocInstaller")
+    
+    #also works to update
+    devtools::install_github("gagneurlab/OUTRIDER",dependencies=TRUE)
 }
 
-TableS6.expression.outliers.OUTRIDER = function()
+Supplemental_table9.expression.outliers.OUTRIDER = function()
 {
-    library(OUTRIDER)
+    library("OUTRIDER")
     setwd("~/Desktop/work")
     patients_counts = read.table("muscle.raw_counts.txt")
     patients_counts = patients_counts[row.names(patients_counts) %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
@@ -461,8 +468,9 @@ TableS6.expression.outliers.OUTRIDER = function()
     
     for (sample in colnames(patient_counts))
     {
-        #
-        sample="X10.1.M"
+        #debug:        sample="X10.1.M"
+        #debug: 
+        sample="S12_9.1.M"
         print(sample)
         patient_count = subset(patients_counts,select=sample)
         counts = cbind(gtex_counts, patient_count)
@@ -482,7 +490,7 @@ TableS6.expression.outliers.OUTRIDER = function()
     
         ods <- OUTRIDER(ods)
     
-        res = results(ods,all=T)   
+        res = results(ods, all=T)   
     
         #res.pvalue = res[order(abs(l2fc)), p_rank:=1:.N, by=sampleID]
         #res.pvalue = res.pvalue[p_rank <= 10 & sampleID == 'patient_counts$S12_9.1.M']
@@ -576,6 +584,196 @@ expression.outliers.outrider.test = function()
     plotVolcano(ods, gene, basePlot=TRUE)
     plotExpressionRank(ods, gene, basePlot = F)
     plotQQ(ods,res[1,])
+}
+
+Supplemental_table9.expression.outliers.zscore = function()
+{
+    library("reshape2")
+    
+    setwd("~/Desktop/work/expression")
+    rpkms.50gtex = read.table("rpkms.50gtex.txt",stringsAsFactors = F)
+    rpkms.patients = read.table("rpkms.muscle.txt",stringsAsFactors = F)
+    
+    rpkms.50gtex = rpkms.50gtex[row.names(rpkms.50gtex) %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
+    gene_names = subset(rpkms.50gtex,select=c("external_gene_name"))
+    rpkms.50gtex$external_gene_name = NULL
+    
+    rpkms.patients = rpkms.patients[row.names(rpkms.patients) %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
+    rpkms.patients$external_gene_name = NULL
+    
+    expression.stats = data.frame(row.names = row.names(rpkms.50gtex))
+    expression.stats$gtex_mean = rowMeans(rpkms.50gtex)
+    expression.stats$gtex_sd = rowSds(rpkms.50gtex)
+    expression.stats$cohort_mean = rowMeans(rpkms.patients)
+    expression.stats$cohort_sd = rowSds(rpkms.patients)
+    
+    expression.stats = expression.stats[expression.stats$gtex_mean >=0.1,]
+    
+    rpkms.patients = rpkms.patients[row.names(rpkms.patients) %in% row.names(expression.stats),]
+    
+    expression.outliers = (rpkms.patients - expression.stats$gtex_mean)/expression.stats$gtex_sd
+    
+    measure_vars = colnames(expression.outliers)
+    expression.outliers$ensembl_gene_id = row.names(expression.outliers)
+    
+    expression.outliers = melt(expression.outliers,
+                               measure.vars = measure_vars,
+                               variable.name = "sample",value.name = "zscore_gtex")
+    expression.outliers = expression.outliers[abs(expression.outliers$zscore)>=1.5,]
+    expression.outliers$gene = gene_names[expression.outliers$ensembl_gene_id,1]
+    
+    zscore.cohort = (rpkms.patients - expression.stats$cohort_mean)/expression.stats$cohort_sd
+    measure_vars = colnames(zscore.cohort)
+    zscore.cohort$ensembl_gene_id = row.names(zscore.cohort)
+    zscore.cohort = melt(zscore.cohort,measure.vars = measure_vars,variable.name = "sample",value.name = "zscore_cohort")
+    
+    expression.outliers = merge(expression.outliers,zscore.cohort,
+                        by.x=c("ensembl_gene_id","sample"),
+                        by.y=c("ensembl_gene_id","sample"),
+                        all.x=T,all.Y=F)
+    
+    expression.outliers$gtex_mean_rpkm = expression.stats[expression.outliers$ensembl_gene_id,"gtex_mean"]
+    expression.outliers$gtex_sd = expression.stats[expression.outliers$ensembl_gene_id,"gtex_sd"]
+    expression.outliers$cohort_mean_rpkm = expression.stats[expression.outliers$ensembl_gene_id,"cohort_mean"]
+    expression.outliers$cohort_sd = expression.stats[expression.outliers$ensembl_gene_id,"cohort_sd"]
+    
+    measure_vars = colnames(rpkms.patients)
+    rpkms.patients$ensembl_gene_id = row.names(rpkms.patients)
+    rpkms.patients = melt(rpkms.patients,measure.vars = measure_vars,
+                          variable.name="sample",
+                          value.name="expression_rpkm")
+    
+    expression.outliers = merge(expression.outliers,rpkms.patients,by.x=c("ensembl_gene_id","sample"),
+                                by.y=c("ensembl_gene_id","sample"),all.x=T,all.y=F)
+
+    expression.outliers$fold_change = expression.outliers$expression_rpkm/expression.outliers$gtex_mean_rpkm
+    expression.outliers$regulation = ifelse(expression.outliers$zscore_gtex>0,"UP","DOWN")
+    expression.outliers$comment = ""
+
+    expression.outliers = expression.outliers[,c("comment","sample","ensembl_gene_id","gene","expression_rpkm",
+                                                 "gtex_mean_rpkm","cohort_mean_rpkm","fold_change","regulation",
+                                                 "zscore_gtex","zscore_cohort","gtex_sd","cohort_sd")]
+            
+    muscular_genes = get_genes_in_panels()
+    
+    expression.outliers.panels = expression.outliers[expression.outliers$gene %in% muscular_genes,]
+    write.csv(expression.outliers.panels,
+              "Supplemental_table_9.Expression_outliers_in_muscular_panels.csv",row.names = F)
+    
+    omim.genes = read.csv("~/cre/data/omim.genes.csv")
+    expression.outliers.omim = expression.outliers[expression.outliers$ensembl_gene_id %in% omim.genes$Ensembl_gene_id,]
+    write.csv(expression.outliers.omim,
+              "Supplemental_table_10.Expression_outliers_in_OMIM.csv",row.names = F)
+    
+    mitocarta.genes = read.csv("~/cre/data/mitocarta.ensembl_ids.txt")
+    expression.outliers.case40 = subset(expression.outliers,sample=="S70_40.1.M" | sample == "S71_40.2.M")
+    expression.outliers.case40 = expression.outliers.case40[expression.outliers.case40$ensembl_gene_id %in% mitocarta.genes$ensembl_gene_id,]
+    write.csv(expression.outliers.omim,"Supplemental_table_11.Expression_outliers.case40.csv",row.names = F)
+}
+
+
+# output expression outliers as a table eoutliers.txt
+# this test is too sensitive to apply for all protein coding genes
+# decided to compare with GTEx rpkms not with cohort,
+# fold change reported vs cohort and gtex
+Supplemental_Table9.Expression.Outliers.Panels.Naive.Ttest = function(file.rpkms, for_panels = T)
+{
+    # DEBUG
+    for_panels = T
+    setwd("~/Desktop/work/expression")
+    file.rpkms = "rpkms.muscle.txt"
+    # DEBUG
+    
+    gtex.rpkms = read.table("rpkms.50gtex.txt")  
+    output = gsub("txt","expression.outliers.txt",file.rpkms)
+    cat("Sample,Gene_panel_name,Gene,Regulation,Abs_FC_cohort,Abs_FC_GTex,Pvalue",file=output,append=F,sep="\n")
+    
+    counts = read.table(file.rpkms)
+    
+    for (wrong_gene in c("ENSG00000261832","ENSG00000264813","ENSG00000258529","ENSG00000273170"))
+    {
+        counts = counts[setdiff(rownames(counts),wrong_gene),]
+    }
+    
+    counts = counts[counts$external_gene_name %in% protein_coding_genes$Gene_name,]
+    samples = head(colnames(counts),-1)
+    
+    if (for_panels)
+    {
+        gene_list = c()
+        for (gene_panel_name in panel_list)
+        {
+            gene_panel = get(gene_panel_name)
+            gene_list = unique(c(gene_list,gene_panel))
+        }
+        gene_panel_name = "muscular_genes"
+        fc_threshold = 2
+    }else{
+        gene_panel_name = "protein_coding_genes"
+        gene_list = protein_coding_genes$Gene_name
+        fc_threshold = 50
+    }
+    
+    for (sample in samples)
+    {
+        for (gene in gene_list)
+        {
+            expression4gene.table(gene,sample,counts,gene_panel_name,output,fc_threshold,gtex.rpkms)
+        }
+    }
+}
+
+expression4gene.table = function(gene,sample,counts,gene_panel_name,output,fc_threshold,gtex.rpkms)
+{
+    #gene = "DMD"
+    #sample = "S12_9.1.M"
+    
+    gene_expression = counts[counts$external_gene_name == gene,]
+    gtex_gene_expression = gtex.rpkms[gtex.rpkms$external_gene_name == gene,]
+    
+    if (nrow(gene_expression)>1)
+    {
+        gene_expression = head(gene_expression,1)
+    }
+    
+    if (nrow(gtex_gene_expression)>1)
+    {
+        gtex_gene_expression = head(gtex_gene_expression,1)
+    }
+    
+    if (nrow(gene_expression)>0)
+    {
+        gene_expression$external_gene_name = NULL
+        gtex_gene_expression$external_gene_name = NULL
+        
+        v_cohort = as.numeric(gene_expression[1,])
+        v_gtex = as.numeric(gtex_gene_expression[1,])
+        
+        v_cohort.mean = mean(v_cohort)
+        v_gtex.mean = mean(v_gtex)
+        
+        muscle_mean.gtex = as.numeric(gtex_rpkm[gtex_rpkm$gene_name %in% c(gene),]$GTEX)
+        
+        expression_sample = gene_expression[[sample]]
+        #significance
+        ttest = t.test(v_gtex,mu=expression_sample)
+        
+        if ((v_cohort.mean > 0) && (expression_sample > 0)){
+            fold_change.cohort = (max(v_cohort.mean, expression_sample)/min(v_cohort.mean,expression_sample))
+            fold_change.gtex = (max(v_gtex.mean, expression_sample)/min(v_gtex.mean,expression_sample))
+            
+            if (expression_sample > v_gtex.mean){
+                regulation = "UP"
+            }else{
+                regulation = "DOWN"
+            }
+            
+            #if ((fold_change.cohort > 1.5 || fold_change.gtex > 1.5) && (ttest$p.value < 0.01)){
+            if (fold_change.cohort > fc_threshold && (ttest$p.value < 0.01)){
+                cat(paste(sample,gene_panel_name,gene,regulation,fold_change.cohort,fold_change.gtex,ttest$p.value,sep = ","),file = output,append=T,sep="\n")   
+            }
+        }
+    }
 }
 
 junk=function()
@@ -1125,110 +1323,6 @@ dexpression = function()
     plot_heatmap_separate (counts,samples,de_results,paste0(prefix,".top50genes"),50)
 }
 
-# output expression outliers as a table eoutliers.txt
-# this test is too sensitive to apply for all protein coding genes
-# decided to compare with GTEx rpkms not with cohort,
-# fold change reported vs cohort and gtex
-TableS6.Expression.Outliers.Panels.Naive.Ttest = function(file.rpkms, for_panels = T)
-{
-    # DEBUG
-    for_panels = T
-    setwd("~/Desktop/work/expression")
-    file.rpkms = "rpkms.muscle.txt"
-    # DEBUG
-  
-    gtex.rpkms = read.table("rpkms.50gtex.txt")  
-    output = gsub("txt","expression.outliers.txt",file.rpkms)
-    cat("Sample,Gene_panel_name,Gene,Regulation,Abs_FC_cohort,Abs_FC_GTex,Pvalue",file=output,append=F,sep="\n")
-    
-    counts = read.table(file.rpkms)
-    
-    for (wrong_gene in c("ENSG00000261832","ENSG00000264813","ENSG00000258529","ENSG00000273170"))
-    {
-        counts = counts[setdiff(rownames(counts),wrong_gene),]
-    }
-    
-    counts = counts[counts$external_gene_name %in% protein_coding_genes$Gene_name,]
-    samples = head(colnames(counts),-1)
-    
-    if (for_panels)
-    {
-        gene_list = c()
-        for (gene_panel_name in panel_list)
-        {
-            gene_panel = get(gene_panel_name)
-            gene_list = unique(c(gene_list,gene_panel))
-        }
-        gene_panel_name = "muscular_genes"
-        fc_threshold = 2
-    }else{
-        gene_panel_name = "protein_coding_genes"
-        gene_list = protein_coding_genes$Gene_name
-        fc_threshold = 50
-    }
-    
-    for (sample in samples)
-    {
-        for (gene in gene_list)
-        {
-            expression4gene.table(gene,sample,counts,gene_panel_name,output,fc_threshold,gtex.rpkms)
-        }
-    }
-}
-
-expression4gene.table = function(gene,sample,counts,gene_panel_name,output,fc_threshold,gtex.rpkms)
-{
-    #gene = "DMD"
-    #sample = "S12_9.1.M"
-    
-    gene_expression = counts[counts$external_gene_name == gene,]
-    gtex_gene_expression = gtex.rpkms[gtex.rpkms$external_gene_name == gene,]
-    
-    if (nrow(gene_expression)>1)
-    {
-        gene_expression = head(gene_expression,1)
-    }
-    
-    if (nrow(gtex_gene_expression)>1)
-    {
-        gtex_gene_expression = head(gtex_gene_expression,1)
-    }
-    
-    if (nrow(gene_expression)>0)
-    {
-        gene_expression$external_gene_name = NULL
-        gtex_gene_expression$external_gene_name = NULL
-        
-        v_cohort = as.numeric(gene_expression[1,])
-        v_gtex = as.numeric(gtex_gene_expression[1,])
-        
-        v_cohort.mean = mean(v_cohort)
-        v_gtex.mean = mean(v_gtex)
-        
-        muscle_mean.gtex = as.numeric(gtex_rpkm[gtex_rpkm$gene_name %in% c(gene),]$GTEX)
-    
-        expression_sample = gene_expression[[sample]]
-        #significance
-        ttest = t.test(v_gtex,mu=expression_sample)
-    
-        if ((v_cohort.mean > 0) && (expression_sample > 0)){
-            fold_change.cohort = (max(v_cohort.mean, expression_sample)/min(v_cohort.mean,expression_sample))
-            fold_change.gtex = (max(v_gtex.mean, expression_sample)/min(v_gtex.mean,expression_sample))
-        
-            if (expression_sample > v_gtex.mean){
-                regulation = "UP"
-            }else{
-                regulation = "DOWN"
-            }
-        
-            #if ((fold_change.cohort > 1.5 || fold_change.gtex > 1.5) && (ttest$p.value < 0.01)){
-            if (fold_change.cohort > fc_threshold && (ttest$p.value < 0.01)){
-                cat(paste(sample,gene_panel_name,gene,regulation,fold_change.cohort,fold_change.gtex,ttest$p.value,sep = ","),file = output,append=T,sep="\n")   
-            }
-        }
-    }
-}
-
 #detect expression outliers among similar samples and plot pictures
 expression_outliers.pictures = function()
 {
@@ -1421,7 +1515,7 @@ expression.variability.get_cov = function(gene_panel,rpkm.file,tissue,debug=F)
         tissue = "Muscle"
         genes = get_genes_in_panels()
     }
-    
+    d
     rpkms = read.table(rpkm.file)
     
     agene = gene_panel[1]
