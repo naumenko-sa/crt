@@ -2,13 +2,10 @@ details:
 - algorithm:
     aligner: star
     variantcaller: gatk-haplotype
-    vcfanno:
-    - /home/naumenko/cre/cre.vcfanno.conf
     tools_off:
     - gatk4
     tools_on:
     - bcbiornaseq
-    - gemini
     expression_caller: [cufflinks, express, stringtie, sailfish, dexseq, kallisto, salmon]
   analysis: RNA-seq
   description: project_sample

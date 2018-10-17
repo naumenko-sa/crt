@@ -1,14 +1,15 @@
 #!/bin/bash
 
-# prepares family for bcbio run when input files are family_sample.bam or family_sample_1/2.fq.gz
-family=$1
+# prepares a project (family) for bcbio run when input files are project/input/project_sample.bam or project_sample_1/2.fq.gz
+project=$1
 
-#if set $2=any_value, uses a template without alignment (mainly for rerunning)
-noalign=$2
+#template_type:
+#    default (not set): crt.bcbio.default.yaml
+#    noexpression: crt.bcbio.noexpression.yaml
 
-cd $family
+cd $project
 
-cp ~/cre/bcbio.sample_sheet_header.csv $family.csv
+cp ~/cre/bcbio.sample_sheet_header.csv $project.csv
 
 cd input
 
@@ -20,22 +21,26 @@ cd ..
 #no family is neede for single sample
 while read sample
 do
-    echo $sample","$sample","$family",,," >> $family.csv
+    echo $sample","$sample","$project",,," >> $project.csv
 done < samples.txt
 
 #default template
-template=~/crt/crt.bcbio.rnaseq.yaml
+template=~/crt/crt.bcbio.default.yaml
 
 if [ -n "$2" ]
 then
-    template=~/cre/cre.bcbio.templates.wes_noalign.yaml
+    template_type=$2
+    if [ $template_type == "noexpression" ]
+    then
+	template=~/crt/crt.bcbio.noexpression.yaml
+    fi
 fi
 
-bcbio_nextgen.py -w template $template $family.csv input/*
+bcbio_nextgen.py -w template $template $project.csv input/*
 
-mv $family/config .
-mv $family/work .
-rm $family.csv
-rmdir $family
+mv $project/config .
+mv $project/work .
+rm $project.csv
+rmdir $project
 
 cd ..
