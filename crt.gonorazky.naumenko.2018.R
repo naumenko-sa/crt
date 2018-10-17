@@ -13,11 +13,16 @@ init = function()
     library("plyr")
     library("VennDiagram")    
     library("genefilter")
+    library("reshape2")
     source("~/crt/crt.utils.R")
     source("~/bioscripts/genes.R")
     setwd("~/Desktop/work")
     #gene_lengths = read.delim("~/Desktop/project_muscular/reference/gene_lengths.txt", stringsAsFactors=F, row.names=1)
 }
+
+#######################################################################################################################
+###  clustring MDS, PCA plots
+#######################################################################################################################
 
 fig2A.mds = function(refresh_files = F)
 {
@@ -140,7 +145,7 @@ fig2A.mds = function(refresh_files = F)
 
 # fig 1B - expression profiles in muscular samples vs sample age
 # input = TableS1.Samples
-fig1B.mds_plot_colored_by_muscle_age = function()
+fig2B.mds_plot_colored_by_muscle_age = function()
 {
     setwd("~/Desktop/work/expression/muscle")
   
@@ -276,6 +281,9 @@ fig1B.mds_plot_colored_by_muscle_age = function()
   
 }
 
+########################################################################################################################
+### expression statistics
+########################################################################################################################
 tableS5.get_1rpkm_genes = function(rpkms,samples,use_sample_names=T)
 {
     rpkms = rpkms[row.names(rpkms) %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
@@ -427,169 +435,18 @@ supplementary_table_3.genes_expressed_at_1rpkm = function()
     }
 }
 
-#######################################################################################################################
+###################################################################################################
 ###                  Expression outliers
-#######################################################################################################################
-expression.outliers.outrider.install = function()
-{
-    # using outrider: https://github.com/gagneurlab/OUTRIDER
-    # https://github.com/gagneurlab/OUTRIDER/issues/8
-    # https://bioconductor.org/packages/devel/bioc/html/OUTRIDER.html
-    # https://bioconductor.org/packages/devel/bioc/vignettes/OUTRIDER/inst/doc/OUTRIDER.pdf
-    
-    install.packages("devtools")
-    source("https://bioconductor.org/biocLite.R")
-    biocLite("BiocInstaller")
-    
-    #also works to update
-    devtools::install_github("gagneurlab/OUTRIDER",dependencies=TRUE)
-}
-
-Supplemental_table9.expression.outliers.OUTRIDER = function()
-{
-    library("OUTRIDER")
-    setwd("~/Desktop/work")
-    patients_counts = read.table("muscle.raw_counts.txt")
-    patients_counts = patients_counts[row.names(patients_counts) %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
-    
-    gtex_counts = read.table("muscle.gtex.raw_counts.txt")
-    gtex_counts = gtex_counts[row.names(gtex_counts) %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
-    
-    ensembl_ids_names = read.csv("~/cre/data/genes.transcripts.csv")
-    ensembl_ids_names$Ensembl_transcript_id=NULL
-    ensembl_ids_names = unique(ensembl_ids_names)
-    ensembl_ids_names = ensembl_ids_names[ensembl_ids_names$Ensembl_gene_id %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
-    
-    genes = get_genes_in_panels()
-    omim.genes = read.csv("~/cre/data/omim.genes.csv")
-    
-    outliers.panels = data.frame()
-    outliers.omim = data.frame()
-    
-    for (sample in colnames(patient_counts))
-    {
-        #debug:        sample="X10.1.M"
-        #debug: 
-        sample="S12_9.1.M"
-        print(sample)
-        patient_count = subset(patients_counts,select=sample)
-        counts = cbind(gtex_counts, patient_count)
-    
-        ods <- OutriderDataSet(countData = counts)
-    
-        # 1 option) changing to minCounts (only filter genes with less then 1 read over all samples)
-        ods <- filterExpression(ods, minCounts=TRUE, filterGenes=TRUE)
-    
-        # 2 option) Use annotation to filter by FPKM values (basepair column are needed for that, as stated in the error)
-        #library(TxDb.Hsapiens.UCSC.hg19.knownGene)
-        #library(org.Hs.eg.db)
-        #txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
-        #map <- select(org.Hs.eg.db, keys=keys(txdb, keytype = "GENEID"),
-        #              keytype="ENTREZID", columns=c("SYMBOL"))
-        #ods <- filterExpression(ods, filterGenes=TRUE, mapping=map, gtf=txdb)
-    
-        ods <- OUTRIDER(ods)
-    
-        res = results(ods, all=T)   
-    
-        #res.pvalue = res[order(abs(l2fc)), p_rank:=1:.N, by=sampleID]
-        #res.pvalue = res.pvalue[p_rank <= 10 & sampleID == 'patient_counts$S12_9.1.M']
-        
-        #rank by abc(lfc)
-        #res.lfc = res[res$sampleID=="X10.1.M",]
-        #res.lfc = merge(res.lfc,ensembl_ids_names,by.x="geneID",by.y="Ensembl_gene_id",all.x=T)
-        #res.lfc = res.lfc[order(abs(l2fc),decreasing=T)]
-        #write.csv(res.lfc,"10-1-M.table.csv",row.names = F)
-        #res.pvalue = res.pvalue[p_rank <= 10 & sampleID == 'patient_counts$S12_9.1.M']
-    
-        # Rank by Z score
-        res.zscore = res[order(abs(zScore), decreasing=TRUE), z_rank:=1:.N, by=sampleID]
-        res.zscore = res.zscore[sampleID == sample,]
-        
-        res.zscore = merge(res.zscore,ensembl_ids_names,by.x='geneID',by.y='Ensembl_gene_id',all.x=T,all.y=F)
-    
-        res.zscore.mgenes = res.zscore[res.zscore$external_gene_name %in% genes,]
-        res.zscore.mgenes = res.zscore.mgenes[abs(res.zscore.mgenes$zScore)>=2]
-        res.zscore.mgenes = res.zscore.mgenes[order(abs(res.zscore.mgenes$zScore),decreasing = T)]
-        
-        outliers.panels = rbind(outliers.panels,res.zscore.mgenes)
-        
-        res.zscore.omim = res.zscore[res.zscore$geneID %in% omim.genes$Ensembl_gene_id,]
-        res.zscore.omim = res.zscore.omim[abs(res.zscore.omim$zScore)>=2]
-        res.zscore.omim = res.zscore.omim[order(abs(res.zscore.omim$zScore),decreasing = T)]
-        
-        outliers.omim = rbind(outliers.omim,res.zscore.omim)
-    }
-    
-    outliers.panels = outliers.panels[,c("sampleID","external_gene_name","geneID","zScore","l2fc","rawcounts","normcounts","mu","disp","meanCorrected")]
-    write.csv(outliers.panels,"outliers.panels.csv",row.names=F)
-    outliers.omim = outliers.omim [,c("sampleID","external_gene_name","geneID","zScore","l2fc","rawcounts","normcounts","mu","disp","meanCorrected")]
-    write.csv(outliers.omim,"outliers.omim.csv",row.names=F)
-    
-}
-
-expression.outliers.outrider.test = function()
-{
-    pres = res[res$sampleID=="patient_counts$S12_9.1.M",]
-    pres = pres[pres$zScore < -2,]
-    
-    View(res)
-    
-    dim(res)
-    
-    head(res,10)
-    
-    ods = OutriderDataSet(countData=counts)
-    
-    plotAberrantPerSample(ods,padjCutoff=0.05)
-    
-  
-    URL <- paste0("https://media.nature.com/original/nature-assets/",
-                  "ncomms/2017/170612/ncomms15824/extref/ncomms15824-s1.txt")
-    ctsTable <- read.table(URL, sep="\t")
-    # create OutriderDataSet object
-    ods <- OutriderDataSet(countData=ctsTable)
-    
-    # get annotation
-    library(TxDb.Hsapiens.UCSC.hg19.knownGene)
-    library(org.Hs.eg.db)
-    txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
-    map <- select(org.Hs.eg.db, keys=keys(txdb, keytype = "GENEID"),
-                  keytype="ENTREZID", columns=c("SYMBOL"))
-    
-  
-    ods <- filterExpression(ods, txdb, mapping=map,
-                            filterGenes=FALSE, savefpkm=TRUE)  
-    
-    plotFPKM(ods)
-    
-    ods <- ods[mcols(ods)$passedFilter,]
-    
-    ods <- estimateSizeFactors(ods)
-    ods <- autoCorrect(ods, q=13)
-    
-    ods <- plotCountCorHeatmap(ods, normalized=FALSE, nCluster=4)
-    
-    ods = fit(ods)
-    plotDispEsts(ods)
-    
-    ods <- computePvalues(ods, alternative="two.sided", method="BY")
-    
-    ods <- computeZscores(ods)
-    
-    res = results(ods,all=T )   
-  
-    
-    gene="ENSG00000198947"  
-    plotVolcano(ods, gene, basePlot=TRUE)
-    plotExpressionRank(ods, gene, basePlot = F)
-    plotQQ(ods,res[1,])
-}
-
+###################################################################################################
+# expression outliers detection using Z-scores:
+# rpkm > 0.1 filter (possible 1 rpkm misses some cases)
+# abs(z-score) > 1.5
+# returns 3 tables:
+# - for muscle genes
+# - for omim genes
+# - for mitochondrial genes in case40
 Supplemental_table9.expression.outliers.zscore = function()
 {
-    library("reshape2")
-    
     setwd("~/Desktop/work/expression")
     rpkms.50gtex = read.table("rpkms.50gtex.txt",stringsAsFactors = F)
     rpkms.patients = read.table("rpkms.muscle.txt",stringsAsFactors = F)
@@ -646,7 +503,9 @@ Supplemental_table9.expression.outliers.zscore = function()
     expression.outliers = merge(expression.outliers,rpkms.patients,by.x=c("ensembl_gene_id","sample"),
                                 by.y=c("ensembl_gene_id","sample"),all.x=T,all.y=F)
 
-    expression.outliers$fold_change = expression.outliers$expression_rpkm/expression.outliers$gtex_mean_rpkm
+    expression.outliers$fold_change = ifelse(expression.outliers$expression_rpkm>=expression.outliers$gtex_mean_rpkm,
+                                             expression.outliers$expression_rpkm/expression.outliers$gtex_mean_rpkm,
+                                             expression.outliers$gtex_mean_rpkm/expression.outliers$expression_rpkm)
     expression.outliers$regulation = ifelse(expression.outliers$zscore_gtex>0,"UP","DOWN")
     expression.outliers$comment = ""
 
@@ -671,315 +530,7 @@ Supplemental_table9.expression.outliers.zscore = function()
     write.csv(expression.outliers.omim,"Supplemental_table_11.Expression_outliers.case40.csv",row.names = F)
 }
 
-
-# output expression outliers as a table eoutliers.txt
-# this test is too sensitive to apply for all protein coding genes
-# decided to compare with GTEx rpkms not with cohort,
-# fold change reported vs cohort and gtex
-Supplemental_Table9.Expression.Outliers.Panels.Naive.Ttest = function(file.rpkms, for_panels = T)
-{
-    # DEBUG
-    for_panels = T
-    setwd("~/Desktop/work/expression")
-    file.rpkms = "rpkms.muscle.txt"
-    # DEBUG
-    
-    gtex.rpkms = read.table("rpkms.50gtex.txt")  
-    output = gsub("txt","expression.outliers.txt",file.rpkms)
-    cat("Sample,Gene_panel_name,Gene,Regulation,Abs_FC_cohort,Abs_FC_GTex,Pvalue",file=output,append=F,sep="\n")
-    
-    counts = read.table(file.rpkms)
-    
-    for (wrong_gene in c("ENSG00000261832","ENSG00000264813","ENSG00000258529","ENSG00000273170"))
-    {
-        counts = counts[setdiff(rownames(counts),wrong_gene),]
-    }
-    
-    counts = counts[counts$external_gene_name %in% protein_coding_genes$Gene_name,]
-    samples = head(colnames(counts),-1)
-    
-    if (for_panels)
-    {
-        gene_list = c()
-        for (gene_panel_name in panel_list)
-        {
-            gene_panel = get(gene_panel_name)
-            gene_list = unique(c(gene_list,gene_panel))
-        }
-        gene_panel_name = "muscular_genes"
-        fc_threshold = 2
-    }else{
-        gene_panel_name = "protein_coding_genes"
-        gene_list = protein_coding_genes$Gene_name
-        fc_threshold = 50
-    }
-    
-    for (sample in samples)
-    {
-        for (gene in gene_list)
-        {
-            expression4gene.table(gene,sample,counts,gene_panel_name,output,fc_threshold,gtex.rpkms)
-        }
-    }
-}
-
-expression4gene.table = function(gene,sample,counts,gene_panel_name,output,fc_threshold,gtex.rpkms)
-{
-    #gene = "DMD"
-    #sample = "S12_9.1.M"
-    
-    gene_expression = counts[counts$external_gene_name == gene,]
-    gtex_gene_expression = gtex.rpkms[gtex.rpkms$external_gene_name == gene,]
-    
-    if (nrow(gene_expression)>1)
-    {
-        gene_expression = head(gene_expression,1)
-    }
-    
-    if (nrow(gtex_gene_expression)>1)
-    {
-        gtex_gene_expression = head(gtex_gene_expression,1)
-    }
-    
-    if (nrow(gene_expression)>0)
-    {
-        gene_expression$external_gene_name = NULL
-        gtex_gene_expression$external_gene_name = NULL
-        
-        v_cohort = as.numeric(gene_expression[1,])
-        v_gtex = as.numeric(gtex_gene_expression[1,])
-        
-        v_cohort.mean = mean(v_cohort)
-        v_gtex.mean = mean(v_gtex)
-        
-        muscle_mean.gtex = as.numeric(gtex_rpkm[gtex_rpkm$gene_name %in% c(gene),]$GTEX)
-        
-        expression_sample = gene_expression[[sample]]
-        #significance
-        ttest = t.test(v_gtex,mu=expression_sample)
-        
-        if ((v_cohort.mean > 0) && (expression_sample > 0)){
-            fold_change.cohort = (max(v_cohort.mean, expression_sample)/min(v_cohort.mean,expression_sample))
-            fold_change.gtex = (max(v_gtex.mean, expression_sample)/min(v_gtex.mean,expression_sample))
-            
-            if (expression_sample > v_gtex.mean){
-                regulation = "UP"
-            }else{
-                regulation = "DOWN"
-            }
-            
-            #if ((fold_change.cohort > 1.5 || fold_change.gtex > 1.5) && (ttest$p.value < 0.01)){
-            if (fold_change.cohort > fc_threshold && (ttest$p.value < 0.01)){
-                cat(paste(sample,gene_panel_name,gene,regulation,fold_change.cohort,fold_change.gtex,ttest$p.value,sep = ","),file = output,append=T,sep="\n")   
-            }
-        }
-    }
-}
-
-junk=function()
-{
-    png("Fig2.total_counts_after_filtration.png",width=1000)
-    op <- par(mar = c(10,4,4,2) + 0.1)
-    barplot(all.samples.total_counts,las=2,main="Total counts after filtration")
-    par(op)
-    dev.off()
-
-    png("Fig3.Genes_with_reads_after_filtration.png",width=1000)
-    op <- par(mar = c(10,4,4,2) + 0.1)
-    barplot(all.samples.non_zero,las=2,main="Genes with reads after filtration")
-    par(op)
-dev.off()
-
-bars = list()
-for (col_name in colnames(all.samples.data))
-{
-    #col_name = 'X1258.AC.A79'
-    col_data = all.samples.data[,col_name]
-    col_data = log2(col_data[col_data!=0])
-    bars = c(bars, list(col_data))
-    #boxplot(col_data,las=2)
-    #assign(paste0("bars$",col_name),col_data)
-}
-
-png("Fig4.Log2_counts_for_covered_genes.png",width=1000)
-op <- par(mar = c(10,4,4,2) + 0.1)
-boxplot(bars,names = colnames(all.samples.data),las=2,main="Log2_counts_for_covered_genes")
-par(op)
-dev.off()
-
-
-norm_counts = cbind(symbol,cpm(all_counts[,c(2,3,4,5,6,7,9,10,11,12,13,14,15)]))
-write.table(norm_counts,"norm_counts_all.txt",col.names=NA,quote=F)  
-
-gene_locus = read.delim("genes_locus.txt",stringsAsFactors = F,header=T)
-gene_panel = read.delim("genes_muscular.txt",stringsAsFactors = F,header=T)
-
-muscular.locus = muscular.samples[muscular.samples$symbol %in% unlist(gene_locus),]
-mh.locus = mh.samples[mh.samples$symbol %in% unlist(gene_locus),]
-muscular.locus$id=NULL
-muscular.locus$symbol=NULL
-mh.locus$id=NULL
-mh.locus$symbol=NULL
-
-png("Fig5.Log2_counts_for_locus_mh_samples.png",width=1000)
-boxplot(log2(mh.locus+1),main="Log2 counts for locus mh samples")
-dev.off()
-
-png("Fig6.Log2_counts_for_locus_muscular_samples.png",width=1000)
-boxplot(log2(muscular.locus+1))
-dev.off()
-
-muscular.panel = muscular.samples[muscular.samples$symbol %in% unlist(gene_panel),]
-mh.panel = mh.samples[mh.samples$symbol %in% unlist(gene_panel),]
-muscular.panel$id=NULL
-muscular.panel$symbol=NULL
-mh.panel$id=NULL
-mh.panel$symbol=NULL
-
-png("Fig7.Log2_counts_for_panel_mh_samples.png",width=1000)
-boxplot(log2(mh.panel+1),main="Log2 counts for locus mh samples")
-dev.off()
-
-png("Fig8.Log2_counts_for_panel_muscular_samples.png",width=1000)
-boxplot(log2(muscular.panel+1))
-dev.off()
-
-work_counts=muscular_genes
-work_counts = all_counts
-
-#exploration
-row.names(work_counts) = work_counts$symbol
-work_counts$id = NULL
-work_counts$symbol = NULL
-total_counts = colSums(work_counts)
-barplot(total_counts)
-log_counts = log2(work_counts)
-png("all_genes_counts.png")
-par(mar=c(10,3,1,1))
-boxplot(log_counts,las=2)
-dev.off()
-
-attach(work_counts)
-
-x=muscular_genes[c("muscle1","X1130.BD.B175")]
-
-x=muscular_genes[c(2,3,4,5,6,7,9,10,11,12,13,14,15)]
-group=factor(c(1,2,3,4,5,6,7,8,9,10,11,12,13))
-
-group=factor(c(1,2))
-
-y=DGEList(counts=x,group=group)
-
-
-y=calcNormFactors(y)
-
-plotMDS(y)
-bcv=0.2
-#from A.thaliana experiment
-dispersion=0.04
-  
-  design=model.matrix(~group)
-  fit=glmFit(y,design,dispersion)
-  lrt=glmLRT(fit,coef=2)
-
-write.table(merge(work_counts,lrt$table,by="row.names"),"muscle1_vs_1130_panel.txt",col.names=NA,quote=F)  
-
-}
-
-expression_unfiltered = function()
-{
-    annotated_combined <- read.delim("~/Desktop/project_muscular/counts/muscular_unfiltered/annotated_combined.counts", row.names=1, stringsAsFactors=FALSE)
-    all_genes_lengths <- read.delim("~/Desktop/project_muscular/counts/muscular_unfiltered/all_genes_lengths", row.names=1, stringsAsFactors=FALSE)
-    
-    samples = c("myotubes5","fibroblast5")  
-    counts = annotated_combined[,samples]
-
-    counts = merge(counts,all_genes_lengths,by.x="row.names",by.y="row.names")   
-    row.names(counts)=counts$Row.names
-    counts$Row.names = NULL
-    
-    x=counts[samples]
-    group = factor(c(1,1))
-    y=DGEList(counts=x,group=group,remove.zeros = F)
-    plotMDS(y)
-    #generate counts in the other way
-    rpkms = rpkm(y,counts$Length)
-    
-    rpkms = merge(rpkms,ensembl_w_description,by.x="row.names",by.y="row.names")
-    row.names(rpkms)=rpkms$Row.names
-    rpkms$Row.names=NULL
-    
-    panel.rpkm = rpkms[rpkms$external_gene_name %in% congenital_myopathy,]
-    row.names(panel.rpkm) = panel.rpkm$external_gene_name
-    panel.rpkm$external_gene_name=NULL
-    panel.rpkm$Gene_description=NULL
-    
-    png("congenital_myopaties.png",res=100,width=1000)
-    pheatmap(panel.rpkm,treeheight_row=0,treeheight_col=0,cellwidth = 40,
-             display_number =T,cluster_rows=T, cluster_cols=T,
-             main="Congenital myopaties, RPKM/2, unfiltered",breaks = c(0,10,50,100,500,1000,5000,10000,15000),
-             colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(8))
-    dev.off()
-}
-
-#2017-02-22: expression of DGKE gene for Hernan and Mathieu
-expression_rpkm_blood12 = function()
-{
-    setwd("~/Desktop/project_muscular/9_Blood1_2/")
-    blood1 = load_rpkm_counts("blood1.counts_for_rpkm.txt")
-    blood2 = load_rpkm_counts("blood2.counts_for_rpkm.txt")
-    
-    blood2$external_gene_name = NULL
-    
-    rpkm.counts = merge_row_names(blood1,blood2)
-    
-    write.table(rpkm.counts,"blood1_2.rpkms.txt",quote=F,sep = "\t")
-    #sometimes contains duplicate entries, delete them
-    rpkm.counts = read.delim("blood1_2.rpkms.txt", row.names=1, stringsAsFactors=F)
-    
-    breaks = c(0,5,10,50,100,500,1000)
-    
-    dgke = c("DGKE")
-    
-    plot_panel(dgke,rpkm.counts,"blood1_2.DGKE.png","Blood1_2 expr(rpkm), DGKE gene",breaks)
-}
-
-expression_rpkm_muscle2 = function()
-{
-    setwd("~/Desktop/project_muscular/1_Family_V_chr19_Muscle2/expression/")
-    s62_AF_S5 = load_rpkm_counts("62_AF_S5.rpkm")
-    write.table(s62_AF_S5,"62_AF_S5.rpkms.txt",quote=F,sep = "\t")
-    
-    s1258_AC_A79 = load_rpkm_counts("1258-AC-A79.rpkm")
-    s1275_BK_B225 = load_rpkm_counts("1275-BK-B225.rpkm")
-    s1388_MJ_M219 = load_rpkm_counts("1388-MJ-M219.rpkm")
-    
-    s1258_AC_A79$external_gene_name = NULL
-    s1275_BK_B225$external_gene_name = NULL
-    s1388_MJ_M219$external_gene_name = NULL
-    
-    s62_AF_S5 = merge_row_names(s62_AF_S5,s1258_AC_A79)
-    s62_AF_S5 = merge_row_names(s62_AF_S5,s1275_BK_B225)
-    s62_AF_S5 = merge_row_names(s62_AF_S5,s1388_MJ_M219)
-    
-    write.table(s62_AF_S5,"62_AF_S5.rpkms.controls.txt",quote=F,sep = "\t")
-    #sometimes contains duplicate entries, delete them
-    s62_AF_S5 = read.delim("62_AF_S5.rpkms.controls.txt", row.names=1, stringsAsFactors=F)
-    
-    plot_all_panels(s62_AF_S5,gtex_rpkm)
-    
-    #plot linkage region panels
-    rpkms = s62_AF_S5
-    breaks = c(0,1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100,200,300,350)
-    plot_panel(linkage_region1, rpkms, gtex_rpkm, "1_linkage_region.png","Linkage region part 1 RPKM",breaks)
-    
-    breaks = c(0,1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100,200,260)
-    plot_panel(linkage_region2, rpkms, gtex_rpkm, "2_linkage_region.png","Linkage region part 2 RPKM",breaks)
-    
-    breaks = c(0,1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100,200,260)
-    plot_panel(linkage_region3, rpkms, gtex_rpkm, "3_linkage_region.png","Linkage region part 3 RPKM",breaks)
-}
-
+###################################################################################################
 
 expression_panels = function()
 {
@@ -1085,64 +636,6 @@ fibroblast8 = function()
            colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(length(breaks)-1))
   dev.off()
   
-}
-
-sample_11_1_K = function()
-{
-    glomerular_diseases = c("NPHS1","NPHS2","PLCE1","CD2AP","LAMB2","ACTN4","TRPC6","WT1", "LMX1B", "SMARCAL1", "COQ2", 
-                            "PDSS2", "MTTL1", "SCARB2", "FN1", "COL4A5", "COL4A6", "COL4A3", "COL4A4", "ALMS1", "ARHGDIA", 
-                            "MYH9", "GLA", "ANLN", "ARHGAP24", "INF2", "PAX2", "CRB2", "MYO1E", "APOL1", "ADCK4", "ALG1", 
-                            "CUBN", "PDSS2", "PMM2", "PTPRO", "SCARB2", "ZMPSTE24", "WDR73", "FN1", "NLRP3", "APOA1", "FGA", 
-                            "LYZ", "B2M", "LMX1B", "PLCG2", "LAMB2")
-    
-    
-    bardet_biedl = c("BBS1", "BBS2", "ARL6", "BBS4", "BBS5", "MKKS","BBS7", "TTC8", "BBS9", "BBS10", "TRIM32", "BBS12", "MKS1", 
-                     "CEP290","WDPCP", "SDCCAG8", "LZTFL1", "BBIP1", "IFT27")
-    
-    setwd("~/Desktop/project_muscular/11-1-M/")
-    
-    S11_1_K = load_rpkm_counts("11-1-K.rpkm")
-    kidneya = load_rpkm_counts("kidneya.rpkm")
-    kidneyb = load_rpkm_counts("kidneyb.rpkm")
-    kidneyc = load_rpkm_counts("kidneyc.rpkm")
-    kidneyd = load_rpkm_counts("kidneyd.rpkm")
-    
-    kidneya$external_gene_name=NULL
-    kidneyb$external_gene_name=NULL
-    kidneyc$external_gene_name=NULL
-    kidneyd$external_gene_name=NULL
-    
-    
-    kidneys = merge_row_names(S11_1_K,kidneya)
-    kidneys = merge_row_names(kidneys,kidneyb)
-    kidneys = merge_row_names(kidneys,kidneyc)
-    kidneys = merge_row_names(kidneys,kidneyd)
-    
-    write.table(kidneys,"kidneys.rpkms.txt",quote=F,sep = "\t")
-    
-    gene_panel = glomerular_diseases
-    gene_panel = bardet_biedl
-    
-    panel_rpkm = kidneys[kidneys$external_gene_name %in% gene_panel,]
-    row.names(panel_rpkm) = panel_rpkm$external_gene_name
-    panel_rpkm$external_gene_name=NULL
-    panel_rpkm = panel_rpkm[order(row.names(panel_rpkm)),]
-    breaks = c(0,5,10,20,30,40,50,100,200,300,400,500,600)
-    
-    file = "bardet_biedl.png"
-    title = "Glomerular diseases gene panel for 11-1-K and controls"
-    title = "Bardet-Bield gene panel for 11-1-K and controls"
-    
-    
-    breaks = seq(0,10)
-    png(file,res=300,width=2000,height=3000)
-    pheatmap(panel_rpkm,treeheight_row=0,treeheight_col=0,cellwidth = 40,
-             display_number =T,cluster_rows=F, cluster_cols=T,
-             main=title,
-             breaks=breaks,
-             colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(length(breaks)-1),
-             fontsize = 8)
-    dev.off()
 }
 
 # use case: to plot exon coverage for muscular gene panel 
