@@ -36,6 +36,8 @@ then
     fi
 fi
 
+echo "Creating bcbio project for " $project " with template: " $template
+
 bcbio_nextgen.py -w template $template $project.csv input/*
 
 mv $project/config .
