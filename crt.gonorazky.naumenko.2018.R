@@ -1,4 +1,6 @@
-# Functions for the RNA-seq article Gonorazky.Naumenko.et_al.Dowling.2018
+###################################################################################################
+### Functions for the RNA-seq article Gonorazky.Naumenko.et_al.Dowling.2018
+###################################################################################################
 install = function()
 {
     source("http://bioconductor.org/biocLite.R")
@@ -20,10 +22,9 @@ init = function()
     #gene_lengths = read.delim("~/Desktop/project_muscular/reference/gene_lengths.txt", stringsAsFactors=F, row.names=1)
 }
 
-#######################################################################################################################
+###################################################################################################
 ###  clustring MDS, PCA plots
-#######################################################################################################################
-
+###################################################################################################
 fig2A.mds = function(refresh_files = F)
 {
     #refresh_files=F
@@ -281,9 +282,9 @@ fig2B.mds_plot_colored_by_muscle_age = function()
   
 }
 
-########################################################################################################################
+###################################################################################################
 ### expression statistics
-########################################################################################################################
+###################################################################################################
 tableS5.get_1rpkm_genes = function(rpkms,samples,use_sample_names=T)
 {
     rpkms = rpkms[row.names(rpkms) %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
@@ -1199,6 +1200,9 @@ TableS15.expression.1rpkm = function(rpkms.file)
     print(paste(sort(row.names(rpkms.muscle[rpkms.muscle$average<1,])),collapse=","))
 }
 
+###################################################################################################
+### Allelic imbalance
+###################################################################################################
 # calculates median allelic imbalance ratio for every protein coding gene
 # sample = sample_name, i.e. 10-1-M
 # het file should be sample_name.het.csv in the wd
