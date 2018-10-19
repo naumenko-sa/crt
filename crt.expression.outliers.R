@@ -1,20 +1,65 @@
-################################################################################################################
-# Current production method based just on Z-scores, detects control outliers well,
+###################################################################################################
+# Current production method based on Z-scores, detects control outliers well,
 # used in Gonorazky.Naumenko.2018 RNA-seq article
-################################################################################################################
-
+###################################################################################################
+expression.outliers.init = function()
+{
+    library("genefilter")
+    source("~/crt/crt.utils.R")
+    source("~/bioscripts/genes.R")
+}
+expression.outliers = function()
+{
+    setwd("~/Desktop/work/expression")
+    
+    muscular_genes = read.csv("~/cre/data/muscular_genes.csv",stringsAsFactors = F)
+    expression.outliers.zscore("rpkms.muscle.txt",
+                               "rpkms.50gtex.txt",
+                               muscular_genes$ensembl_gene_id,
+                              "Supplemental_table_9.Expression_outliers_in_muscular_panels.csv")
+    
+    omim.genes = read.csv("~/cre/data/omim.genes.csv")
+    expression.outliers.zscore("rpkms.muscle.txt",
+                               "rpkms.50gtex.txt",
+                               omim.genes$ensembl_gene_id,
+                               "Supplemental_table_10.Expression_outliers_in_OMIM.csv")
+    
+    mitocarta.genes = read.csv("~/cre/data/mitocarta.ensembl_ids.txt")
+    expression.outliers.zscore("rpkms.muscle.txt",
+                               "rpkms.50gtex.txt",
+                               mitocarta.genes$ensembl_gene_id,
+                               "Supplemental_table_11.Expression_outliers.case40.csv")
+    
+    
+    case40.outliers = read.csv("Supplemental_table_11.Expression_outliers.case40.csv",stringsAsFactors = F)
+    case40.outliers = subset(case40.outliers,sample=="S70_40.1.M" | sample == "S71_40.2.M")
+    write.csv(case40.outliers,"Supplemental_table_11.Expression_outliers.case40.csv",row.names = F)
+}
 # expression outliers detection using Z-scores:
-# rpkm > 0.1 filter (possible 1 rpkm misses some cases)
-# abs(z-score) > 1.5
-# returns 3 tables:
+# mean GTEx rpkm (sample rpkm might be lower) >= 0.1 (1 rpkm misses some cases)
+# abs(z-score) >= 1.5
+# input:
+# - rpkms.patients.filename - table of RPKM values for all genes and all patients, output of ~/crt/crt.utils.R/read.rpkm_counts_dir
+# - rpkms.gtex.filename - table of RPKM values for all genes for gtex controls, output of ~/crt/crt.utils.R/read.rpkm_counts_dir
+# - gene_panel - vector of ENSEMBL_IDs of genes to filter (muscular genes, omim, mitochondrial, protein_coding)
+# - output.file.name = name of csv file to write expression outliers table
+# returns 4 tables:
 # - for muscle genes
 # - for omim genes
 # - for mitochondrial genes in case40
-expression.outliers.zscore = function()
+# - for all genes
+expression.outliers.zscore = function(rpkms_patients_filename,
+                                      rpkms_gtex_filename,
+                                      gene_panel,
+                                      output_file_name="expression_outliers.csv")
 {
-    setwd("~/Desktop/work/expression")
-    rpkms.50gtex = read.table("rpkms.50gtex.txt",stringsAsFactors = F)
-    rpkms.patients = read.table("rpkms.muscle.txt",stringsAsFactors = F)
+    # debug
+    # setwd("~/Desktop/work/expression")
+    # rpkms.patients.filename = "rpkms.muscle.txt"
+    # rpkms.gtex.filename = "rpkms.50gtex.txt"
+    expression.outliers.init()
+    rpkms.50gtex = read.table(rpkms_gtex_filename,stringsAsFactors = F)
+    rpkms.patients = read.table(rpkms_patients_filename,stringsAsFactors = F)
     
     rpkms.50gtex = rpkms.50gtex[row.names(rpkms.50gtex) %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
     gene_names = subset(rpkms.50gtex,select=c("external_gene_name"))
@@ -78,21 +123,8 @@ expression.outliers.zscore = function()
                                                  "gtex_mean_rpkm","cohort_mean_rpkm","fold_change","regulation",
                                                  "zscore_gtex","zscore_cohort","gtex_sd","cohort_sd")]
     
-    muscular_genes = get_genes_in_panels()
-    
-    expression.outliers.panels = expression.outliers[expression.outliers$gene %in% muscular_genes,]
-    write.csv(expression.outliers.panels,
-              "Supplemental_table_9.Expression_outliers_in_muscular_panels.csv",row.names = F)
-    
-    omim.genes = read.csv("~/cre/data/omim.genes.csv")
-    expression.outliers.omim = expression.outliers[expression.outliers$ensembl_gene_id %in% omim.genes$Ensembl_gene_id,]
-    write.csv(expression.outliers.omim,
-              "Supplemental_table_10.Expression_outliers_in_OMIM.csv",row.names = F)
-    
-    mitocarta.genes = read.csv("~/cre/data/mitocarta.ensembl_ids.txt")
-    expression.outliers.case40 = subset(expression.outliers,sample=="S70_40.1.M" | sample == "S71_40.2.M")
-    expression.outliers.case40 = expression.outliers.case40[expression.outliers.case40$ensembl_gene_id %in% mitocarta.genes$ensembl_gene_id,]
-    write.csv(expression.outliers.omim,"Supplemental_table_11.Expression_outliers.case40.csv",row.names = F)
+    expression.outliers.panel = expression.outliers[expression.outliers$ensembl_gene_id %in% gene_panel,]
+    write.csv(expression.outliers.panel,output_file_name,row.names = F)
 }
 
 ###################################################################################################
