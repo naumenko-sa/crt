@@ -1,6 +1,19 @@
+normalize.install = function() {
+  source("https://bioconductor.org/biocLite.R")
+  biocLite("sva")
+  library(sva)
+}
+
+#2 input files required: raw counts of all the samples and a phenotype csv 
+#Phenotype csv should have samples names as rows and columns should be sample number, outcome, batch and disease
+# sample number is unique id of sample, can be arbitrarily assigned (1,2,3...)
+#outcome can be "normal or disease"
+#batch is a description of all the batched (ex. 'CHEO or GTEx)
+#Disease is a value of either disease or normal 
+# number of rows of phenotype csv should be the same as number of columns of raw counts
+
 normalize = function() {
   raw_counts = read.csv("test.csv", check.names = F, row.names = 1)
-  
   #Log transform values
   for (coll in colnames(raw_counts)) {
     raw_counts[,coll] = log(raw_counts[,coll] + 1)
