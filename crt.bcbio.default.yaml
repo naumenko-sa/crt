@@ -22,5 +22,8 @@ resources:
     - -Xms750m
     - -Xmx7000m
     memory: 15G
+  star:
+    options:
+    - "twoPassMode: Basic"
 upload:
   dir: ../final
