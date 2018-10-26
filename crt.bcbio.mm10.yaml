@@ -1,0 +1,29 @@
+details:
+- algorithm:
+    aligner: star
+    variantcaller: gatk-haplotype
+    tools_off:
+    - gatk4
+    tools_on:
+    - bcbiornaseq
+    expression_caller: [cufflinks, express, stringtie, sailfish, dexseq, kallisto, salmon]
+  analysis: RNA-seq
+  description: project_sample
+  files:
+  - /hpf/largeprojects/ccmbio/naumenko/RIVAL/bcbio_run/input/SRR307897_1.fq.gz
+  - /hpf/largeprojects/ccmbio/naumenko/RIVAL/bcbio_run/input/SRR307897_2.fq.gz
+  genome_build: mm10
+  metadata:
+    batch: project
+resources:
+  default:
+    cores: 2
+    jvm_opts:
+    - -Xms750m
+    - -Xmx7000m
+    memory: 15G
+  star:
+    options:
+    - "twoPassMode: Basic"
+upload:
+  dir: ../final

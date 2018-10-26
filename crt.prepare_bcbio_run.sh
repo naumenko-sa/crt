@@ -6,6 +6,7 @@ project=$1
 #template_type:
 #    default (not set): crt.bcbio.default.yaml
 #    noexpression: crt.bcbio.noexpression.yaml
+#    mouse: use mm10 reference
 
 cd $project
 
@@ -33,6 +34,9 @@ then
     if [ $template_type == "noexpression" ]
     then
 	template=~/crt/crt.bcbio.noexpression.yaml
+    elif [ $template_type == "mouse" ]
+    then
+	template=~/crt/crt.bcbio.mm10.yaml
     fi
 fi
 
