@@ -1,6 +1,5 @@
 ###################################################################################################
-# Current production method based on Z-scores, detects control outliers well,
-# used in Gonorazky.Naumenko.2018 RNA-seq article
+# Current production method based on Z-scores, detects control outliers well
 ###################################################################################################
 expression.outliers.init = function()
 {
@@ -8,6 +7,9 @@ expression.outliers.init = function()
     source("~/crt/crt.utils.R")
     source("~/bioscripts/genes.R")
 }
+###################################################################################################
+# Supplemental tables for Gonorazky.Naumenko.2018 RNA-seq article
+###################################################################################################
 expression.outliers = function()
 {
     setwd("~/Desktop/work/expression")

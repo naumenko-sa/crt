@@ -82,7 +82,7 @@ linkage_region8 = c("NDUFA7", "RPS28", "KANK3", "ANGPTL4", "RAB11B-AS1", "MIR499
 protein_coding_genes <- read.table("~/cre/data/protein_coding_genes.txt", stringsAsFactors=F, header=T)
 
 protein_coding_genes.bed = read.delim("~/cre/data/protein_coding_genes.bed", header=F, stringsAsFactors=F)
-colnames(protein_coding_genes.bed) = c("chrom","start","end","gene")
+colnames(protein_coding_genes.bed) = c("chrom","start","end","gene","ensembl_gene_id")
 
 protein_coding_genes.ens_ids <- read.table("~/cre/data/protein_coding_genes.ens_ids.txt", stringsAsFactors=F,header=T)
 
