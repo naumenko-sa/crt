@@ -22,4 +22,4 @@ featureCounts -T 8 \
 	-C \
 	--largestOverlap \
 	-a $gtf \
-	-o $bam.rpkm_counts.txt $bam
+	-o $bam.feature_counts.txt $bam

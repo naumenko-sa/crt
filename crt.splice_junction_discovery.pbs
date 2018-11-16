@@ -7,7 +7,7 @@
 
 CRT_HOME='/home/naumenko/crt'
 
-if [ -z "$genes" ];
+if [ -z "$genes" ]
 then
 	genes=$CRT_HOME/genes.bed
 fi
