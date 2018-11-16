@@ -17,7 +17,6 @@ Don't trim reads to save all data and delete fastq files.
   3. crt.muscular.R - functions for muscular project
 
 4. Find pathogenic splice events (Modification of [MendelianRNA-seq](https://github.com/berylc/MendelianRNA-seq))
-
   1. Overview
 
 - SpliceJunctionDiscovery.py discovers splice junctions calling samtools and parsing CIGARs.
@@ -29,7 +28,7 @@ Don't trim reads to save all data and delete fastq files.
 * [Manual](https://macarthurlab.org/2017/05/31/improving-genetic-diagnosis-in-mendelian-disease-with-transcriptome-sequencing-a-walk-through/)
 
   2. Steps
-	1. Discover junctions, submit a torque job:
+    1. Discover junctions, submit a torque job:
 
 - `qsub [path-to-crt]/crt.splice_junction_discovery.pbs -v bam=file.bam`
 - or `qsub [path-to-crt]/crt.splice_junction_discovery.pbs -v genes=my_gene_panel.bed,bam=file.bam`
@@ -37,7 +36,7 @@ Don't trim reads to save all data and delete fastq files.
 
 Result: file.bam.junctions.txt
 
-	2. Load GENCODE junctions to the database
+    2. Load GENCODE junctions to the database
 ```
 python3 [path-to-crt]/AddJunctionsToDatabase.py \
 	--addGencode \
@@ -45,7 +44,7 @@ python3 [path-to-crt]/AddJunctionsToDatabase.py \
 ```
 result: SpliceJunction.db
 
-	3. Load junctions from samples to the SpliceJunctions.db database (load controls once, and copy SpliceJunctions.db for every analysis).
+    3. Load junctions from samples to the SpliceJunctions.db database (load controls once, and copy SpliceJunctions.db for every analysis).
 
 - `qsub [path-to-crt]/crt.load_junctions.pbs -v bam=file.bam`
 - or `qsub [path2crt]/crt.load_junctions.localhd.pbs -v bam=file.bam`
@@ -54,7 +53,7 @@ result: SpliceJunction.db
 
 result: junctions from a bam file (files) added to SpliceJunctions.db
 
-	4. Filter out junctions present in GTEx controls, report rare junctions in a sample
+    4. Filter out junctions present in GTEx controls, report rare junctions in a sample
 
 - [path2crt]/crt.filter_junctions.sh file.bam
 - or 
