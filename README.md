@@ -7,13 +7,13 @@
 Don't trim reads to save all data and delete fastq files.
 
 ## 2. Look at DNA variants
-1. cre.vcf2cre.sh
+1. ```qsub /cre/cre.vcf2cre.sh ...```
 2. ```qsub ~/cre/cre.sh -v family=project,type=rnaseq```
 
 ## 3. Look at gene expression
 1. crt.bam2rpkm.sh - counts for RPKM calculation in R
 2. crt.load_rpkm_counts.R - load counts into R
-3. crt.muscular.R - functions for muscular project
+3. crt.GonorazkyNaumenko2018.R - functions for muscular project
 
 ## 4. Find pathogenic splice events (Modification of [MendelianRNA-seq](https://github.com/berylc/MendelianRNA-seq))
 ### 4.1. Overview
