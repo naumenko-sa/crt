@@ -1,23 +1,24 @@
 # crt
 
 ## 1. Run bcbio with crt.bcbio.rnaseq.yaml.
-Don't trim reads to save all data and delete fastq files.
 	1. create project/input
 	2. name sample SX_case-N-tissue
 	3. crt.prepare_bcbio_run.sh
 
-##2. Look at DNA variants
+	Don't trim reads to save all data and delete fastq files.
+
+## 2. Look at DNA variants
 	1. cre.vcf2cre.sh
 	2. ```qsub ~/cre/cre.sh -v family=project,type=rnaseq```
 
-##3. Look at gene expression
+## 3. Look at gene expression
 	1. crt.bam2rpkm.sh - counts for RPKM calculation in R
 	2. crt.load_rpkm_counts.R - load counts into R
 	3. crt.muscular.R - functions for muscular project
 
-##4. Find pathogenic splice events (Modification of [MendelianRNA-seq](https://github.com/berylc/MendelianRNA-seq))
+## 4. Find pathogenic splice events (Modification of [MendelianRNA-seq](https://github.com/berylc/MendelianRNA-seq))
 
-###4.1 Overview
+### 4.1 Overview
 
 - SpliceJunctionDiscovery.py discovers splice junctions calling samtools and parsing CIGARs.
 - AddJunctionsToDatabase.py load junction information to the sqlite database.
@@ -27,7 +28,7 @@ Don't trim reads to save all data and delete fastq files.
 * [Article: Cummings et al. 2017](http://stm.sciencemag.org/content/9/386/eaal5209) 
 * [Manual](https://macarthurlab.org/2017/05/31/improving-genetic-diagnosis-in-mendelian-disease-with-transcriptome-sequencing-a-walk-through/)
 
-###4.2 Steps
+### 4.2 Steps
 	1. Discover junctions, submit a torque job:
 
 - `qsub [path-to-crt]/crt.splice_junction_discovery.pbs -v bam=file.bam`
