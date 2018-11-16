@@ -5,30 +5,21 @@
 	2. name sample SX_case-N-tissue
 	3. crt.prepare_bcbio_run.sh
 
-2. Look at mutations 
+2. Look at DNA variants
+	1. cre.vcf2cre.sh
+	2. ```qsub ~/cre/cre.sh -v family=project,type=rnaseq```
 
 3. Look at gene expression
+	1. crt.bam2rpkm.sh - counts for RPKM calculation in R
+	2. crt.load_rpkm_counts.R - load counts into R
+	3. crt.muscular.R - functions for muscular project
 
-- crt.bam2rpkm.sh - counts for RPKM calculation in R
-- crt.load_rpkm_counts.R - load counts into R
-- crt.muscular.R - functions for muscular project
-
-4. Find pathogenic splice events
-
-## Modification of [MendelianRNA-seq](https://github.com/berylc/MendelianRNA-seq) for pathogenic splicing events discovery in RNA-seq
+4. Find pathogenic splice events (Modification of [MendelianRNA-seq](https://github.com/berylc/MendelianRNA-seq))
 
 * [The original repository of Beryl Cummings](https://github.com/berylc/MendelianRNA-seq)
 * [Modification by Dennis Kao](https://github.com/dennis-kao/MendelianRNA-seq-DB)
 * [Article: Cummings et al. 2017](http://stm.sciencemag.org/content/9/386/eaal5209) 
 * [Manual](https://macarthurlab.org/2017/05/31/improving-genetic-diagnosis-in-mendelian-disease-with-transcriptome-sequencing-a-walk-through/)
-
-CRT stores junctions in a database, to process GTEx controls once and reuse the database.
-![alt text](./SpliceJunctionSchema.png)
-
-## On the number of controls
-
-According to Beryl Cummings, the minimal number of controls should be 30, in the article it is 184.
-<img src="https://macarthurlab.files.wordpress.com/2017/05/nmd-controls.png" width="400" height="600" />
 
 ## Overview
 
@@ -122,20 +113,14 @@ Using one of the options of FilterSpliceJunctions.py will produce a text file co
 	MT-ATP6	MT:9234-9511	NONE	0	1	6	0	6	PATIENT.bam:6	PATIENT.bam:NULL
 	AC002321.2	GL000201.1:9511-14322	START	1	1	70	2	72	PATIENT.bam:70	PATIENT.bam:NULL
 
-## Differences between Beryl Cumming's original MendelianRNA-seq
+## Differences from Beryl Cumming's original MendelianRNA-seq
 
+- junctions are stored in a database. We process GTEx controls once and reuse the database.
+![alt text](./SpliceJunctionSchema.png)
 - SpliceJunctionDiscovery has been rewritten in Python
 - CIGAR string parsing is handled by a function called parseCIGARForIntrons() whereas before CIGAR strings were handled by piping through multiple bash tools. As a result of improper parsing using bash tools, junction start and/or stop positions were not reported properly (e.x. 1:100-200*1D30 represents an alignment that should really be 1:100-230 or 1:100-231)
 - Transcript_model annotation and flanking have been implemented using database logic
 - All information produced by SpliceJunctionDiscovery is stored in a database instead of text files. This allows the user to utilize previously computed results instead of having to run the entire pipeline again when a new sample needs to be analyzed.
-- The database has some new fields that can be used to filter junctions: 
-	```
-	n_patients_seen
-	n_gtex_seen
-	total_read_count
-	total_patient_read_count
-	total_gtex_read_count
-	```
 - Transcript_model annotation now discriminates between 'START' and 'STOP' instead of 'ONE'. In addition, there is a new annotation, called 'EXON_SKIP' which denotes the event of exon skipping. This is done by checking to see if the reported 3' and 5' positions from a sample's junction belong to different transcript_model junctions.
 - Normalization of annotated junctions now considers read counts from all junctions that have at least one annotated splice site as the denominator whereas before only "BOTH" annotated junctions were used
 
