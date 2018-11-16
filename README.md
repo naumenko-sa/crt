@@ -1,6 +1,7 @@
 # crt
 
 1. Run bcbio with crt.bcbio.rnaseq.yaml. Don't trim reads to save all data and delete fastq files.
+
   1.1 create project/input
   1.2 name sample SX_case-N-tissue
   1.3 crt.prepare_bcbio_run.sh
