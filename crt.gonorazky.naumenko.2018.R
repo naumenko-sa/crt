@@ -1182,7 +1182,9 @@ expression.variation = function()
     expression.variation.boxplot(genes,"expression.cov.1rpkm_genes.png",
                                  "Expression variation in 1rpkm genes")
 }
+###################################################################################################
 # statistics based on the output of crt.filter_junctions.sh
+###################################################################################################
 Supplementary_Table_9.Splicing.Panels.Frequency = function()
 {
     setwd("~/Desktop/work/splicing_flank2/")

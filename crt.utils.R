@@ -240,7 +240,7 @@ read.rpkm_counts_dir = function(update=F)
     }
     else
     {
-        files = list.files(".","*rpkm_counts.txt")
+        files = list.files(".","*feature_counts.txt")
         counts = feature_counts2rpkm(files[1])
         for (file in tail(files,-1))
         {
