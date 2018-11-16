@@ -23,7 +23,7 @@ init = function()
 }
 
 ###################################################################################################
-###  clustring MDS, PCA plots
+###  clustering MDS, PCA plots
 ###################################################################################################
 fig2A.mds = function(refresh_files = F)
 {
@@ -139,6 +139,123 @@ fig2A.mds = function(refresh_files = F)
   
     dev.off()
   
+    png("mds.labels.png",res=300,width=2000,height=2000)
+    plotMDS(y, labels=sample_labels)
+    dev.off()
+}
+
+mds.work = function()
+{
+    counts = read.feature_counts_dir(update=refresh_files)
+    #group = factor(c(rep(1,ncol(counts))))
+    
+    sample_names = colnames(counts)
+    sample_labels = colnames(counts)
+    sample_types = colnames(counts)
+    
+    i=1
+    for (sname in sample_names)
+    {
+        v_sname = strsplit(sname,"\\.")[[1]]
+        if (length(v_sname)>=3)
+        {
+            sample_type = v_sname[3]
+        }
+        else
+        {
+            sample_type = 'NA'
+        }
+        sample_labels[i] = substr(sname,1,3) #i.e. S01
+        #print(sname)
+        #print(sample_type)
+        if ((sample_type == "0005") || (sample_type == "0006")){
+            sample_types[i]="GTEXBLOOD"
+            sample_labels[i]=""
+        }else if (sample_type == "0008"){
+            sample_types[i]="GTEXFIBRO"
+            sample_labels[i]=""
+        }else if (grepl("GTEX",sname)){
+            sample_types[i]="GTEX"
+            
+            if (length(v_sname) >= 5 ){
+                sample_labels[i] = v_sname[5] #i.e.2XCAL
+            }else{
+                sample_labels[i] = v_sname[2]
+            }
+        }else if (grepl("Myo",sname)){
+            sample_types[i]="Myo"
+        }else if (grepl("F",sname)){
+            sample_types[i]="F"
+        }else{
+            sample_types[i]="M"
+        }
+        i=i+1
+    }
+    print(sample_types)
+    group = factor(sample_types)    
+    
+    v_colors = c()
+    for (i in 1:length(group))
+    {
+        if(group[i] == "F"){
+            clr = "orange"
+        }else if (group[i] == "Myo"){
+            clr = "red"
+        }else if (group[i] == "GTEX"){
+            clr = "darkgreen"
+        }else if (group[i] == "GTEXBLOOD"){
+            clr = "cornflowerblue"
+        }else if (group[i] == "GTEXFIBRO"){
+            clr = "yellow"
+        }else{ #muscle
+            clr = "chartreuse"
+        }
+        v_colors[i] = clr
+    }
+    
+    print("Subsetting protein coding genes ...")
+    #a file with ENSEMBL IDs
+    if (file.exists("~/Desktop/reference_tables/protein_coding_genes.list"))
+    {
+        protein_coding_genes <- read.csv("~/Desktop/reference_tables/protein_coding_genes.list", sep="", stringsAsFactors=FALSE)
+        counts = counts[row.names(counts) %in% protein_coding_genes$ENS_GENE_ID,]
+    }else{
+        print("Please provide protein_coding_genes.list with ENS_GENE_ID")
+    }
+    
+    print("Removing zeroes ...")
+    
+    y = DGEList(counts=counts,group=group,remove.zeros = T)
+    png("mds.png",res=300,width=2000,height=2000)
+    
+    print("Plotting ...")
+    
+    mds = plotMDS(y,labels=sample_labels)
+    
+    plot(mds,
+         col = v_colors,
+         pch=19,
+         xlab = "MDS dimension 1", 
+         ylab = "MDS dimension 2")
+    
+    legend("topleft",
+           title="Tissue",
+           c("GTEx blood",
+             "Primary fibroblasts",
+             "GTEx transformed fibroblasts",
+             "Transdifferentiated myotubes",
+             "Muscle",
+             "GTEx muscle"
+           ),
+           fill=c("cornflowerblue",
+                  "orange",
+                  "yellow",
+                  "red",
+                  "chartreuse",
+                  "darkgreen"))
+    
+    dev.off()
+    
     png("mds.labels.png",res=300,width=2000,height=2000)
     plotMDS(y, labels=sample_labels)
     dev.off()

@@ -46,7 +46,8 @@ figure2c.diff_expression = function()
     
     y=DGEList(counts=counts,
               group=group,
-              genes=gene_lengths,remove.zeros = T)
+              genes=gene_lengths,
+              remove.zeros = T)
     
     rpkm.counts = rpkm(y)
     

@@ -63,9 +63,10 @@ fig1.mds = function(refresh_files = F)
     dev.off()
 }
 
-
 differential_expression = function()
 {
+    
+    ensembl_w_description.mouse = read.csv("~/cre/data/ensembl_w_description.mouse.csv",stringsAsFactors = F)
     counts = read.feature_counts_dir()
     #group = factor(c(rep(1,ncol(counts))))
     
@@ -77,10 +78,23 @@ differential_expression = function()
     
     group = factor(c(rep(1,n_samples/2), rep(2,n_samples/2)))
     
-    x=counts
     max_genes = nrow(counts)
     
-    y=DGEList(counts=x,group=group,genes=row.names(x),remove.zeros = T)
+    gene_lengths = read.csv("~/crt/data/gene_lengths.mouse.csv", stringsAsFactors=F)
+    gene_lengths = gene_lengths[gene_lengths$ensembl_gene_id %in% row.names(counts),]
+    gene_lengths = gene_lengths[order(gene_lengths$ensembl_gene_id),]
+    #merging by ensembl_gene_id
+    gene_lengths = merge(gene_lengths,
+                         ensembl_w_description.mouse,
+                         by.x="ensembl_gene_id",
+                         by.y="ensembl_gene_id",all.x=T,all.y=F)
+    #row.names(gene_lengths)=gene_lengths$ENSEMBL_GENE_ID
+    #gene_lengths$ENSEMBL_GENE_ID = NULL
+    
+    y=DGEList(counts=counts,
+              group=group,
+              genes=gene_lengths,remove.zeros = T)
+    
     rpkm.counts = rpkm(y)
     
     plotMDS(y)
@@ -90,7 +104,6 @@ differential_expression = function()
     y=y[keep,,keep.lib.sizes=F]
     
     y$samples$lib.size = colSums(y$counts)
-    
     
     
     #normalization for RNA composition (2.7.3)
@@ -114,9 +127,10 @@ differential_expression = function()
     
     de_results = topTags(lrt,n=max_genes,sort.by="PValue",p.value=1,adjust.method = "fdr")
     
-    write.csv(topTags(lrt,p.value=0.05,n=10000),"de.csv",row.names = F)
+    de_results$table$ensembl_gene_id = NULL
+    de_results$table = merge(de_results$table,rpkm.counts,by.x="row.names",by.y="row.names",all.x=T,all.y=F)
+    write.csv(de_results,"de.csv",quote=T,row.names=F)
     
-    de_results = read.csv("de.csv", stringsAsFactors=FALSE)
     s_rownames = row.names(de_results)
     #setnames(de_results,"genes","ensembl_gene_id")
     #de_results = lrt$table
@@ -127,8 +141,6 @@ differential_expression = function()
     #de_results = rename(de_results,c("Row.names"="ensembl_gene_id"))
     de_results = merge(de_results,x,by.x = "genes", by.y="row.names",all.x=T)
     de_results = de_results[order(de_results$PValue),]
-    
-    
     
     write.csv(de_results,"result.csv",row.names = F)
     

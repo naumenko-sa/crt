@@ -287,7 +287,7 @@ read.feature_counts_dir = function(update=F)
     }
     else
     {
-        files = list.files(".","*rpkm_counts.txt")
+        files = list.files(".","*feature_counts.txt")
         counts = read.feature_counts(files[1])
         for (file in tail(files,-1))
         {
