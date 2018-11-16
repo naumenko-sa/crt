@@ -1,11 +1,11 @@
 # crt
 
 ## 1. Run bcbio with crt.bcbio.rnaseq.yaml.
-	1. create project/input
-	2. name sample SX_case-N-tissue
-	3. crt.prepare_bcbio_run.sh
+  1. create project/input
+  2. name sample SX_case-N-tissue
+  3. crt.prepare_bcbio_run.sh
 
-	Don't trim reads to save all data and delete fastq files.
+Don't trim reads to save all data and delete fastq files.
 
 ## 2. Look at DNA variants
 	1. cre.vcf2cre.sh
