@@ -554,6 +554,87 @@ supplementary_table_3.genes_expressed_at_1rpkm = function()
 }
 
 ###################################################################################################
+###                  Coverage
+###################################################################################################
+# plots coverage for every gene for all samples having sample.coverage in the current dir - output of
+# bam.coverage.bamstats05.sh -v bam=file.bam,bed=~/crt/data/muscular_genes_exons.bed
+# I tried to plot a panel 5x3 - too much information, some panels are too wide (many genes)
+supplementary_figure4.get_coverage = function()
+{
+    files = list.files(".","\\.coverage$")
+    #samples = unlist(read.table("samples.txt", stringsAsFactors=F))
+    
+    coverage = read.delim(files[1],header=T,stringsAsFactors = F)
+    coverage = coverage[,c("gene","avg")]
+    colnames(coverage)[2]=files[1]
+    
+    for (file in tail(files,-1))
+    {
+        sample_coverage = read.delim(file,header=T,stringsAsFactors = F)
+        sample_coverage = sample_coverage[,c("gene","avg")]
+        colnames(sample_coverage)[2]=file
+        coverage = cbind(coverage,sample_coverage[2])
+    }
+    row.names(coverage) = coverage$gene
+    coverage$gene=NULL
+    return(coverage)
+}
+supplementary_figure4.plot_coverage_bins = function (coverage)
+{
+    n_genes = nrow(coverage)
+    
+    bin1 = c()
+    bin2 = c()
+    bin3 = c()
+    bin4 = c()
+    bin5 = c()
+    
+    for (i in 1:n_genes)
+    {
+        mean_expression = rowMeans(coverage[i,])
+        gene = row.names(coverage)[i]
+        #print(paste0(gene," ",mean_expression))
+        if (mean_expression >= 10000){
+            bin1 = unique(sort(c(bin1,gene)))
+        }else if (mean_expression >= 1000){
+            bin2 = unique(sort(c(bin2,gene)))
+        }else if (mean_expression >= 100){
+            bin3 = unique(sort(c(bin3,gene)))
+        }else if (mean_expression >= 10){
+            bin4 = unique(sort(c(bin4,gene)))
+        }else{
+            bin5 = unique(sort(c(bin5,gene)))
+        }
+    }
+    
+    for (bin in (c("bin1","bin2","bin3","bin4","bin5")))
+    {
+    
+        #png(paste0(bin,".png"),res=500,width=length(get(bin))*150,height=1500)
+        png(paste0(bin,".png"),res=500,width=5000,height=2000)
+        boxplot(t(coverage[get(bin),]),
+                las=2,
+                cex.axis=0.8)
+        dev.off()
+    }
+}
+
+supplementary_figure4.coverage.panel = function()
+{
+    setwd("~/Desktop/work/RNAseq_muscle_coverage/muscle/")
+    coverage.muscle = supplementary_figure4.get_coverage()   
+    supplementary_figure4.plot_coverage_bins(coverage.muscle)
+    
+    setwd("~/Desktop/work/RNAseq_muscle_coverage/myo/")
+    coverage.myo = supplementary_figure4.get_coverage()   
+    supplementary_figure4.plot_coverage_bins(coverage.myo)
+    
+    setwd("~/Desktop/work/RNAseq_muscle_coverage/fibro/")
+    coverage.fibro = supplementary_figure4.get_coverage()
+    supplementary_figure4.plot_coverage_bins(coverage.fibro)
+}
+
+###################################################################################################
 ###                  Expression outliers
 ###################################################################################################
 # expression outliers detection using Z-scores:
@@ -1296,7 +1377,6 @@ TableS13 = function()
     
     res$unique_in_myo = ifelse(res$frequency > res$frequency.myo, 'N', 'Y')
 }
-
 
 #run: qsub ~/crt.mds.pbs -v refresh=TRUE
 #source("~/crt/crt.utils.R")
