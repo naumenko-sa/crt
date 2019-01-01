@@ -4,8 +4,9 @@ details:
     variantcaller: gatk-haplotype
     tools_off:
     - gatk4
-    expression_caller: [express, stringtie, sailfish, dexseq, kallisto, salmon]
-    strandedness: firststrand
+    tools_on:
+    - bcbiornaseq
+    expression_caller: [cufflinks, express, stringtie, sailfish, dexseq, kallisto, salmon]
   analysis: RNA-seq
   description: project_sample
   files:
@@ -21,5 +22,7 @@ resources:
     - -Xms750m
     - -Xmx7000m
     memory: 15G
+  star:
+    options: ["--twopassMode Basic"]
 upload:
   dir: ../final
