@@ -240,7 +240,7 @@ read.rpkm_counts_dir = function(update=F)
     }
     else
     {
-        files = list.files(".","*feature_counts.txt")
+        files = list.files(".","*rpkm_counts.txt")
         counts = feature_counts2rpkm(files[1])
         for (file in tail(files,-1))
         {
@@ -654,67 +654,6 @@ all_expression_dotplots = function()
     for (gene_panel_name in panel_list)
     {
         expression_dotplot(gene_panel_name)
-    }
-}
-
-# plots coverage for every gene for all samples having sample.coverage in the current dir - output of
-# bam.coverage.bamstats05.sh
-coverage_plot = function ()
-{
-    setwd("~/Desktop/work")
-    files = list.files(".","\\.coverage$")
-    #samples = unlist(read.table("samples.txt", stringsAsFactors=F))
-    
-    coverage = read.delim(files[1],header=T,stringsAsFactors = F)
-    coverage = coverage[,c("gene","avg")]
-    colnames(coverage)[2]=files[1]
-    
-    for (file in tail(files,-1))
-    {
-        sample_coverage = read.delim(file,header=T,stringsAsFactors = F)
-        sample_coverage = sample_coverage[,c("gene","avg")]
-        colnames(sample_coverage)[2]=file
-        coverage = cbind(coverage,sample_coverage[2])
-    }
-    row.names(coverage) = coverage$gene
-    coverage$gene=NULL
-    
-    #remove ACTA1 with has coverage of 328115
-    #coverage = coverage[-c(1),]
-    
-    n_genes = nrow(coverage)
-
-    bin1 = c()
-    bin2 = c()
-    bin3 = c()
-    bin4 = c()
-    bin5 = c()
-    
-    for (i in 1:n_genes)
-    {
-        mean_expression = rowMeans(coverage[i,])
-        gene = row.names(coverage)[i]
-        #print(paste0(gene," ",mean_expression))
-        if (mean_expression >= 10000){
-            bin1 = unique(sort(c(bin1,gene)))
-        }else if (mean_expression >= 1000){
-            bin2 = unique(sort(c(bin2,gene)))
-        }else if (mean_expression >= 100){
-            bin3 = unique(sort(c(bin3,gene)))
-        }else if (mean_expression >= 10){
-            bin4 = unique(sort(c(bin4,gene)))
-        }else{
-            bin5 = unique(sort(c(bin5,gene)))
-        }
-    }
-    
-    for (bin in (c("bin1","bin2","bin3","bin4","bin5")))
-    {
-        png(paste0(bin,".png"),res=300,width=5000,height=2000)
-        boxplot(t(coverage[get(bin),]),
-            las=2,
-            cex.axis=0.8)
-        dev.off()
     }
 }
 

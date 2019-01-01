@@ -3,6 +3,7 @@ init = function()
     library("edgeR")
     library("genefilter")
     source("~/crt/crt.utils.R")
+    library("GO.db")
     setwd("~/Desktop/work/creatinine/")
 }
 
@@ -23,12 +24,11 @@ fig1.mds = function(refresh_files = F)
     v_colors = c(rep("green",5),rep("red",5))
     
     print("Subsetting protein coding genes ...")
-    #a file with ENSEMBL IDs
-    # get mouse protein coding genes
-    if (file.exists("~/Desktop/reference_tables/protein_coding_genes.list"))
+    
+    if (file.exists("~/cre/data/ensembl_w_description.mouse.csv"))
     {
-        protein_coding_genes <- read.csv("~/Desktop/reference_tables/protein_coding_genes.list", sep="", stringsAsFactors=FALSE)
-        counts = counts[row.names(counts) %in% protein_coding_genes$ENS_GENE_ID,]
+        protein_coding_genes = read.csv("~/cre/data/ensembl_w_description.mouse.csv", stringsAsFactors=F)
+        counts = counts[row.names(counts) %in% protein_coding_genes$ensembl_gene_id,]
     }else{
         print("Please provide protein_coding_genes.list with ENS_GENE_ID")
     }
@@ -65,9 +65,9 @@ fig1.mds = function(refresh_files = F)
 
 differential_expression = function()
 {
-    
     ensembl_w_description.mouse = read.csv("~/cre/data/ensembl_w_description.mouse.csv",stringsAsFactors = F)
     counts = read.feature_counts_dir()
+    counts = counts[row.names(counts) %in% ensembl_w_description.mouse$ensembl_gene_id,]
     #group = factor(c(rep(1,ncol(counts))))
     
     sample_names = colnames(counts)
@@ -76,7 +76,8 @@ differential_expression = function()
     colnames(counts) = sample_names
     n_samples = length(sample_names)
     
-    group = factor(c(rep(1,n_samples/2), rep(2,n_samples/2)))
+    #group = factor(c(rep(1,n_samples/2), rep(2,n_samples/2)))
+    group = factor(c(1,1,2,2,1,1,2,2))
     
     max_genes = nrow(counts)
     
@@ -150,5 +151,40 @@ differential_expression = function()
     go_analysis(lrt,prefix)
     
     #kegg_analysis(lrt,prefix)
+}
+
+#combining counts for different tissues from the article and Tropak's samples
+combine_counts = function()
+{
+    refresh_files=F
+    counts = read.feature_counts_dir(update=refresh_files)
+    mouse_counts = read.delim("mouse_counts.txt", stringsAsFactors=FALSE)
+    counts = merge(counts,mouse_counts,by.x="row.names",by.y="row.names",all.x=T,all.y=F)
+    row.names(counts) = counts$Row.names
+    counts$Row.names=NULL
     
+    if (file.exists("~/cre/data/ensembl_w_description.mouse.csv"))
+    {
+        protein_coding_genes = read.csv("~/cre/data/ensembl_w_description.mouse.csv", stringsAsFactors=F)
+        counts = counts[row.names(counts) %in% protein_coding_genes$ensembl_gene_id,]
+    }else{
+        print("Please provide protein_coding_genes.list with ENS_GENE_ID")
+    }
+    
+    counts = na.omit(counts)
+    
+    n_samples = ncol(counts)
+    
+    group = factor(rep(1,n_samples))    
+    
+    y = DGEList(counts=counts,group=group,remove.zeros = T)
+    
+    png("mds.tissues.png",res=300,width=2000,height=2000)
+    plotMDS(y, labels=colnames(counts))
+    dev.off()
+}
+
+go_analysis = function()
+{
+    go = goana(lrt,species="Hs")
 }
