@@ -5,7 +5,9 @@
 #PBS -d .
 #PBS -l vmem=10g,mem=10g
 
-#calculates features (reads) for RPKM calculation in R, outputs length of the genes
+# calculates features (reads) for RPKM calculation in R, outputs length of the genes
+# we were using RPKMs not FPKMs to be in line with Cummings2017 and Kremer2017.
+# in bcbio featureCounts counts fragments
 
 if [ -z $bam ]
 then
@@ -17,9 +19,14 @@ then
     gtf=/hpf/largeprojects/ccmbio/naumenko/tools/bcbio/genomes/Hsapiens/GRCh37/rnaseq/ref-transcripts.gtf
 fi
 
+# -s 0 unstranded (
+# -p - count pairs (fragments) not reads
+# -B only properly paired (both ends mapped)
+# -C don't count mapped to different chromosomes or different strands
 featureCounts -T 8 \
 	-g gene_id \
 	-C \
 	--largestOverlap \
 	-a $gtf \
 	-o $bam.feature_counts.txt $bam
+	#-s 0 -p -B -C
