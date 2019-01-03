@@ -1,8 +1,9 @@
 # crt
 ## 1. Run bcbio with crt.bcbio.rnaseq.yaml.
-1. create project/input
-2. name sample SX_case-N-tissue
+1. name sample SX_case-N-tissue
+2. create project/input, project = SX
 3. crt.prepare_bcbio_run.sh
+4. (optional) add strandedness: firststrand for stranded samples
 
 Don't trim reads to save all data and delete fastq files.
 
