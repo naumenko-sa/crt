@@ -85,6 +85,7 @@ protein_coding_genes.bed = read.delim("~/cre/data/protein_coding_genes.bed", hea
 colnames(protein_coding_genes.bed) = c("chrom","start","end","gene","ensembl_gene_id")
 
 protein_coding_genes.ens_ids <- read.table("~/cre/data/protein_coding_genes.ens_ids.txt", stringsAsFactors=F,header=T)
+genes_transcripts = read.csv("~/cre/data/genes.transcripts.ens_only.csv",stringsAsFactors = F)
 
 omim.file = "~/Desktop/reference_tables/omim_inheritance.csv"
 
@@ -307,6 +308,29 @@ merge_row_names = function(df1,df2)
     row.names(merged) = merged$Row.names
     merged$Row.names = NULL
     return(merged)
+}
+
+read.tpm = function(update = F)
+{
+    if(file.exists("tpm.csv") && update == F)
+    {
+        counts = read.csv("tpm.csv", stringsAsFactors = F, row.names = 1)
+    }
+    else
+    {
+        files = list.files(".","*.tpm")
+        counts = read.delim(files[1], stringsAsFactors=F, row.names=1)
+        counts = counts[order(rownames(counts)),,drop=F]
+        for (file in tail(files,-1))
+        {
+            print(paste0("Reading ",file))
+            counts_buf = read.delim(file, stringsAsFactors=F, row.names=1)
+            counts_buf = counts_buf[order(rownames(counts_buf)),,drop=F]
+            counts = cbind(counts,counts_buf)
+        }
+        write.csv(counts,"tpm.csv",quote=F)
+    }
+    return(counts)
 }
 
 #  prepares an expression profile for GSEA
