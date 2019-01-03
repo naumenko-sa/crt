@@ -1,9 +1,10 @@
 # crt
-## 1. Run bcbio with crt.bcbio.rnaseq.yaml.
-1. name sample SX_case-N-tissue
-2. create project/input, project = SX
-3. crt.prepare_bcbio_run.sh
-4. (optional) add strandedness: firststrand for stranded samples
+## 1. Run bcbio with ~/cre/crt.bcbio.rnaseq.yaml.
+1. name sample SX_case-N-tissue, i.e. S101_55-1-F.
+2. create project/input, project = SX, input files S101_55-1-F_1.fq.gz,S101_55-1-F_2.fq.gz. 
+3. crt.prepare_bcbio_run.sh project.
+4. (optional) add strandedness: firststrand for stranded samples.
+5. ```qsub ~/cre/bcbio.pbs -v project=project```
 
 Don't trim reads to save all data and delete fastq files.
 
@@ -11,108 +12,56 @@ Don't trim reads to save all data and delete fastq files.
 1. ```qsub /cre/cre.vcf2cre.sh ...```
 2. ```qsub ~/cre/cre.sh -v family=project,type=rnaseq```
 
-## 3. Look at gene expression
-1. crt.bam2rpkm.sh - counts for RPKM calculation in R
-2. crt.load_rpkm_counts.R - load counts into R
+## 3. Gene expression outlier analysis (RPKM)
+1. ```qsub ~/crt/crt.feature_counts.sh -v bam=file.bam``` - counts for RPKM calculation in R
+2. Use read.feature_counts_dir() from ~/crt/crt.utils.R to create RPKM matrix
 3. crt.GonorazkyNaumenko2018.R - functions for muscular project
 
-## 4. Find pathogenic splice events (Modification of [MendelianRNA-seq](https://github.com/berylc/MendelianRNA-seq))
-### 4.1. Overview
+## 4. Isoform expression outlier analysis (TPM)
 
-- SpliceJunctionDiscovery.py discovers splice junctions calling samtools and parsing CIGARs.
-- AddJunctionsToDatabase.py load junction information to the sqlite database.
-- FilterSpliceJunctions.py outputs junctions present in a sample and absent in controls.
-* [The original repository of Beryl Cummings](https://github.com/berylc/MendelianRNA-seq)
-* [Modification by Dennis Kao](https://github.com/dennis-kao/MendelianRNA-seq-DB)
-* [Article: Cummings et al. 2017](http://stm.sciencemag.org/content/9/386/eaal5209) 
-* [Manual](https://macarthurlab.org/2017/05/31/improving-genetic-diagnosis-in-mendelian-disease-with-transcriptome-sequencing-a-walk-through/)
+## 5. Splicing analysis (based on [MendelianRNA-seq](https://github.com/berylc/MendelianRNA-seq))
+1. Discover junctions with samtools: ```qsub [path-to-crt]/crt.splice_junction_discovery.pbs -v bam=file.bam``` for every bam file, 
+output: file.bam.junctions.txt
 
-### 4.2. Steps
-    1. Discover junctions, submit a torque job:
-
-- `qsub [path-to-crt]/crt.splice_junction_discovery.pbs -v bam=file.bam`
-- or `qsub [path-to-crt]/crt.splice_junction_discovery.pbs -v genes=my_gene_panel.bed,bam=file.bam`
-- or `python3 [path-to-crt]/SpliceJunctionDiscovery.py -bam=file.bam`
-
-Result: file.bam.junctions.txt
-
-    2. Load GENCODE junctions to the database
+2. Prepare reference database 
+- Load GENCODE junctions: 
 ```
 python3 [path-to-crt]/AddJunctionsToDatabase.py \
 	--addGencode \
 	-transcript_model=[path-to-crt]/gencode.comprehensive.splice.junctions.txt
 ```
-result: SpliceJunction.db
+output: SpliceJunction.db
+- Load junctions from controls: `qsub ~/crt/crt.load_junctions.pbs -v bam=file.bam`
+output: SpliceJunction.db
 
-    3. Load junctions from samples to the SpliceJunctions.db database (load controls once, and copy SpliceJunctions.db for every analysis).
-
-- `qsub [path-to-crt]/crt.load_junctions.pbs -v bam=file.bam`
-- or `qsub [path2crt]/crt.load_junctions.localhd.pbs -v bam=file.bam`
-- or `python3 [path-to-crt]/analysis/AddJunctionsToDatabase1.py -addBAM -transcript_file [path-to-MendelianRNA-seq-db]/all-protein-coding-genes-no-patches.txt -bamlist bamlist.list -flank 1`
+3. (For every sample) Load junctions from a sample to SpliceJunctions.db
+`qsub ~/crt/crt.load_junctions.pbs -v bam=file.bam`
 - If flank was set to 1, a gencode junction was 1:100-300 and a junction in a sample was 1:99-301, the sample junction would be considered BOTH annotated. This is because both the start and stop positions fall within a +/- 1 range of that of a transcript_model's junction.
 
-result: junctions from a bam file (files) added to SpliceJunctions.db
+4. Filter rare junctions: `~/crt/crt.filter_junctions.sh file.bam`
 
-    4. Filter out junctions present in GTEx controls, report rare junctions in a sample
+5. Dependencies
 
-- [path2crt]/crt.filter_junctions.sh file.bam
-- or 
-``` 
-python3 [path2crt]/FilterSpliceJunctions.py \
-    --sample [sample.bam] \
-    [MIN_READ_COUNT]	\
-    [MIN_NORM_READ_COUNT]
-```
-
-Parameters:
-- bam extension is necessary to include
-- [MIN_READ_COUNT] = 5
-- [MIN_NORM_READ_COUNT] = 0.05
-	
-With ```--sample``` option columns ```sample:read_count``` and ```sample:norm_read_count``` will not show read counts from other samples. 
-For all samples use ```---all``` option.
-
-### 4.3  Output
-
-By default the database is named SpliceJunction.db. There are 4 tables:
-
-	1. SAMPLE_REF, a list of samples and their type (0 = GTEX or control, 1 = patient)
-	2. JUNCTION_REF, a list of junctions and their frequency of appearances in samples
-	3. JUNCTION_COUNTS, read counts of junctions in a sample
-	4. GENE_REF, an annotation of junctions with genes, a single junction can map to multiple genes
-
-Using one of the options of FilterSpliceJunctions.py will produce a text file containing junction information in the following format:
-
-	gene	chromosome:start-stop	annotation	n_gtex_seen	n_patients_seen	total_patient_read_count	total_gtex_read_count	total_read_count	sample:read_count	sample:norm_read_count
-	MT-ND1	MT:3540-3610	NONE	0	1	11	0	11	PATIENT.bam:11	PATIENT.bam:NULL
-	AC002321.2	GL000201.1:4130-9415	NONE	1	1	32	4	36	PATIENT.bam:32	PATIENT.bam:NULL
-	MT-CO1	MT:7276-13822	NONE	1	1	5	1	6	PATIENT.bam:5	PATIENT.bam:NULL
-	MT-ATP6	MT:9234-9511	NONE	0	1	6	0	6	PATIENT.bam:6	PATIENT.bam:NULL
-	AC002321.2	GL000201.1:9511-14322	START	1	1	70	2	72	PATIENT.bam:70	PATIENT.bam:NULL
-
-
-### 4.4 Dependencies
-
-1. .bam (and .bai) files of cases and GTEx controls.
-2. genes - A bed file with gene coordinates
+	1. genes - A bed file with gene coordinates
 	```
 	CHROM	START	STOP	GENE
 	```
 	Use genes.bed - a list of protein coding genes, or your own bed file. To retrieve gene coordinates from ENSMBL biomart use 
 	[genes.R](https://github.com/naumenko-sa/bioscripts/blob/master/genes.R) 
 	```
-3. transcript_model - text file containing a list of known canonical splice junctions. [included file](gencode.comprehensive.splice.junctions.txt). This file contains junctions from gencode v19.
+	2. transcript_model - text file containing a list of known canonical splice junctions. [included file](gencode.comprehensive.splice.junctions.txt). This file contains junctions from gencode v19.
 
-4. [Python 3.5.2](https://www.python.org/downloads/) or higher
+	3. [Python 3.5.2](https://www.python.org/downloads/) or higher
 
-5. Python [CIGAR string library](https://pypi.python.org/pypi/cigar/0.1.3) by Brent Pedersen
+	4. Python [CIGAR string library](https://pypi.python.org/pypi/cigar/0.1.3) by Brent Pedersen
 
-6. sqlite3 Python library based off of SQLite3 version 3.11.0 or higher. You can check your library's version with:
+	5. sqlite3 Python library based off of SQLite3 version 3.11.0 or higher. You can check your library's version with:
 	```
 	import sqlite3
 	print (sqlite3.sqlite_version_info)
 	```
-### 4.5 Differences from Beryl Cumming's original MendelianRNA-seq
+
+	6. Differences from Beryl Cumming's original MendelianRNA-seq
 
 - junctions are stored in a database. We process GTEx controls once and reuse the database.
 ![alt text](./SpliceJunctionSchema.png)
@@ -134,3 +83,8 @@ A single gene region can encompass partial or whole regions of other genes. Thus
 ### Splice site flanks and annotation
 A +/- flanking region is considered when annotating the 5' and 3' positions of sample junctions to increase the number of annotated junctions. This value is specified by the -flank parameter (default 1). There is an option to not use flanking at all (-flank 0).
 
+## 6. References
+* [Original MendelianRNA-seq by Beryl Cummings](https://github.com/berylc/MendelianRNA-seq)
+* [Modification by Dennis Kao](https://github.com/dennis-kao/MendelianRNA-seq-DB)
+* [Article: Cummings et al. 2017](http://stm.sciencemag.org/content/9/386/eaal5209) 
+* [Manual](https://macarthurlab.org/2017/05/31/improving-genetic-diagnosis-in-mendelian-disease-with-transcriptome-sequencing-a-walk-through/)

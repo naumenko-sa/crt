@@ -233,7 +233,7 @@ feature_counts2rpkm = function(filename)
 }
 
 #reads all counts in the current directory
-read.rpkm_counts_dir = function(update=F)
+read.feature_counts_dir = function(update=F)
 {
     if(file.exists("rpkms.txt") && update == F)
     {
