@@ -42,20 +42,15 @@ output: SpliceJunction.db
 
 5. Dependencies
 
-	1. genes - A bed file with gene coordinates
-	```
-	CHROM	START	STOP	GENE
-	```
-	Use genes.bed - a list of protein coding genes, or your own bed file. To retrieve gene coordinates from ENSMBL biomart use 
-	[genes.R](https://github.com/naumenko-sa/bioscripts/blob/master/genes.R) 
-	```
-	2. transcript_model - text file containing a list of known canonical splice junctions. [included file](gencode.comprehensive.splice.junctions.txt). This file contains junctions from gencode v19.
+	1. ~/crt/genes.bed - protein coding genes. 
+	
+	2. ~/crt/gencode.comprehensive.splice.junctions.txt - junctions from gencode v19.
 
-	3. [Python 3.5.2](https://www.python.org/downloads/) or higher
+	3. [Python 3.5.2]
 
 	4. Python [CIGAR string library](https://pypi.python.org/pypi/cigar/0.1.3) by Brent Pedersen
 
-	5. sqlite3 Python library based off of SQLite3 version 3.11.0 or higher. You can check your library's version with:
+	5. sqlite3 Python library SQLite3 version >=3.11.0.
 	```
 	import sqlite3
 	print (sqlite3.sqlite_version_info)
