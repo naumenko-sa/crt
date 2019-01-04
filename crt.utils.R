@@ -232,7 +232,7 @@ feature_counts2rpkm = function(filename)
     return(counts)
 }
 
-#reads all counts in the current directory
+#reads all counts in the current directory and calculate RPKMs
 read.feature_counts_dir = function(update=F)
 {
     if(file.exists("rpkms.txt") && update == F)
@@ -241,7 +241,7 @@ read.feature_counts_dir = function(update=F)
     }
     else
     {
-        files = list.files(".","*rpkm_counts.txt")
+        files = list.files(".","*feature_counts.txt")
         counts = feature_counts2rpkm(files[1])
         for (file in tail(files,-1))
         {

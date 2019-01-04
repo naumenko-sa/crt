@@ -10,7 +10,7 @@ expression.outliers.init = function()
 ###################################################################################################
 # Supplemental tables for Gonorazky.Naumenko.2018 RNA-seq article
 ###################################################################################################
-expression.outliers = function()
+expression.outliers.muscle = function()
 {
     setwd("~/Desktop/work/expression")
     
@@ -37,6 +37,19 @@ expression.outliers = function()
     case40.outliers = subset(case40.outliers,sample=="S70_40.1.M" | sample == "S71_40.2.M")
     write.csv(case40.outliers,"Supplemental_table_11.Expression_outliers.case40.csv",row.names = F)
 }
+
+# comparing fibroblasts to fibroblasts because GTex fibroblasts have different expression profile
+expression.outliers.fibro = function()
+{
+    setwd("~/Desktop/work/expression/feature_counts/fibro/")
+    
+    omim.genes = read.csv("~/cre/data/omim.genes.csv")
+    expression.outliers.zscore("rpkms.fibro.txt",
+                               "rpkms.fibro.txt",
+                               omim.genes$Ensembl_gene_id,
+                               "Supplemental_table_X.Expression_outliers_in_fibroblasts.csv")
+}
+
 # expression outliers detection using Z-scores:
 # mean GTEx rpkm (sample rpkm might be lower) >= 0.1 (1 rpkm misses some cases)
 # abs(z-score) >= 1.5

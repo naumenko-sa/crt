@@ -1,5 +1,5 @@
 # crt
-Assuming ~/cre and /crt are cloned to /home/user, bcbio installed and running
+Assuming ~/cre and ~/crt are cloned to /home/user, bcbio installed and running
 
 ## 1. Run bcbio with ~/cre/crt.bcbio.rnaseq.yaml.
 1. name sample SX_case-N-tissue, i.e. S101_55-1-F.
