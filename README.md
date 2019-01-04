@@ -20,7 +20,8 @@ Don't trim reads to save all data and delete fastq files.
 ## 4. Isoform expression outlier analysis (TPM)
 
 ## 5. Splicing analysis (based on [MendelianRNA-seq](https://github.com/berylc/MendelianRNA-seq))
-1. (For every bam file including controls). Get junctions from a bam file with samtools: ```qsub ~/crt/crt.bam2junctions.pbs -v bam=file.bam```, 
+1. (For every bam file including controls). Get junctions from a bam file with samtools:  
+```qsub ~/crt/crt.bam2junctions.pbs -v bam=file.bam```,  
 output: file.bam.junctions.txt
 
 2. Prepare reference database 
