@@ -1,8 +1,10 @@
 # crt
+Assuming ~/cre and /crt are cloned to /home/user, bcbio installed and running
+
 ## 1. Run bcbio with ~/cre/crt.bcbio.rnaseq.yaml.
 1. name sample SX_case-N-tissue, i.e. S101_55-1-F.
 2. create project/input, project = SX, input files S101_55-1-F_1.fq.gz,S101_55-1-F_2.fq.gz. 
-3. crt.prepare_bcbio_run.sh project.
+3. ~/crt/crt.prepare_bcbio_run.sh project.
 4. (optional) add strandedness: firststrand for stranded samples.
 5. ```qsub ~/cre/bcbio.pbs -v project=project```
 
@@ -27,9 +29,9 @@ output: file.bam.junctions.txt
 2. Prepare reference database 
 - Load GENCODE junctions: 
 ```
-python3 [path-to-crt]/AddJunctionsToDatabase.py \
+python3 ~/crt/AddJunctionsToDatabase.py \
 	--addGencode \
-	-transcript_model=[path-to-crt]/gencode.comprehensive.splice.junctions.txt
+	-transcript_model=~/crt/gencode.comprehensive.splice.junctions.txt
 ```
 output: SpliceJunction.db
 - Load junctions from controls: `qsub ~/crt/crt.load_junctions.pbs -v bam=file.bam`
