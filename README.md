@@ -28,15 +28,15 @@ Don't trim reads to save all data and delete fastq files.
 output: file.bam.junctions.txt
 
 2. Prepare reference database 
-- Load GENCODE junctions: 
-```
-python3 ~/crt/AddJunctionsToDatabase.py \
+	### Load GENCODE junctions: 
+	```
+   	python3 ~/crt/AddJunctionsToDatabase.py \
 	--addGencode \
 	-transcript_model=~/crt/gencode.comprehensive.splice.junctions.txt
-```
-output: SpliceJunction.db
-- Load junctions from controls: `qsub ~/crt/crt.load_junctions.pbs -v bam=file.bam`
-output: SpliceJunction.db
+	```
+	output: SpliceJunction.db
+	### Load junctions from controls: `qsub ~/crt/crt.load_junctions.pbs -v bam=file.bam`
+	output: SpliceJunction.db
 
 3. (For every sample) Load junctions from a sample to SpliceJunctions.db
 `qsub ~/crt/crt.load_junctions.pbs -v bam=file.bam`
