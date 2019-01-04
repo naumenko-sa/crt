@@ -11,9 +11,13 @@ are cloned to `~/crt`, `~/cre`, and `~/bioscripts`, bcbio installed, added to PA
 
 Don't trim reads to save all data and delete fastq files.
 
-## 2. Look at DNA variants
-1. ```qsub /cre/cre.vcf2cre.sh ...```
-2. ```qsub ~/cre/cre.sh -v family=project,type=rnaseq```
+## 2. Generate DNA variant report
+1. Copy SX-gatk-haplotype-annotated.vcf.gz from bcbio_output/final.
+2. Annotate variants:
+`qsub ~/cre/cre.vcf2cre.sh -v original_vcf=SX-gatk-haplotype-annotated.vcf.gz,project=SX`
+3. Generate reports:
+`qsub ~/cre/cre.sh -v family=SX,type=rnaseq` - including rare intronic variants, SX dir prepared by step2 should be ./SX.
+`qsub ~/cre/cre.sh -v family=SX,type=rnaseq` - only rare coding/splicing variants, SX dir prepared by step2 should be ./SX.
 
 ## 3. Gene expression outlier analysis (RPKM)
 1. ```qsub ~/crt/crt.feature_counts.sh -v bam=file.bam``` - counts for RPKM calculation in R
@@ -28,19 +32,20 @@ Don't trim reads to save all data and delete fastq files.
 output: file.bam.junctions.txt
 
 2. Prepare reference database 
-	### Load GENCODE junctions: 
-	```
-   	python3 ~/crt/AddJunctionsToDatabase.py \
-	--addGencode \
-	-transcript_model=~/crt/gencode.comprehensive.splice.junctions.txt
-	```
-	output: SpliceJunction.db
-	### Load junctions from controls: `qsub ~/crt/crt.load_junctions.pbs -v bam=file.bam`
-	output: SpliceJunction.db
+Load GENCODE junctions: 
+```
+python3 ~/crt/AddJunctionsToDatabase.py \
+--addGencode \
+-transcript_model=~/crt/gencode.comprehensive.splice.junctions.txt
+```
+output: SpliceJunction.db
+
+Load junctions from control samples: 
+`qsub ~/crt/crt.load_junctions.pbs -v bam=file.bam`
+output: SpliceJunction.db
 
 3. (For every sample) Load junctions from a sample to SpliceJunctions.db
 `qsub ~/crt/crt.load_junctions.pbs -v bam=file.bam`
-- If flank was set to 1, a gencode junction was 1:100-300 and a junction in a sample was 1:99-301, the sample junction would be considered BOTH annotated. This is because both the start and stop positions fall within a +/- 1 range of that of a transcript_model's junction.
 
 4. Filter rare junctions: `~/crt/crt.filter_junctions.sh file.bam`
 
