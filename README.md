@@ -1,13 +1,6 @@
 # crt
-Assuming that 
-- [crt](https://github.com/naumenko-sa/crt), 
-- [cre](https://github.com/naumenko-sa/cre), and 
-- [bioscripts](https://github.com/naumenko-sa/crt) 
-and cloned to 
-- `~/crt`, 
-- `~/cre`, 
-- and `~/bioscripts`, 
-bcbio installed, added to PATH/PYTHONPATH and running.
+Assuming that [crt](https://github.com/naumenko-sa/crt), [cre](https://github.com/naumenko-sa/cre), and [bioscripts](https://github.com/naumenko-sa/crt)
+are cloned to `~/crt`, `~/cre`, and `~/bioscripts`, bcbio installed, added to PATH/PYTHONPATH and running.
 
 ## 1. Run bcbio with ~/cre/crt.bcbio.rnaseq.yaml.
 1. name sample SX_case-N-tissue, i.e. S101_55-1-F.
