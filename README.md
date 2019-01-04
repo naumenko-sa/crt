@@ -1,10 +1,10 @@
 # crt
 Assuming that [crt](https://github.com/naumenko-sa/crt), [cre](https://github.com/naumenko-sa/cre), and [bioscripts](https://github.com/naumenko-sa/crt)
-are cloned to `~/crt`, `~/cre`, and `~/bioscripts`, bcbio installed, added to PATH/PYTHONPATH and running.
+are cloned to `~/crt`, `~/cre`, and `~/bioscripts`, bcbio installed, added to PATH,PYTHONPATH and running.
 
 ## 1. Run bcbio with ~/cre/crt.bcbio.rnaseq.yaml.
 1. name sample SX_case-N-tissue, i.e. S101_55-1-F.
-2. create project/input, project = SX, input files S101_55-1-F_1.fq.gz,S101_55-1-F_2.fq.gz. 
+2. create project/input, project = SX, input files [sample]_1.fq.gz, [sample]_2.fq.gz.
 3. ~/crt/crt.prepare_bcbio_run.sh project.
 4. (optional) add strandedness: firststrand for stranded samples.
 5. ```qsub ~/cre/bcbio.pbs -v project=project```
