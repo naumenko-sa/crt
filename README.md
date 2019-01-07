@@ -47,7 +47,7 @@ output: SpliceJunction.db
 3. (For every sample) Load junctions from a sample to SpliceJunctions.db
 `qsub ~/crt/crt.load_junctions.pbs -v bam=file.bam`
 
-4. Filter rare junctions: `~/crt/crt.filter_junctions.sh file.bam`
+4. Filter rare junctions: `qsub ~/crt/crt.filter_junctions.sh -v bam=file.bam`
 
 5. Dependencies
 
