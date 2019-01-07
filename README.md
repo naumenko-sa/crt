@@ -15,9 +15,9 @@ Don't trim reads to save all data and delete fastq files.
 1. Copy SX-gatk-haplotype-annotated.vcf.gz from bcbio_output/final.
 2. Annotate variants:  
 `qsub ~/cre/cre.vcf2cre.sh -v original_vcf=SX-gatk-haplotype-annotated.vcf.gz,project=SX`
-3. Generate reports:  
-`qsub ~/cre/cre.sh -v family=SX,type=rnaseq` - including rare intronic variants, SX dir prepared by step2 should be ./SX.  
-`qsub ~/cre/cre.sh -v family=SX,type=rnaseq` - only rare coding/splicing variants, SX dir prepared by step2 should be ./SX.
+3. Generate reports (SX dir prepared by step2 should be ./SX, i.e. in the current dir):  
+`qsub ~/cre/cre.sh -v family=SX,type=rnaseq` - including rare intronic variants.  
+`qsub ~/cre/cre.sh -v family=SX,type=rnaseq` - only rare coding/splicing variants.
 
 ## 3. Gene expression outlier analysis (RPKM)
 1. ```qsub ~/crt/crt.feature_counts.sh -v bam=file.bam``` - counts for RPKM calculation in R.
