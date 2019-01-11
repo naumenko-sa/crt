@@ -554,6 +554,42 @@ supplementary_table_3.genes_expressed_at_1rpkm = function()
     }
 }
 
+# expression of SMN isoforms
+expression_smn = function()
+{
+    setwd ("~/Desktop/work/SMN/")
+    genes_transcripts = read.csv("~/cre/data/genes.transcripts.ens_only.csv", stringsAsFactors = F, header = T)
+    smn1 = genes_transcripts[genes_transcripts$external_gene_name=="SMN1",]
+    smn2 = genes_transcripts[genes_transcripts$external_gene_name=="SMN2",]
+    
+    S93 = read.delim("S93_45-1-F.kallisto.tsv",header=T,stringsAsFactors = F)
+    S94 = read.delim("S94_46-1-F.kallisto.tsv",header=T,stringsAsFactors = F)
+    
+    S93.smn1 = S93[S93$target_id %in% smn1$Ensembl_transcript_id,]
+    S93.smn2 = S93[S93$target_id %in% smn2$Ensembl_transcript_id,]
+    
+    S94.smn1 = S94[S94$target_id %in% smn1$Ensembl_transcript_id,]
+    S94.smn2 = S94[S94$target_id %in% smn2$Ensembl_transcript_id,]
+    
+    S93.smn1 = S93.smn1[,c("target_id","tpm")]
+    colnames (S93.smn1) = c("ensembl_transcript_id","S93")
+    S93.smn2 = S93.smn2[,c("target_id","tpm")]
+    colnames (S93.smn2) = c("ensembl_transcript_id","S93")
+    
+    S94.smn1 = S94.smn1[,c("target_id","tpm")]
+    colnames(S94.smn1) = c("ensembl_transcript_id","S94")
+    S94.smn2 = S94.smn2[,c("target_id","tpm")]
+    colnames(S94.smn2) = c("ensembl_transcript_id","S94")
+    
+    smn1 = cbind(S93.smn1,S94.smn1$S94)
+    colnames(smn1)[3]="S94"
+    smn2 = cbind(S93.smn2,S94.smn2$S94)
+    colnames(smn2)[3]="S94"
+    
+    write.csv(smn1,"smn1.csv",row.names = F)
+    write.csv(smn2,"smn2.csv",row.names = F)
+}
+
 ###################################################################################################
 ###                  Coverage
 ###################################################################################################
