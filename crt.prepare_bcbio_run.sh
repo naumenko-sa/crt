@@ -3,10 +3,7 @@
 # prepares a project (family) for bcbio run when input files are project/input/project_sample.bam or project_sample_1/2.fq.gz
 project=$1
 
-#template_type:
-#    default (not set): crt.bcbio.default.yaml
-#    noexpression: crt.bcbio.noexpression.yaml
-#    mouse: use mm10 reference
+# $2 = template_type: default (not set), noexpression, mm10, stranded
 
 cd $project
 
@@ -14,7 +11,7 @@ cp ~/cre/bcbio.sample_sheet_header.csv $project.csv
 
 cd input
 
-#there should be no other files except input fq.gz or bams in the input dir
+# there should be no other files except input fq.gz or bams in the input dir
 ls | sed s/.bam// | sed s/.bai// | sed s/"_1.fq.gz"// | sed s/"_2.fq.gz"// | sort | uniq > ../samples.txt
 
 cd ..
@@ -25,19 +22,12 @@ do
     echo $sample","$sample","$project",,," >> $project.csv
 done < samples.txt
 
-#default template
+# default template
 template=~/crt/crt.bcbio.default.yaml
-
+# if a different template is used
 if [ -n "$2" ]
 then
-    template_type=$2
-    if [ $template_type == "noexpression" ]
-    then
-	template=~/crt/crt.bcbio.noexpression.yaml
-    elif [ $template_type == "mouse" ]
-    then
-	template=~/crt/crt.bcbio.mm10.yaml
-    fi
+    template=~/crt/crt.bcbio.$2.yaml
 fi
 
 echo "Creating bcbio project for " $project " with template: " $template

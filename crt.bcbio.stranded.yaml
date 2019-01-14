@@ -5,7 +5,7 @@ details:
     tools_off:
     - gatk4
     expression_caller: [express, stringtie, sailfish, dexseq, kallisto, salmon]
-    strandedness: unstranded
+    strandedness: firststrand
   analysis: RNA-seq
   description: project_sample
   files:
