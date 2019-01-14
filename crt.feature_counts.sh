@@ -9,6 +9,9 @@
 # we were using RPKMs not FPKMs to be in line with Cummings2017 and Kremer2017.
 # in bcbio featureCounts counts fragments
 
+# bam=file.bam
+# strandedness = [0,1]
+
 if [ -z $bam ]
 then
     bam=$1
@@ -25,6 +28,7 @@ fi
 # -C don't count mapped to different chromosomes or different strands
 featureCounts -T 8 \
 	-g gene_id \
+	-s $strandedness
 	-C \
 	--largestOverlap \
 	-a $gtf \
