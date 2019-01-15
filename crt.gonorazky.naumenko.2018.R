@@ -1,33 +1,36 @@
-###################################################################################################
-### Functions for the RNA-seq article Gonorazky.Naumenko.et_al.Dowling.2018
-### expression outlier detection in ~/crt/crt.expression.outliers.R
-###################################################################################################
-install = function()
-{
+###############################################################################
+# Functions for RNA-seq article Gonorazky.Naumenko.et_al.Dowling.2018
+# expression outlier detection in ~/crt/crt.expression.outliers.R
+###############################################################################
+install <- function(){
     source("http://bioconductor.org/biocLite.R")
     biocLite("org.Hs.eg.db")
 }
 
-init = function()
-{
-    library("edgeR")
-    library("RColorBrewer")
-    library("org.Hs.eg.db")
-    library("plyr")
-    library("VennDiagram")    
-    library("genefilter")
-    library("reshape2")
+init <- function(){
+    library(edgeR)
+    library(RColorBrewer)
+    library(org.Hs.eg.db)
+    library(plyr)
+    library(VennDiagram)    
+    library(genefilter)
+    library(reshape2)
     source("~/crt/crt.utils.R")
     source("~/bioscripts/genes.R")
     setwd("~/Desktop/work")
     #gene_lengths = read.delim("~/Desktop/project_muscular/reference/gene_lengths.txt", stringsAsFactors=F, row.names=1)
 }
 
-###################################################################################################
-###  clustering MDS, PCA plots
-###################################################################################################
-fig2A.mds = function(refresh_files = F)
-{
+###############################################################################
+# clustering MDS, PCA plots
+###############################################################################
+# large MDS 
+# run: qsub ~/crt.mds.pbs -v refresh=TRUE
+# source("~/crt/crt.utils.R")
+# args = commandArgs(trailingOnly = T)
+# print(args[1])
+# fig1A.mds_plot(refresh_files = as.logical(args[1]))
+fig2A.mds <- function(refresh_files = F){
     #refresh_files=F
     print("Reading counts ...")
     counts = read.feature_counts_dir(update=refresh_files)
@@ -145,93 +148,87 @@ fig2A.mds = function(refresh_files = F)
     dev.off()
 }
 
-mds.work = function()
-{
-    counts = read.feature_counts_dir(update=refresh_files)
+# work qc function for mds plots (protein coding genes)
+mds.work <- function(){
+    counts <- read.feature_counts_dir(update=T)
     #group = factor(c(rep(1,ncol(counts))))
     
-    sample_names = colnames(counts)
-    sample_labels = colnames(counts)
-    sample_types = colnames(counts)
+    sample_names <- colnames(counts)
+    sample_labels <- colnames(counts)
+    sample_types <- colnames(counts)
     
-    i=1
-    for (sname in sample_names)
-    {
-        v_sname = strsplit(sname,"\\.")[[1]]
-        if (length(v_sname)>=3)
-        {
-            sample_type = v_sname[3]
+    i <- 1
+    for (sname in sample_names){
+        v_sname <- strsplit(sname,"\\.")[[1]]
+        if (length(v_sname) >= 3){
+            sample_type <- v_sname[3]
+        }else{
+            sample_type <- "NA"
         }
-        else
-        {
-            sample_type = 'NA'
-        }
-        sample_labels[i] = substr(sname,1,3) #i.e. S01
+        sample_labels[i] <- strsplit(sname,"_")[[1]][1] #i.e. S01
         #print(sname)
         #print(sample_type)
         if ((sample_type == "0005") || (sample_type == "0006")){
-            sample_types[i]="GTEXBLOOD"
-            sample_labels[i]=""
+            sample_types[i] <- "GTEXBLOOD"
+            sample_labels[i] <- ""
         }else if (sample_type == "0008"){
             sample_types[i]="GTEXFIBRO"
-            sample_labels[i]=""
+            sample_labels[i] <- ""
         }else if (grepl("GTEX",sname)){
-            sample_types[i]="GTEX"
+            sample_types[i] <- "GTEX"
             
             if (length(v_sname) >= 5 ){
-                sample_labels[i] = v_sname[5] #i.e.2XCAL
+                sample_labels[i] <- v_sname[5] #i.e.2XCAL
             }else{
-                sample_labels[i] = v_sname[2]
+                sample_labels[i] <- v_sname[2]
             }
         }else if (grepl("Myo",sname)){
-            sample_types[i]="Myo"
+            sample_types[i] <- "Myo"
         }else if (grepl("F",sname)){
-            sample_types[i]="F"
+            sample_types[i] <- "F"
         }else{
-            sample_types[i]="M"
+            sample_types[i] <- "M"
         }
-        i=i+1
+        i <- i+1
     }
     print(sample_types)
-    group = factor(sample_types)    
+    group <- factor(sample_types)    
     
     v_colors = c()
-    for (i in 1:length(group))
-    {
+    for (i in 1:length(group)){
         if(group[i] == "F"){
-            clr = "orange"
+            clr <- "orange"
         }else if (group[i] == "Myo"){
-            clr = "red"
+            clr <- "red"
         }else if (group[i] == "GTEX"){
-            clr = "darkgreen"
+            clr <- "darkgreen"
         }else if (group[i] == "GTEXBLOOD"){
-            clr = "cornflowerblue"
+            clr <- "cornflowerblue"
         }else if (group[i] == "GTEXFIBRO"){
-            clr = "yellow"
+            clr <- "yellow"
         }else{ #muscle
-            clr = "chartreuse"
+            clr <- "chartreuse"
         }
-        v_colors[i] = clr
+        v_colors[i] <- clr
     }
     
     print("Subsetting protein coding genes ...")
     #a file with ENSEMBL IDs
-    if (file.exists("~/Desktop/reference_tables/protein_coding_genes.list"))
-    {
+    if (file.exists("~/Desktop/reference_tables/protein_coding_genes.list")){
         protein_coding_genes <- read.csv("~/Desktop/reference_tables/protein_coding_genes.list", sep="", stringsAsFactors=FALSE)
-        counts = counts[row.names(counts) %in% protein_coding_genes$ENS_GENE_ID,]
+        counts <- counts[row.names(counts) %in% protein_coding_genes$ENS_GENE_ID,]
     }else{
         print("Please provide protein_coding_genes.list with ENS_GENE_ID")
     }
     
     print("Removing zeroes ...")
     
-    y = DGEList(counts=counts,group=group,remove.zeros = T)
-    png("mds.png",res=300,width=2000,height=2000)
+    y <- DGEList(counts=counts, group=group,remove.zeros = T)
+    png("mds.png", res=300, width=2000, height=2000)
     
     print("Plotting ...")
     
-    mds = plotMDS(y,labels=sample_labels)
+    mds <- plotMDS(y, labels=sample_labels)
     
     plot(mds,
          col = v_colors,
@@ -240,7 +237,7 @@ mds.work = function()
          ylab = "MDS dimension 2")
     
     legend("topleft",
-           title="Tissue",
+           title = "Tissue",
            c("GTEx blood",
              "Primary fibroblasts",
              "GTEx transformed fibroblasts",
@@ -248,7 +245,7 @@ mds.work = function()
              "Muscle",
              "GTEx muscle"
            ),
-           fill=c("cornflowerblue",
+           fill = c("cornflowerblue",
                   "orange",
                   "yellow",
                   "red",
@@ -257,15 +254,14 @@ mds.work = function()
     
     dev.off()
     
-    png("mds.labels.png",res=300,width=2000,height=2000)
-    plotMDS(y, labels=sample_labels)
+    png("mds.labels.png", res = 300, width = 2000, height = 2000)
+    plotMDS(y, labels = sample_labels)
     dev.off()
 }
 
 # fig 1B - expression profiles in muscular samples vs sample age
 # input = TableS1.Samples
-fig2B.mds_plot_colored_by_muscle_age = function()
-{
+fig2B.mds_plot_colored_by_muscle_age <- function(){
     setwd("~/Desktop/work/expression/muscle")
   
     muscle_samples = read.csv("TableS1.Samples.csv", stringsAsFactors=F)
@@ -400,11 +396,10 @@ fig2B.mds_plot_colored_by_muscle_age = function()
   
 }
 
-###################################################################################################
-### expression statistics
-###################################################################################################
-tableS5.get_1rpkm_genes = function(rpkms,samples,use_sample_names=T)
-{
+###############################################################################
+# expression
+###############################################################################
+tableS5.get_1rpkm_genes <- function(rpkms,samples,use_sample_names=T){
     rpkms = rpkms[row.names(rpkms) %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
     
     if (use_sample_names == T)
@@ -419,8 +414,7 @@ tableS5.get_1rpkm_genes = function(rpkms,samples,use_sample_names=T)
 }
 
 # intersect row names from two dataframes
-tableS5.intersect = function(tissue1,tissue2)
-{
+tableS5.intersect = function(tissue1,tissue2){
     tissue1.rpkms = get(paste0('rpkms.',tissue1))
     tissue2.rpkms = get(paste0('rpkms.',tissue2))
     print(paste0(tissue1,':',nrow(tissue1.rpkms)))
@@ -554,12 +548,29 @@ supplementary_table_3.genes_expressed_at_1rpkm = function()
     }
 }
 
-# expression of SMN isoforms
+# read output of kallisto from bcbio and get TPM values for all isoforms of a gene
+get_isoform_expression_kallisto = function(kallisto.tsv,gene,sample_name)
+{
+    df_kallisto = read.delim(kallisto.tsv, header=T, stringsAsFactors = F)
+    genes_transcripts = read.csv("~/cre/data/genes.transcripts.ens_only.csv", stringsAsFactors = F, header = T)    
+    gene_isoforms = genes_transcripts[genes_transcripts$external_gene_name==gene,]
+    df_gene = df_kallisto[df_kallisto$target_id %in% gene_isoforms$Ensembl_transcript_id,]
+    df_gene = df_gene[,c("target_id","tpm")]
+    colnames (df_gene) = c("ensembl_transcript_id",sample_name)
+    return(df_gene)
+}
+
+# expression of SMN1 and SMN2 isoforms
 expression_smn = function()
 {
     setwd ("~/Desktop/work/SMN/")
-    genes_transcripts = read.csv("~/cre/data/genes.transcripts.ens_only.csv", stringsAsFactors = F, header = T)
-    smn1 = genes_transcripts[genes_transcripts$external_gene_name=="SMN1",]
+
+    S93.smn1 = get_isoform_expression_kallisto("S93_45-1-F.kallisto.tsv","SMN1","S93")
+    S93.smn2 = get_isoform_expression_kallisto("S93_45-1-F.kallisto.tsv","SMN2","S93")
+    
+    S94.smn1 = get_isoform_expression_kallisto("S94_46-1-F.kallisto.tsv","SMN1","S94")
+    S94.smn2 = get_isoform_expression_kallisto("S94_46-1-F.kallisto.tsv","SMN2","S94")
+
     smn2 = genes_transcripts[genes_transcripts$external_gene_name=="SMN2",]
     
     S93 = read.delim("S93_45-1-F.kallisto.tsv",header=T,stringsAsFactors = F)
@@ -956,8 +967,7 @@ dexpression = function()
 }
 
 # table S10 - what outliers in muscle we can detect with myotubes
-expression.outliers.trio_analysis = function()
-{
+expression.outliers.trio_analysis <- function(){
     trios = paste0(c("12.1","14.1","14.2","17.1","18.1","26.1","28.1","5.1","6.1","9.1"),".Myo")
     
     outliers.muscle = read.csv("rpkms.muscle.expression.outliers.txt")
@@ -1287,14 +1297,7 @@ TableS13 = function()
     res$unique_in_myo = ifelse(res$frequency > res$frequency.myo, 'N', 'Y')
 }
 
-#run: qsub ~/crt.mds.pbs -v refresh=TRUE
-#source("~/crt/crt.utils.R")
-#args = commandArgs(trailingOnly = T)
-#print(args[1])
-#fig1A.mds_plot(refresh_files = as.logical(args[1]))
-
-TableS15.expression.1rpkm = function(rpkms.file)
-{
+TableS15.expression.1rpkm <- function(rpkms.file){
     genes=get_genes_in_panels()
     rpkms.muscle <- read.csv(rpkms.file, sep="", stringsAsFactors=FALSE)
     rpkms.muscle = rpkms.muscle[rpkms.muscle$external_gene_name %in% genes,]

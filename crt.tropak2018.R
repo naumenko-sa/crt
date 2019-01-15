@@ -1,9 +1,8 @@
-init = function()
-{
-    library("edgeR")
-    library("genefilter")
+init <- function(){
+    library(edgeR)
+    library(GO.db)
+    library(genefilter)
     source("~/crt/crt.utils.R")
-    library("GO.db")
     setwd("~/Desktop/work/creatinine/")
 }
 
@@ -63,11 +62,17 @@ fig1.mds = function(refresh_files = F)
     dev.off()
 }
 
-differential_expression = function()
-{
+differential_expression <- function(){
     ensembl_w_description.mouse = read.csv("~/cre/data/ensembl_w_description.mouse.csv",stringsAsFactors = F)
-    counts = read.feature_counts_dir()
+    #counts = read.feature_counts_dir()
+    counts = read.table("raw_counts.txt", stringsAsFactors = F)
     counts = counts[row.names(counts) %in% ensembl_w_description.mouse$ensembl_gene_id,]
+    
+    counts <- counts[,c("rh30ctrl7_srh30ctrl7",
+                       "rh30ctrl8_srh30ctrl8",
+                       "rh30treat7_srh30treat7",
+                       "rh30treat8_srh30treat8")]
+    
     #group = factor(c(rep(1,ncol(counts))))
     
     sample_names = colnames(counts)
@@ -77,7 +82,8 @@ differential_expression = function()
     n_samples = length(sample_names)
     
     #group = factor(c(rep(1,n_samples/2), rep(2,n_samples/2)))
-    group = factor(c(1,1,2,2,1,1,2,2))
+    #group = factor(c(1,1,2,2,1,1,2,2))
+    group <- factor(c(1,1,2,2))
     
     max_genes = nrow(counts)
     
@@ -126,29 +132,30 @@ differential_expression = function()
     #cpm(y)[o[1:10],]
     #write.table(cpm(y)[o[1:12566],],"allgenes.cpm")
     
-    de_results = topTags(lrt,n=max_genes,sort.by="PValue",p.value=1,adjust.method = "fdr")
+    de_results <- topTags(lrt, n=max_genes, sort.by="PValue", p.value=1, adjust.method = "fdr")
     
     de_results$table$ensembl_gene_id = NULL
     de_results$table = merge(de_results$table,rpkm.counts,by.x="row.names",by.y="row.names",all.x=T,all.y=F)
+    colnames(de_results$table)[1] = "Ensembl_gene_id"
     write.csv(de_results,"de.csv",quote=T,row.names=F)
     
-    s_rownames = row.names(de_results)
+    #s_rownames = row.names(de_results)
     #setnames(de_results,"genes","ensembl_gene_id")
     #de_results = lrt$table
     
-    gene_descriptions = read.csv("~/cre/data/ensembl_w_description.mouse.csv", stringsAsFactors=FALSE)
+    #gene_descriptions = read.csv("~/cre/data/ensembl_w_description.mouse.csv", stringsAsFactors=FALSE)
     
-    de_results = merge(de_results,gene_descriptions,by.x="genes",by.y="ensembl_gene_id",all.x=T)
+    #de_results = merge(de_results, gene_descriptions,by.x="genes",by.y="ensembl_gene_id",all.x=T)
     #de_results = rename(de_results,c("Row.names"="ensembl_gene_id"))
-    de_results = merge(de_results,x,by.x = "genes", by.y="row.names",all.x=T)
-    de_results = de_results[order(de_results$PValue),]
+    #de_results = merge(de_results,x,by.x = "genes", by.y="row.names",all.x=T)
+    #de_results = de_results[order(de_results$PValue),]
     
-    write.csv(de_results,"result.csv",row.names = F)
+    #write.csv(de_results,"result.csv",row.names = F)
     
-    plot_heatmap_separate(x,sample_names,de_results,"tropak")    
+    #plot_heatmap_separate(x,sample_names,de_results,"tropak")    
     #return(de_results)
-    
-    go_analysis(lrt,prefix)
+
+    #go_analysis(lrt,prefix)
     
     #kegg_analysis(lrt,prefix)
 }

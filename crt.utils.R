@@ -126,8 +126,7 @@ get_genes_in_panels = function()
 
 # calculates RPKMs using ~/bioscripts/bam.raw_coverage.sh input - 
 # usable to calculate RPKMs for exons using a bed file for page website
-raw_coverage2rpkm = function(filename)
-{
+raw_coverage2rpkm = function(filename){
     #test:
     #filename="S57_32-1-M.bam.raw_coverage"
     
@@ -212,70 +211,62 @@ read.coverage2counts_dir = function(update=F)
 # loads gene names
 # calculates RPKMs
 # returns ENS_ID, rpkm, Gene_name
-feature_counts2rpkm = function(filename)
-{
+feature_counts2rpkm <- function(filename){
     #test:
     #filename="S01_1-1-B.bam.rpkm_counts.txt"
     #first line in the file is a comment
-    counts = read.delim(filename, stringsAsFactors=F, row.names=1,skip=1)
-    counts$Chr=NULL
-    counts$Start=NULL
-    counts$End=NULL
-    counts$Strand=NULL
+    counts <- read.delim(filename, stringsAsFactors=F, row.names=1, skip=1)
+    counts$Chr <- NULL
+    counts$Start <- NULL
+    counts$End <- NULL
+    counts$Strand <- NULL
     
-    Gene_lengths = counts$Length
-    counts$Length=NULL
+    Gene_lengths <- counts$Length
+    counts$Length <- NULL
     
-    counts = rpkm(counts,Gene_lengths)
-    colnames(counts) = gsub(".bam","",colnames(counts))
+    counts <- rpkm(counts,Gene_lengths)
+    colnames(counts) <- gsub(".bam","",colnames(counts))
     
     return(counts)
 }
 
-#reads all counts in the current directory and calculate RPKMs
-read.feature_counts_dir = function(update=F)
+# reads feature counts in the current directory and calculate RPKMs
+read.feature_counts_dir <- function(update = F)
 {
-    if(file.exists("rpkms.txt") && update == F)
-    {
-        counts = read.table("rpkms.txt")
-    }
-    else
-    {
-        files = list.files(".","*feature_counts.txt")
-        counts = feature_counts2rpkm(files[1])
-        for (file in tail(files,-1))
-        {
+    if(file.exists("rpkms.txt") && update == F){
+        counts <- read.table("rpkms.txt")
+    }else{
+        files <- list.files(".","*feature_counts.txt")
+        counts <- feature_counts2rpkm(files[1])
+        for (file in tail(files,-1)){
             print(file)
-            counts_buf = feature_counts2rpkm(file)
-            counts = merge_row_names(counts,counts_buf)
+            counts_buf <- feature_counts2rpkm(file)
+            counts <- merge_row_names(counts,counts_buf)
         }
         
-        counts = merge(counts,ensembl_w_description,by.x="row.names",by.y="row.names")
-        row.names(counts)=counts$Row.names
-        counts$Row.names=NULL
-        counts$Gene_description=NULL
+        counts <- merge(counts, ensembl_w_description, by.x = "row.names", by.y = "row.names")
+        row.names(counts) <- counts$Row.names
+        counts$Row.names <- NULL
+        counts$Gene_description <- NULL
     
-        #remove a second entry of CLN3 from rpm_counts.txt
-        counts = counts[!row.names(counts) %in% c("ENSG00000261832","ENSG00000267059","ENSG00000200733","ENSG00000207199","ENSG00000252408",
+        #remove a second entry of CLN3 from rpkm_counts.txt
+        counts <- counts[!row.names(counts) %in% c("ENSG00000261832","ENSG00000267059","ENSG00000200733","ENSG00000207199","ENSG00000252408",
                                                   "ENSG00000212270","ENSG00000212377","ENSG00000167774"),]
         
-        write.table(counts,"rpkms.txt",quote=F)
+        write.table(counts, "rpkms.txt", quote = F)
     }
     return(counts)
 }
 
-read.feature_counts = function(filename)
-{
+read.feature_counts <- function(filename){
     #first line in the file is a comment
-    counts = read.delim(filename, stringsAsFactors=F, row.names=1,skip=1)
-    counts$Chr=NULL
-    counts$Start=NULL
-    counts$End=NULL
-    counts$Strand=NULL
-    counts$Length=NULL
-  
-    colnames(counts) = gsub(".bam","",colnames(counts))
-  
+    counts <- read.delim(filename, stringsAsFactors = F, row.names = 1, skip = 1)
+    counts$Chr <- NULL
+    counts$Start <- NULL
+    counts$End <- NULL
+    counts$Strand <- NULL
+    counts$Length <- NULL
+    colnames(counts) <- gsub(".bam","", colnames(counts))
     return(counts) 
 }
 
@@ -302,11 +293,10 @@ read.feature_counts_dir = function(update=F)
 }
 
 # merge two dataframes by row.names and fix the row.names of the resulting df
-merge_row_names = function(df1,df2)
-{
-    merged = merge(df1,df2,by.x='row.names',by.y='row.names')
-    row.names(merged) = merged$Row.names
-    merged$Row.names = NULL
+merge_row_names <- function(df1, df2){
+    merged <- merge(df1, df2, by.x = "row.names", by.y = "row.names")
+    row.names(merged) <- merged$Row.names
+    merged$Row.names <- NULL
     return(merged)
 }
 
