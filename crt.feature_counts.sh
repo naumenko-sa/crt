@@ -22,13 +22,21 @@ then
     gtf=/hpf/largeprojects/ccmbio/naumenko/tools/bcbio/genomes/Hsapiens/GRCh37/rnaseq/ref-transcripts.gtf
 fi
 
+if [ -z $strandedness ]
+then
+    strandedness=0
+fi
+
+echo "bam: " $bam
+echo "strandedness: " $strandedness
+
 # -s 0 unstranded (
 # -p - count pairs (fragments) not reads
 # -B only properly paired (both ends mapped)
 # -C don't count mapped to different chromosomes or different strands
 featureCounts -T 8 \
 	-g gene_id \
-	-s $strandedness
+	-s $strandedness \
 	-C \
 	--largestOverlap \
 	-a $gtf \
