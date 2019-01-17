@@ -6,8 +6,7 @@
 # https://cgrlucb.wikispaces.com/edgeR+fall2013
 # https://www.biostars.org/p/166838/
 
-init = function()
-{
+init <- function(){
     library(edgeR)
     library(stringr)
     #library(plyr)
@@ -16,7 +15,7 @@ init = function()
     library(data.table)
     library(pheatmap)
     library(grid)  
-    library("VennDiagram")
+    library(VennDiagram)
     reference_tables_path = "~/Desktop/reference_tables"
     setwd("~/Desktop/project_csc")
     
@@ -25,43 +24,42 @@ init = function()
 }
 
 
-figure2c.diff_expression = function()
-{
+figure2c.diff_expression <- function(){
     setwd("Figure2C")
-    counts <- read.csv("LGK_counts.txt", sep="", stringsAsFactors=FALSE)
+    counts <- read.csv("LGK_counts.txt", sep = "", stringsAsFactors=FALSE)
     
-    counts = counts[row.names(counts) %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
-    samples = colnames(counts)
-    n_samples = length(samples)
+    counts <- counts[row.names(counts) %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
+    samples <- colnames(counts)
+    n_samples <- length(samples)
     
-    group=factor(c(rep(1,n_samples/2),rep(2,n_samples/2)))
-    filter=0.5 
+    group <- factor(c(rep(1, n_samples/2), rep(2, n_samples/2)))
+    filter <- 0.5
     
-    gene_lengths <- read.delim("~/crt/gene_lengths.txt", stringsAsFactors=FALSE)
-    gene_lengths = gene_lengths[gene_lengths$ENSEMBL_GENE_ID %in% row.names(counts),]
-    gene_lengths = gene_lengths[order(gene_lengths$ENSEMBL_GENE_ID),]
-    gene_lengths = merge(gene_lengths,ensembl_w_description,by.x="ENSEMBL_GENE_ID",by.y="row.names",all.x=T,all.y=F)
+    gene_lengths <- read.delim("~/crt/gene_lengths.txt", stringsAsFactors = F)
+    gene_lengths <- gene_lengths[gene_lengths$ENSEMBL_GENE_ID %in% row.names(counts),]
+    gene_lengths <- gene_lengths[order(gene_lengths$ENSEMBL_GENE_ID),]
+    gene_lengths <- merge(gene_lengths,ensembl_w_description,by.x="ENSEMBL_GENE_ID",by.y="row.names",all.x=T,all.y=F)
     #row.names(gene_lengths)=gene_lengths$ENSEMBL_GENE_ID
     #gene_lengths$ENSEMBL_GENE_ID = NULL
     
-    y=DGEList(counts=counts,
-              group=group,
-              genes=gene_lengths,
+    y <- DGEList(counts = counts,
+              group = group,
+              genes = gene_lengths,
               remove.zeros = T)
     
-    rpkm.counts = rpkm(y)
+    rpkm.counts <- rpkm(y)
     
-    max_genes = nrow(counts)
+    max_genes <- nrow(counts)
     
-    logcpm = cpm(counts,prior.count=1,log=T)
-    t_cpm = cpm(counts,prior.count=1,log=F)
-    logcpm = logcpm[,samples]
-    t_cpm = t_cpm[,samples]
+    logcpm <- cpm(counts,prior.count=1,log=T)
+    t_cpm <- cpm(counts,prior.count=1,log=F)
+    logcpm <- logcpm[,samples]
+    t_cpm <- t_cpm[,samples]
     
     plotMDS(y)
     
-    keep=rowSums(cpm(y)>filter) >= n_samples/2
-    y=y[keep,,keep.lib.sizes=F]
+    keep <- rowSums(cpm(y)>filter) >= n_samples/2
+    y <- y[keep,, keep.lib.sizes = F]
     
     #necessary for goana
     #idfound = y$genes$genes %in% mappedRkeys(org.Hs.egENSEMBL)

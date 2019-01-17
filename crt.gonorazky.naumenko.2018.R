@@ -1,6 +1,11 @@
 ###############################################################################
 # Functions for RNA-seq article Gonorazky.Naumenko.et_al.Dowling.2018
 # expression outlier detection in ~/crt/crt.expression.outliers.R
+# 1. Clustering, MDS, PCA plots
+# 2. Heatmaps
+# 3. Expression
+# 4. Coverage
+# 5. Splicing
 ###############################################################################
 install <- function(){
     source("http://bioconductor.org/biocLite.R")
@@ -22,7 +27,7 @@ init <- function(){
 }
 
 ###############################################################################
-# clustering MDS, PCA plots
+# 1. clustering, MDS, PCA plots
 ###############################################################################
 # large MDS 
 # run: qsub ~/crt.mds.pbs -v refresh=TRUE
@@ -397,7 +402,12 @@ fig2B.mds_plot_colored_by_muscle_age <- function(){
 }
 
 ###############################################################################
-# expression
+# 2. Heatmaps
+###############################################################################
+
+
+###############################################################################
+# 3. Expression
 ###############################################################################
 tableS5.get_1rpkm_genes <- function(rpkms,samples,use_sample_names=T){
     rpkms = rpkms[row.names(rpkms) %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
@@ -548,18 +558,6 @@ supplementary_table_3.genes_expressed_at_1rpkm = function()
     }
 }
 
-# read output of kallisto from bcbio and get TPM values for all isoforms of a gene
-get_isoform_expression_kallisto = function(kallisto.tsv,gene,sample_name)
-{
-    df_kallisto = read.delim(kallisto.tsv, header=T, stringsAsFactors = F)
-    genes_transcripts = read.csv("~/cre/data/genes.transcripts.ens_only.csv", stringsAsFactors = F, header = T)    
-    gene_isoforms = genes_transcripts[genes_transcripts$external_gene_name==gene,]
-    df_gene = df_kallisto[df_kallisto$target_id %in% gene_isoforms$Ensembl_transcript_id,]
-    df_gene = df_gene[,c("target_id","tpm")]
-    colnames (df_gene) = c("ensembl_transcript_id",sample_name)
-    return(df_gene)
-}
-
 # expression of SMN1 and SMN2 isoforms
 expression_smn = function()
 {
@@ -601,9 +599,351 @@ expression_smn = function()
     write.csv(smn2,"smn2.csv",row.names = F)
 }
 
-###################################################################################################
-###                  Coverage
-###################################################################################################
+dexpression = function()
+{
+    counts = read.feature_counts_dir(update = T)
+    
+    counts = counts[row.names(counts) %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
+    
+    #counts = counts[,c("S84_GOR1.1.F.Fiech","S85_GOR1.2.F.Fieja1","S86_GOR1.3.F.Fiejo2","S87_GOR1.4.F.Avoel",
+    #                   "S08_5.1.F","S09_6.1.F","S10_7.1.F","S25_15.1.F","S26_15.2.F",
+    #                   "S27_15.3.F","S28_17.1.F","S29_20.1.F","S30_27.1.F","S31_16.1.F",
+    #                   "S33_18.1.F","S35_21.1.F","S36_22.1.F","S37_12.1.F","S38_24.1.F",
+    #                   "S39_25.1.F","S40_28.1.F","S41_29.1.F","S42_30.1.F","S59_14.1.F",
+    #                   "S60_14.2.F","S61_3.2.F","S62_9.1.F","S75_26.1.F","S76_41.1.F")]
+    
+    counts = counts[,c("S84_GOR1.1.F.Fiech","S85_GOR1.2.F.Fieja1","S86_GOR1.3.F.Fiejo2","S87_GOR1.4.F.Avoel")]
+    
+    #attach(counts)
+    #counts$fibro_average = (S08_5.1.F+S09_6.1.F+S10_7.1.F+S25_15.1.F+S26_15.2.F+
+    #    +S27_15.3.F + S28_17.1.F + S29_20.1.F + S30_27.1.F + S31_16.1.F + 
+    #    S33_18.1.F +  S35_21.1.F + S36_22.1.F + S37_12.1.F + S38_24.1.F + 
+    #    S39_25.1.F + S40_28.1.F + S41_29.1.F + S42_30.1.F + S59_14.1.F + 
+    #        S60_14.2.F + S61_3.2.F + S62_9.1.F + S75_26.1.F + S76_41.1.F)/25
+    
+    #counts = counts[,c("S84_GOR1.1.F.Fiech","S85_GOR1.2.F.Fieja1","S86_GOR1.3.F.Fiejo2","S87_GOR1.4.F.Avoel","fibro_average")]
+    
+    samples = colnames(counts)
+    n_samples = length(samples)
+    #group=factor(c(rep(1,n_samples/2),rep(2,n_samples/2)))
+    #group = factor(c(rep(1,2),rep(2,25)))
+    group = factor(c(rep(1,1),rep(2,3)))
+    filter=0.5 
+    prefix = "gor1"
+    
+    #for 2 x 2 experiment
+    #group = factor(c(1,1,2,2))
+    
+    y=DGEList(counts=counts,group=group,genes=row.names(counts),remove.zeros = T)
+    
+    max_genes = nrow(counts)
+    
+    logcpm = cpm(counts,prior.count=1,log=T)
+    t_cpm = cpm(counts,prior.count=1,log=F)
+    logcpm = logcpm[,samples]
+    t_cpm = t_cpm[,samples]
+    
+    plotMDS(y)
+    
+    keep=rowSums(cpm(y)>filter) >= n_samples/2
+    y=y[keep,,keep.lib.sizes=F]
+    
+    #necessary for goana
+    idfound = y$genes$genes %in% mappedRkeys(org.Hs.egENSEMBL)
+    y = y[idfound,]
+    
+    egENSEMBL=toTable(org.Hs.egENSEMBL)
+    m = match (y$genes$genes,egENSEMBL$ensembl_id)
+    y$genes$EntrezGene = egENSEMBL$gene_id[m]
+    egSYMBOL = toTable(org.Hs.egSYMBOL)
+    m = match (y$genes$EntrezGene,egSYMBOL$gene_id)
+    y$genes$Symbol = egSYMBOL$symbol[m]
+    
+    #remove duplications - just 1 gene in this dataset
+    #first order by counts to remove duplicated names with 0 counts
+    o = order(rowSums(y$counts),decreasing = T)
+    y = y[o,]
+    d = duplicated(y$genes$Symbol)
+    dy = y[d,]$genes
+    y = y[!d,]
+    nrow(y)
+    
+    y$samples$lib.size = colSums(y$counts)
+    rownames(y$counts) = y$genes$EntrezGene 
+    rownames(y$genes) = y$genes$EntrezGene
+    y$genes$EntrezGene = NULL
+    
+    #normalization for RNA composition (2.7.3)
+    y=calcNormFactors(y)
+    
+    #nc=cpm(y,normalized.lib.sizes=F)
+    #write.table(nc,"filtered.normalized_counts.txt",col.names=NA)
+    
+    png(paste0(prefix,".mds.png"),res = 300,width=2000,height=2000)
+    plotMDS(y,las=1)
+    dev.off()
+    
+    design=model.matrix(~group)
+    
+    y=estimateDisp(y,design)
+    
+    fit=glmFit(y,design)
+    lrt=glmLRT(fit)
+    
+    efilename=paste0(prefix,".de_genes.txt")
+    de_results = topTags(lrt,p.value=0.05,n=max_genes,sort.by="logFC")
+    write.table(de_results,efilename,quote=F,row.names=F)
+    
+    de_results = read.csv(efilename, sep="", stringsAsFactors=FALSE)
+    s_rownames = row.names(de_results)
+    #setnames(de_results,"genes","ensembl_gene_id")
+    #de_results = lrt$table
+    
+    gene_descriptions = read.delim2(paste0("~/cre/ensembl_w_description.txt"), stringsAsFactors=FALSE)
+    
+    de_results = merge(de_results,gene_descriptions,by.x="genes",by.y="ensembl_gene_id",all.x=T)
+    #de_results = rename(de_results,c("Row.names"="ensembl_gene_id"))
+    de_results = merge(de_results,counts,by.x = "genes", by.y="row.names",all.x=T)
+    #rownames(de_results) = s_rownames
+    
+    top_genes_cpm = logcpm[de_results$genes,]
+    colnames(top_genes_cpm)=paste0(colnames(top_genes_cpm),".log2cpm")
+    
+    de_results = merge(de_results,top_genes_cpm,by.x = "genes", by.y="row.names",all.x=T)
+    de_results = de_results[order(abs(de_results$logFC),decreasing = T),]
+    
+    colnames(de_results)[1]="Ensembl_gene_id"
+    colnames(de_results)[2]="Gene_name"
+    de_results$external_gene_name = NULL
+    result_file=paste0(prefix,".txt")
+    write.table(de_results,result_file,quote=T,row.names=F)
+    
+    prepare_file_4gsea(counts,samples,prefix)
+    
+    #plot_heatmap_separate (counts,samples,de_results,prefix)
+    plot_heatmap_separate (counts,samples,de_results,paste0(prefix,".top50genes"),50)
+}
+
+# table S10 - what outliers in muscle we can detect with myotubes
+expression.outliers.trio_analysis <- function(){
+    trios = paste0(c("12.1","14.1","14.2","17.1","18.1","26.1","28.1","5.1","6.1","9.1"),".Myo")
+    
+    outliers.muscle = read.csv("rpkms.muscle.expression.outliers.txt")
+    # we have two muscle samples in case12
+    outliers.muscle$Sample = gsub("Mpv","M",outliers.muscle$Sample)
+    outliers.muscle$Sample = gsub("Mvl","M",outliers.muscle$Sample)
+    outliers.muscle$Sample = gsub("S.._","",outliers.muscle$Sample)
+    outliers.muscle$Sample = gsub("X","",outliers.muscle$Sample)
+    outliers.muscle$Sample = gsub("M","Myo",outliers.muscle$Sample)
+    outliers.muscle = outliers.muscle[outliers.muscle$Sample %in% trios,]
+    
+    outliers.muscle.number = nrow(unique(subset(outliers.muscle,select=c("Sample","Gene","Regulation"))))
+    
+    print(paste0(outliers.muscle.number," expression outliers detected in 10 muscle samples"))
+    
+    outliers.myotubes = read.csv("rpkms.myo.expression.outliers.txt")
+    outliers.myotubes$Sample = gsub("S.._","",outliers.myotubes$Sample)
+    outliers.myotubes = outliers.myotubes[outliers.myotubes$Sample %in% trios,]
+    outliers.myotubes.number = nrow(unique(subset(outliers.myotubes,select=c("Sample","Gene","Regulation"))))
+    print(paste0(outliers.myotubes.number," expression outliers detected in 10 myotubes samples"))
+    
+    test = merge(outliers.muscle, outliers.myotubes, by.x = c("Sample","Gene","Regulation"), by.y = c("Sample","Gene","Regulation"))
+    print(paste0(nrow(test)," outlier muscle genes detected in 10 myotubes"))
+    
+    outliers.fibroblasts = read.csv("rpkms.fibro.expression.outliers.txt")
+    outliers.fibroblasts$Sample = gsub("S.._","",outliers.fibroblasts$Sample)
+    outliers.fibroblasts$Sample = gsub("F","Myo",outliers.fibroblasts$Sample)
+    outliers.fibroblasts = outliers.fibroblasts[outliers.fibroblasts$Sample %in% trios,]
+    test = merge(outliers.muscle, outliers.fibroblasts, by.x = c("Sample","Gene","Regulation"), by.y = c("Sample","Gene","Regulation"))
+    print(paste0(nrow(test)," outlier muscle genes detected in 10 fibroblasts"))
+    
+    #myo vs fibroblast
+    test = merge(outliers.myotubes, outliers.fibroblasts, by.x = c("Sample","Gene","Regulation"), by.y = c("Sample","Gene","Regulation"))
+    print(paste0(nrow(test)," outlier myotubes genes detected in 10 fibroblasts"))
+}
+
+expression.tissue_comparison.tableS12 = function()
+{
+    rpkms.muscle = read.csv("rpkms.muscle.txt", sep="", stringsAsFactors=F)
+    rpkms.muscle = rpkms.muscle[rpkms.muscle$external_gene_name %in% protein_coding_genes$Gene_name,]
+    
+    rpkms.gtex_blood = read.csv("rpkms.gtex_blood.txt", sep="", stringsAsFactors=F)
+    rpkms.gtex_blood = rpkms.gtex_blood[rpkms.gtex_blood$external_gene_name %in% protein_coding_genes$Gene_name,]
+    
+    rpkms.muscle$external_gene_name = NULL
+    rpkms.gtex_blood$external_gene_name = NULL
+    
+    rpkms.muscle$avg = rowMeans(rpkms.muscle)
+    rpkms.gtex_blood$avg = rowMeans(rpkms.gtex_blood)
+    
+    rpkms.muscle = rpkms.muscle[rpkms.muscle$avg > 1,]
+    
+    rpkms.gtex_blood = rpkms.gtex_blood[rpkms.gtex_blood$avg > 1,]
+    
+    test = rpkms.gtex_blood[row.names(rpkms.gtex_blood) %in% row.names(rpkms.muscle),]
+}
+
+expression4gene_in_a_gene_panel = function(sample,gene_panel,counts)
+{
+    #sample = "S12_9.1.M"
+    #gene_panel = congenital_myopathy
+    for (gene in gene_panel)
+    {
+        expression4gene(gene,sample,counts)
+    }
+}
+
+expression4gene = function(gene,sample,counts)
+{
+    #gene="LAMA2"
+    #sample="S12_9.1.M"
+    print(paste0(gene," ",sample))
+    
+    #https://datascienceplus.com/building-barplots-with-error-bars/
+    gene_expression = subset(counts,external_gene_name == gene)     
+    gene_expression$external_gene_name=NULL
+    v_muscle=as.numeric(gene_expression[1,])
+    
+    se = sd(v_muscle)/sqrt(length(v_muscle))
+    
+    muscle_mean = mean(v_muscle)
+    means = c(muscle_mean,gene_expression[[sample]])
+    ses = c(se,0)
+    
+    #significance
+    ttest  = t.test(v_muscle,mu=gene_expression[[sample]])
+    
+    if ((muscle_mean > 0) && (ttest$p.value < 0.01) && 
+        ((muscle_mean > 1.5*gene_expression[[sample]]) || (1.5*muscle_mean < gene_expression[[sample]])))
+    {
+        if (gene_expression[[sample]]<muscle_mean)
+        {
+            file_name = paste0("_",sample,"_",gene,".png")
+        }
+        else
+        {
+            file_name = paste0(sample,"_",gene,".png")
+        }
+        png(file_name) 
+        par(mar=c(2,3,2,0)+0.1)
+        plotTop = max(mean(v_muscle)+6*se, gene_expression[[sample]]+6*se)
+        barCenters = barplot(
+            height = c(mean(v_muscle),gene_expression[[sample]]),
+            names.arg = c("Mean muscle",sample),
+            beside = F,
+            las = 2,
+            ylim = c(0,plotTop),
+            xaxt = "n",
+            axes=T,
+            main = paste0(sample,",",gene," expression, RPKM"),width=c(1,1))
+        
+        text (x=barCenters,y=par("usr")[3]-1,
+              labels = c("Mean muscle",sample),xpd=T)
+        
+        
+        segments (barCenters,means-ses*2,barCenters,means+ses*2,lwd=1.5)
+        arrows (barCenters,means-ses*2,barCenters,means+ses*2,lwd=1.5,angle=90,
+                code=3,length=0.05)
+        
+        text(x = barCenters, y = means, label = round(means,2), 
+             pos = 2, col = "red")
+        
+        dev.off()
+    }
+}
+
+#calculate expression variability for genes downregulated in family gor1
+gor1.expression_variability = function()
+{
+    gor1_panel = c("C2","CACNB2","CD70","CKB","CTGF","CXCL14", "EBF2", "EPB41L3", "F2R", "FABP3", 
+                   "FAT3", "HES1","HSPB7", "IGFBP7", "ITGA8", "KCNE4", "MAMDC2", "NDUFA4L2","PCDHGB6", "PCSK9",
+                   "PI16", "PNRC2", "PPP1R14A", "PRLR", "PRUNE2", "RHOB", "SCUBE3", "SDK2", "SPINT2", "STYK1", 
+                   "TPD52L1")
+    rpkm.file = "rpkms.fibro.txt"
+    tissue = "fibro"
+    expression_variability(gor1_panel,rpkm.file,tissue)
+}
+
+expression.variability.tableS12 = function()
+{
+    panel = c("DMD","NEB","ACTA1","LMNA","RYR1","MTM1","KCNIP4","FKRP","CAV3","LAMA2")
+    for (tissue in c("fibro","myo","muscle"))
+    {
+        rpkm.file = paste0("rpkms.",tissue,".txt")
+        expression_variability(panel,rpkm.file,tissue)
+    }
+}
+
+# calculate a df expression variability in a gene_panel (list of genes) for 
+# file like rpkms.muscle.txt - produced by crt.utils.read.coverage2counts_dir
+expression.variability.get_cov = function(gene_panel,rpkm.file,tissue,debug=F)
+{
+    if (debug == T)
+    {
+        rpkm.file = "rpkms.muscle.txt"
+        tissue = "Muscle"
+        genes = get_genes_in_panels()
+    }
+    d
+    rpkms = read.table(rpkm.file)
+    
+    agene = gene_panel[1]
+    if (grepl("ENSG",agene,fixed=T)){
+        rpkms = rpkms[rownames(rpkms) %in% genes,]
+    }else{
+        rpkms = rpkms[rpkms$external_gene_name %in% genes,]
+        row.names(rpkms)=rpkms$external_gene_name
+    }
+    
+    rpkms$external_gene_name = NULL
+    
+    result.table = data.frame(row.names = row.names(rpkms))
+    result.table$mean = rowMeans(rpkms)
+    result.table$sd = rowSds(rpkms)
+    result.table$cov = with(result.table,100*sd/mean)
+    
+    result.table$mean = NULL
+    result.table$sd = NULL
+    
+    colnames(result.table)[1] = tissue
+    result.table = result.table[order(rownames(result.table)),,drop=F]
+    
+    return(result.table)
+}
+
+# boxplot of coefficient of variation (cov) for different tissue types
+expression.variation.boxplot = function(genes,png.file,title)
+{
+    variability.muscle = expression.variability.get_cov(genes,"rpkms.muscle.txt","Muscle")
+    variability.myotubes = expression.variability.get_cov(genes,"rpkms.myo.txt","Myotubes")
+    variability.fibro = expression.variability.get_cov(genes,"rpkms.fibro.txt","Fibroblast")
+    
+    variability.gtex.muscle = expression.variability.get_cov(genes,"rpkms.50gtex.txt","Gtex muscle")
+    variability.gtex.fibro = expression.variability.get_cov(genes,"rpkms.gtex_fibro.txt","Gtex fibroblast")
+    variability.gtex.blood = expression.variability.get_cov(genes,"rpkms.gtex_blood.txt","Gtex_blood")
+    
+    variability = cbind(variability.muscle,variability.myotubes,variability.fibro,
+                        variability.gtex.muscle,variability.gtex.fibro,variability.gtex.blood)
+    
+    png(png.file,res=300,width=3000,height=2000)
+    boxplot(variability,main=title)
+    dev.off()
+}
+
+expression.variation = function()
+{
+    genes = get_genes_in_panels()
+    expression.variation.boxplot(genes,"expression.cov.panels.png",
+                                 "Expression variation in muscular genes")
+    
+    genes = read.table("genes1rpkm_in_muscle.trios.txt",header=T,stringsAsFactors = F)$ensembl_gene_id
+    expression.variation.boxplot(genes,"expression.cov.1rpkm_genes.png",
+                                 "Expression variation in 1rpkm genes")
+}
+
+###############################################################################
+# 4. Coverage
+###############################################################################
 # plots coverage for every gene for all samples having sample.coverage in the current dir - output of
 # bam.coverage.bamstats05.sh -v bam=file.bam,bed=~/crt/data/muscular_genes_exons.bed
 # I tried to plot a panel 5x3 - too much information, some panels are too wide (many genes)
@@ -841,349 +1181,8 @@ count_rpkm_for_exons = function()
     gtex.exon_reference$length = gtex.exon_reference$stop - gtex.exon_reference$start + 1
 }
 
-dexpression = function()
-{
-    counts = read.feature_counts_dir(update = T)
-    
-    counts = counts[row.names(counts) %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
-    
-    #counts = counts[,c("S84_GOR1.1.F.Fiech","S85_GOR1.2.F.Fieja1","S86_GOR1.3.F.Fiejo2","S87_GOR1.4.F.Avoel",
-    #                   "S08_5.1.F","S09_6.1.F","S10_7.1.F","S25_15.1.F","S26_15.2.F",
-    #                   "S27_15.3.F","S28_17.1.F","S29_20.1.F","S30_27.1.F","S31_16.1.F",
-    #                   "S33_18.1.F","S35_21.1.F","S36_22.1.F","S37_12.1.F","S38_24.1.F",
-    #                   "S39_25.1.F","S40_28.1.F","S41_29.1.F","S42_30.1.F","S59_14.1.F",
-    #                   "S60_14.2.F","S61_3.2.F","S62_9.1.F","S75_26.1.F","S76_41.1.F")]
-    
-    counts = counts[,c("S84_GOR1.1.F.Fiech","S85_GOR1.2.F.Fieja1","S86_GOR1.3.F.Fiejo2","S87_GOR1.4.F.Avoel")]
-    
-    #attach(counts)
-    #counts$fibro_average = (S08_5.1.F+S09_6.1.F+S10_7.1.F+S25_15.1.F+S26_15.2.F+
-    #    +S27_15.3.F + S28_17.1.F + S29_20.1.F + S30_27.1.F + S31_16.1.F + 
-    #    S33_18.1.F +  S35_21.1.F + S36_22.1.F + S37_12.1.F + S38_24.1.F + 
-    #    S39_25.1.F + S40_28.1.F + S41_29.1.F + S42_30.1.F + S59_14.1.F + 
-    #        S60_14.2.F + S61_3.2.F + S62_9.1.F + S75_26.1.F + S76_41.1.F)/25
-    
-    #counts = counts[,c("S84_GOR1.1.F.Fiech","S85_GOR1.2.F.Fieja1","S86_GOR1.3.F.Fiejo2","S87_GOR1.4.F.Avoel","fibro_average")]
-    
-    samples = colnames(counts)
-    n_samples = length(samples)
-    #group=factor(c(rep(1,n_samples/2),rep(2,n_samples/2)))
-    #group = factor(c(rep(1,2),rep(2,25)))
-    group = factor(c(rep(1,1),rep(2,3)))
-    filter=0.5 
-    prefix = "gor1"
-    
-    #for 2 x 2 experiment
-    #group = factor(c(1,1,2,2))
-    
-    y=DGEList(counts=counts,group=group,genes=row.names(counts),remove.zeros = T)
-    
-    max_genes = nrow(counts)
-    
-    logcpm = cpm(counts,prior.count=1,log=T)
-    t_cpm = cpm(counts,prior.count=1,log=F)
-    logcpm = logcpm[,samples]
-    t_cpm = t_cpm[,samples]
-    
-    plotMDS(y)
-    
-    keep=rowSums(cpm(y)>filter) >= n_samples/2
-    y=y[keep,,keep.lib.sizes=F]
-    
-    #necessary for goana
-    idfound = y$genes$genes %in% mappedRkeys(org.Hs.egENSEMBL)
-    y = y[idfound,]
-    
-    egENSEMBL=toTable(org.Hs.egENSEMBL)
-    m = match (y$genes$genes,egENSEMBL$ensembl_id)
-    y$genes$EntrezGene = egENSEMBL$gene_id[m]
-    egSYMBOL = toTable(org.Hs.egSYMBOL)
-    m = match (y$genes$EntrezGene,egSYMBOL$gene_id)
-    y$genes$Symbol = egSYMBOL$symbol[m]
-    
-    #remove duplications - just 1 gene in this dataset
-    #first order by counts to remove duplicated names with 0 counts
-    o = order(rowSums(y$counts),decreasing = T)
-    y = y[o,]
-    d = duplicated(y$genes$Symbol)
-    dy = y[d,]$genes
-    y = y[!d,]
-    nrow(y)
-    
-    y$samples$lib.size = colSums(y$counts)
-    rownames(y$counts) = y$genes$EntrezGene 
-    rownames(y$genes) = y$genes$EntrezGene
-    y$genes$EntrezGene = NULL
-    
-    #normalization for RNA composition (2.7.3)
-    y=calcNormFactors(y)
-    
-    #nc=cpm(y,normalized.lib.sizes=F)
-    #write.table(nc,"filtered.normalized_counts.txt",col.names=NA)
-    
-    png(paste0(prefix,".mds.png"),res = 300,width=2000,height=2000)
-    plotMDS(y,las=1)
-    dev.off()
-    
-    design=model.matrix(~group)
-    
-    y=estimateDisp(y,design)
-    
-    fit=glmFit(y,design)
-    lrt=glmLRT(fit)
-    
-    efilename=paste0(prefix,".de_genes.txt")
-    de_results = topTags(lrt,p.value=0.05,n=max_genes,sort.by="logFC")
-    write.table(de_results,efilename,quote=F,row.names=F)
-    
-    de_results = read.csv(efilename, sep="", stringsAsFactors=FALSE)
-    s_rownames = row.names(de_results)
-    #setnames(de_results,"genes","ensembl_gene_id")
-    #de_results = lrt$table
-    
-    gene_descriptions = read.delim2(paste0("~/cre/ensembl_w_description.txt"), stringsAsFactors=FALSE)
-    
-    de_results = merge(de_results,gene_descriptions,by.x="genes",by.y="ensembl_gene_id",all.x=T)
-    #de_results = rename(de_results,c("Row.names"="ensembl_gene_id"))
-    de_results = merge(de_results,counts,by.x = "genes", by.y="row.names",all.x=T)
-    #rownames(de_results) = s_rownames
-    
-    top_genes_cpm = logcpm[de_results$genes,]
-    colnames(top_genes_cpm)=paste0(colnames(top_genes_cpm),".log2cpm")
-    
-    de_results = merge(de_results,top_genes_cpm,by.x = "genes", by.y="row.names",all.x=T)
-    de_results = de_results[order(abs(de_results$logFC),decreasing = T),]
-    
-    colnames(de_results)[1]="Ensembl_gene_id"
-    colnames(de_results)[2]="Gene_name"
-    de_results$external_gene_name = NULL
-    result_file=paste0(prefix,".txt")
-    write.table(de_results,result_file,quote=T,row.names=F)
-    
-    prepare_file_4gsea(counts,samples,prefix)
-    
-    #plot_heatmap_separate (counts,samples,de_results,prefix)
-    plot_heatmap_separate (counts,samples,de_results,paste0(prefix,".top50genes"),50)
-}
-
-# table S10 - what outliers in muscle we can detect with myotubes
-expression.outliers.trio_analysis <- function(){
-    trios = paste0(c("12.1","14.1","14.2","17.1","18.1","26.1","28.1","5.1","6.1","9.1"),".Myo")
-    
-    outliers.muscle = read.csv("rpkms.muscle.expression.outliers.txt")
-    # we have two muscle samples in case12
-    outliers.muscle$Sample = gsub("Mpv","M",outliers.muscle$Sample)
-    outliers.muscle$Sample = gsub("Mvl","M",outliers.muscle$Sample)
-    outliers.muscle$Sample = gsub("S.._","",outliers.muscle$Sample)
-    outliers.muscle$Sample = gsub("X","",outliers.muscle$Sample)
-    outliers.muscle$Sample = gsub("M","Myo",outliers.muscle$Sample)
-    outliers.muscle = outliers.muscle[outliers.muscle$Sample %in% trios,]
-    
-    outliers.muscle.number = nrow(unique(subset(outliers.muscle,select=c("Sample","Gene","Regulation"))))
-    
-    print(paste0(outliers.muscle.number," expression outliers detected in 10 muscle samples"))
-    
-    outliers.myotubes = read.csv("rpkms.myo.expression.outliers.txt")
-    outliers.myotubes$Sample = gsub("S.._","",outliers.myotubes$Sample)
-    outliers.myotubes = outliers.myotubes[outliers.myotubes$Sample %in% trios,]
-    outliers.myotubes.number = nrow(unique(subset(outliers.myotubes,select=c("Sample","Gene","Regulation"))))
-    print(paste0(outliers.myotubes.number," expression outliers detected in 10 myotubes samples"))
-    
-    test = merge(outliers.muscle, outliers.myotubes, by.x = c("Sample","Gene","Regulation"), by.y = c("Sample","Gene","Regulation"))
-    print(paste0(nrow(test)," outlier muscle genes detected in 10 myotubes"))
-    
-    outliers.fibroblasts = read.csv("rpkms.fibro.expression.outliers.txt")
-    outliers.fibroblasts$Sample = gsub("S.._","",outliers.fibroblasts$Sample)
-    outliers.fibroblasts$Sample = gsub("F","Myo",outliers.fibroblasts$Sample)
-    outliers.fibroblasts = outliers.fibroblasts[outliers.fibroblasts$Sample %in% trios,]
-    test = merge(outliers.muscle, outliers.fibroblasts, by.x = c("Sample","Gene","Regulation"), by.y = c("Sample","Gene","Regulation"))
-    print(paste0(nrow(test)," outlier muscle genes detected in 10 fibroblasts"))
-    
-    #myo vs fibroblast
-    test = merge(outliers.myotubes, outliers.fibroblasts, by.x = c("Sample","Gene","Regulation"), by.y = c("Sample","Gene","Regulation"))
-    print(paste0(nrow(test)," outlier myotubes genes detected in 10 fibroblasts"))
-}
-
-expression.tissue_comparison.tableS12 = function()
-{
-    rpkms.muscle = read.csv("rpkms.muscle.txt", sep="", stringsAsFactors=F)
-    rpkms.muscle = rpkms.muscle[rpkms.muscle$external_gene_name %in% protein_coding_genes$Gene_name,]
-    
-    rpkms.gtex_blood = read.csv("rpkms.gtex_blood.txt", sep="", stringsAsFactors=F)
-    rpkms.gtex_blood = rpkms.gtex_blood[rpkms.gtex_blood$external_gene_name %in% protein_coding_genes$Gene_name,]
-    
-    rpkms.muscle$external_gene_name = NULL
-    rpkms.gtex_blood$external_gene_name = NULL
-    
-    rpkms.muscle$avg = rowMeans(rpkms.muscle)
-    rpkms.gtex_blood$avg = rowMeans(rpkms.gtex_blood)
-    
-    rpkms.muscle = rpkms.muscle[rpkms.muscle$avg > 1,]
-    
-    rpkms.gtex_blood = rpkms.gtex_blood[rpkms.gtex_blood$avg > 1,]
-    
-    test = rpkms.gtex_blood[row.names(rpkms.gtex_blood) %in% row.names(rpkms.muscle),]
-}
-
-expression4gene_in_a_gene_panel = function(sample,gene_panel,counts)
-{
-    #sample = "S12_9.1.M"
-    #gene_panel = congenital_myopathy
-    for (gene in gene_panel)
-    {
-        expression4gene(gene,sample,counts)
-    }
-}
-
-expression4gene = function(gene,sample,counts)
-{
-    #gene="LAMA2"
-    #sample="S12_9.1.M"
-    print(paste0(gene," ",sample))
-    
-    #https://datascienceplus.com/building-barplots-with-error-bars/
-    gene_expression = subset(counts,external_gene_name == gene)     
-    gene_expression$external_gene_name=NULL
-    v_muscle=as.numeric(gene_expression[1,])
-     
-    se = sd(v_muscle)/sqrt(length(v_muscle))
-     
-    muscle_mean = mean(v_muscle)
-    means = c(muscle_mean,gene_expression[[sample]])
-    ses = c(se,0)
-
-    #significance
-    ttest  = t.test(v_muscle,mu=gene_expression[[sample]])
-     
-    if ((muscle_mean > 0) && (ttest$p.value < 0.01) && 
-        ((muscle_mean > 1.5*gene_expression[[sample]]) || (1.5*muscle_mean < gene_expression[[sample]])))
-    {
-        if (gene_expression[[sample]]<muscle_mean)
-        {
-            file_name = paste0("_",sample,"_",gene,".png")
-        }
-        else
-        {
-            file_name = paste0(sample,"_",gene,".png")
-        }
-        png(file_name) 
-        par(mar=c(2,3,2,0)+0.1)
-        plotTop = max(mean(v_muscle)+6*se, gene_expression[[sample]]+6*se)
-        barCenters = barplot(
-            height = c(mean(v_muscle),gene_expression[[sample]]),
-            names.arg = c("Mean muscle",sample),
-            beside = F,
-            las = 2,
-            ylim = c(0,plotTop),
-            xaxt = "n",
-            axes=T,
-            main = paste0(sample,",",gene," expression, RPKM"),width=c(1,1))
-     
-        text (x=barCenters,y=par("usr")[3]-1,
-           labels = c("Mean muscle",sample),xpd=T)
-     
-     
-        segments (barCenters,means-ses*2,barCenters,means+ses*2,lwd=1.5)
-        arrows (barCenters,means-ses*2,barCenters,means+ses*2,lwd=1.5,angle=90,
-             code=3,length=0.05)
-     
-        text(x = barCenters, y = means, label = round(means,2), 
-            pos = 2, col = "red")
-     
-         dev.off()
-     }
-}
-
-#calculate expression variability for genes downregulated in family gor1
-gor1.expression_variability = function()
-{
-    gor1_panel = c("C2","CACNB2","CD70","CKB","CTGF","CXCL14", "EBF2", "EPB41L3", "F2R", "FABP3", 
-                   "FAT3", "HES1","HSPB7", "IGFBP7", "ITGA8", "KCNE4", "MAMDC2", "NDUFA4L2","PCDHGB6", "PCSK9",
-                   "PI16", "PNRC2", "PPP1R14A", "PRLR", "PRUNE2", "RHOB", "SCUBE3", "SDK2", "SPINT2", "STYK1", 
-                   "TPD52L1")
-    rpkm.file = "rpkms.fibro.txt"
-    tissue = "fibro"
-    expression_variability(gor1_panel,rpkm.file,tissue)
-}
-
-expression.variability.tableS12 = function()
-{
-    panel = c("DMD","NEB","ACTA1","LMNA","RYR1","MTM1","KCNIP4","FKRP","CAV3","LAMA2")
-    for (tissue in c("fibro","myo","muscle"))
-    {
-        rpkm.file = paste0("rpkms.",tissue,".txt")
-        expression_variability(panel,rpkm.file,tissue)
-    }
-}
-
-# calculate a df expression variability in a gene_panel (list of genes) for 
-# file like rpkms.muscle.txt - produced by crt.utils.read.coverage2counts_dir
-expression.variability.get_cov = function(gene_panel,rpkm.file,tissue,debug=F)
-{
-    if (debug == T)
-    {
-        rpkm.file = "rpkms.muscle.txt"
-        tissue = "Muscle"
-        genes = get_genes_in_panels()
-    }
-    d
-    rpkms = read.table(rpkm.file)
-    
-    agene = gene_panel[1]
-    if (grepl("ENSG",agene,fixed=T)){
-        rpkms = rpkms[rownames(rpkms) %in% genes,]
-    }else{
-        rpkms = rpkms[rpkms$external_gene_name %in% genes,]
-        row.names(rpkms)=rpkms$external_gene_name
-    }
-    
-    rpkms$external_gene_name = NULL
-    
-    result.table = data.frame(row.names = row.names(rpkms))
-    result.table$mean = rowMeans(rpkms)
-    result.table$sd = rowSds(rpkms)
-    result.table$cov = with(result.table,100*sd/mean)
-    
-    result.table$mean = NULL
-    result.table$sd = NULL
-    
-    colnames(result.table)[1] = tissue
-    result.table = result.table[order(rownames(result.table)),,drop=F]
-    
-    return(result.table)
-}
-
-# boxplot of coefficient of variation (cov) for different tissue types
-expression.variation.boxplot = function(genes,png.file,title)
-{
-    variability.muscle = expression.variability.get_cov(genes,"rpkms.muscle.txt","Muscle")
-    variability.myotubes = expression.variability.get_cov(genes,"rpkms.myo.txt","Myotubes")
-    variability.fibro = expression.variability.get_cov(genes,"rpkms.fibro.txt","Fibroblast")
-    
-    variability.gtex.muscle = expression.variability.get_cov(genes,"rpkms.50gtex.txt","Gtex muscle")
-    variability.gtex.fibro = expression.variability.get_cov(genes,"rpkms.gtex_fibro.txt","Gtex fibroblast")
-    variability.gtex.blood = expression.variability.get_cov(genes,"rpkms.gtex_blood.txt","Gtex_blood")
-    
-    variability = cbind(variability.muscle,variability.myotubes,variability.fibro,
-                        variability.gtex.muscle,variability.gtex.fibro,variability.gtex.blood)
-    
-    png(png.file,res=300,width=3000,height=2000)
-    boxplot(variability,main=title)
-    dev.off()
-}
-
-expression.variation = function()
-{
-    genes = get_genes_in_panels()
-    expression.variation.boxplot(genes,"expression.cov.panels.png",
-                                 "Expression variation in muscular genes")
-    
-    genes = read.table("genes1rpkm_in_muscle.trios.txt",header=T,stringsAsFactors = F)$ensembl_gene_id
-    expression.variation.boxplot(genes,"expression.cov.1rpkm_genes.png",
-                                 "Expression variation in 1rpkm genes")
-}
 ###################################################################################################
-# statistics based on the output of crt.filter_junctions.sh
+# 5. Splicing 
 ###################################################################################################
 Supplementary_Table_9.Splicing.Panels.Frequency = function()
 {

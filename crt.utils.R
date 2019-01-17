@@ -5,7 +5,7 @@ library(readr)
 
 trios = c("12.1","14.1","14.2","17.1","18.1","26.1","28.1","5.1","6.1","9.1","40.1","40.2","4.1")
 
-mh_panel=c("CACNA1S","RYR1","STAC3","TRDN","ASPH","JPH2","CASQ1","ATP2A1","ATP2A2","CALM1","FKBP1A")
+mh_panel = c("CACNA1S", "RYR1", "STAC3", "TRDN", "ASPH", "JPH2", "CASQ1", "ATP2A1", "ATP2A2", "CALM1", "FKBP1A")
 
 #panels
 panel_list = c("congenital_myopathy",
@@ -108,20 +108,29 @@ installation = function()
 {
     source("http://bioconductor.org/biocLite.R")
     biocLite("edgeR")
-    
     install.packages("pheatmap")
 }
 
-
-get_genes_in_panels = function()
-{
-    gene_list = c()
+get_genes_in_panels <- function(){
+    gene_list <- c()
     for (gene_panel_name in panel_list)
     {
-        gene_panel = get(gene_panel_name)
-        gene_list = unique(c(gene_list,gene_panel))
+        gene_panel <- get(gene_panel_name)
+        gene_list <- unique(c(gene_list, gene_panel))
     }
     return(gene_list)
+}
+
+# read output of kallisto from bcbio and get TPM values for all isoforms of a gene
+get_isoform_expression_kallisto <- function(kallisto.tsv, gene, sample_name){
+    df_kallisto <- read.delim(kallisto.tsv, header = T, stringsAsFactors = F)
+    genes_transcripts <- read.csv("~/cre/data/genes.transcripts.ens_only.csv", 
+                                  stringsAsFactors = F, header = T)    
+    gene_isoforms <- genes_transcripts[genes_transcripts$external_gene_name==gene,]
+    df_gene <- df_kallisto[df_kallisto$target_id %in% gene_isoforms$Ensembl_transcript_id,]
+    df_gene <- df_gene[,c("target_id","tpm")]
+    colnames (df_gene) <- c("ensembl_transcript_id",sample_name)
+    return(df_gene)
 }
 
 # calculates RPKMs using ~/bioscripts/bam.raw_coverage.sh input - 
@@ -357,19 +366,18 @@ prepare_file_4gsea = function(counts,samples,prefix)
   write.table(t_cpm,result_file,quote=F,row.names = F,sep = "\t")
 }
 
-# usually heatmap is a part of a panel - we don't need a title
+# usually heatmap is a part of a bigger figure - we don't need a title
 # rows are not clustered to save alpabetical gene order
 # cols are not clustered to save sample order
-plot_heatmap = function(prefix,expression_table)
-{
-    rows = nrow(expression_table)
-    cellheight = 10
-    res = 300
-    filename = paste0(prefix,".",res,"ppi.png")
+plot_heatmap <- function(prefix, expression_table){
+    rows <- nrow(expression_table)
+    cellheight <- 10
+    res <- 300
+    filename <- paste0(prefix, ".", res, "ppi.png")
   
-    png(filename,res = res,height=rows * cellheight * 5+500,width=1500)
-    pheatmap(expression_table,scale="row",treeheight_row=0,treeheight_col=0,
-           display_numbers = T,cellheight = cellheight,cellwidth = 30,
+    png(filename, res = res, height=rows * cellheight * 5+500, width = 2500)
+    pheatmap(expression_table, scale="row", treeheight_row = 0, treeheight_col = 0,
+           display_numbers = T, cellheight = cellheight, cellwidth = 30,
            cluster_rows = F, cluster_cols = F)
     dev.off()
 }
@@ -407,9 +415,8 @@ plot_heatmap_separate = function(counts,samples,de_results,prefix,ntop = NULL)
     plot_heatmap(paste0(prefix,".right"),subset(top_genes_cpm,row.names(top_genes_cpm) %in% downregulated_genes))
 }   
 
-# plots the heatmap of title.png for gene_panel using sample_rpkm and gtex_rpkm
-plot_panel= function(gene_panel, sample_rpkm, filename,title, breaks,height=2000)
-{
+# plots a heatmap of title.png for a gene_panel using sample_rpkm and gtex_rpkm
+plot_panel <- function(gene_panel, sample_rpkm, filename,title, breaks, height = 2000){
     #test:
     #breaks = c(0,1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100,200,300,400,500,600,700,800,900,1000,2000,3000,4000,
     #  5000,6000,7000,8000,9000,10000,15000,17100)
@@ -418,27 +425,26 @@ plot_panel= function(gene_panel, sample_rpkm, filename,title, breaks,height=2000
     #filename = "1_congenital_myopaties.png"
     #title = "Congenital myopaties RPKM"
     
-    panel_rpkm = sample_rpkm[sample_rpkm$external_gene_name %in% gene_panel,]
-    gtex_panel_rpkm = gtex_rpkm[gtex_rpkm$gene_name %in% gene_panel,]
+    panel_rpkm <- sample_rpkm[sample_rpkm$external_gene_name %in% gene_panel,]
+    gtex_panel_rpkm <- gtex_rpkm[gtex_rpkm$gene_name %in% gene_panel,]
   
-    all_rpkm = merge(panel_rpkm,gtex_panel_rpkm,by.x='external_gene_name',by.y='gene_name')
-    row.names(all_rpkm) = all_rpkm$external_gene_name
-    all_rpkm$external_gene_name=NULL
+    all_rpkm <- merge(panel_rpkm,gtex_panel_rpkm,by.x='external_gene_name',by.y='gene_name')
+    row.names(all_rpkm) <- all_rpkm$external_gene_name
+    all_rpkm$external_gene_name <- NULL
   
-    png(filename,res=200,width=7000,height=height)
-    pheatmap(all_rpkm,treeheight_row=0,treeheight_col=0,
-           cellwidth = 40, cellheight = 10,
-           display_number=T,cluster_rows=F, cluster_cols=T,
-           main=title,
-           breaks=breaks,
+    png(filename, res <- 200, width <- 7000, height <- height)
+    pheatmap(all_rpkm, treeheight_row <- 0, treeheight_col <- 0,
+           cellwidth <- 40, cellheight <- 10,
+           display_number <- T, cluster_rows <- F, cluster_cols <- T,
+           main <- title,
+           breaks <- breaks,
            colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(length(breaks)-1),
-           fontsize = 8)
+           fontsize <-  8)
     dev.off()
 }
 
 # plot expression for 8 gene panels
-plot_all_panels = function(rpkms)
-{
+plot_all_panels = function(rpkms){
     #rpkms = read.rpkm_counts_dir(update = F)
     all_genes = get_genes_in_panels()
     rpkms = read.table("rpkms.muscle.txt")
@@ -484,8 +490,7 @@ plot_all_panels = function(rpkms)
                "Muscular_dystrophies panel, RPKM",breaks)
 }
 
-plot_region_panels = function(rpkms)
-{
+plot_region_panels = function(rpkms){
     rpkms = read.rpkm_counts_dir(update = T)
     breaks = c(0,1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100,200,
              300,400)
@@ -539,8 +544,7 @@ plot_region_panels = function(rpkms)
 #https://www.r-bloggers.com/summarising-data-using-dot-plots/
 #expression_dotplot = function(rpkms,tissue_type,gene_panel_name,color)
 #plot a picture like Beryl's S1
-expression_dotplot = function(gene_panel_name)
-{
+expression_dotplot = function(gene_panel_name){
     library(lattice)
     library(latticeExtra)
     
@@ -663,16 +667,14 @@ expression_dotplot = function(gene_panel_name)
     dev.off()
 }
 
-all_expression_dotplots = function()
-{
+all_expression_dotplots = function(){
     for (gene_panel_name in panel_list)
     {
         expression_dotplot(gene_panel_name)
     }
 }
 
-decode_tissue_type = function (row)
-{
+decode_tissue_type = function (row){
     if (grepl("F",row[1])){
        tissue = "Fibroblast"
     }else if (grepl("Myo",row[1])){
@@ -683,8 +685,7 @@ decode_tissue_type = function (row)
     return(tissue)
 }
 
-splicing.read_novel_splice_events = function(file)
-{
+splicing.read_novel_splice_events = function(file){
     ############################################################
     # debug
     # setwd("~/Desktop/work/splicing/muscle")

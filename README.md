@@ -1,6 +1,6 @@
 # crt
 Assuming that [crt](https://github.com/naumenko-sa/crt), [cre](https://github.com/naumenko-sa/cre), and [bioscripts](https://github.com/naumenko-sa/crt)
-are cloned to `~/crt`, `~/cre`, and `~/bioscripts`, bcbio installed, added to PATH,PYTHONPATH and running.
+are cloned to `~/crt`, `~/cre`, and `~/bioscripts`, bcbio installed, added to PATH, PYTHONPATH and running.
 
 ## 1. Run bcbio with ~/cre/crt.bcbio.rnaseq.yaml.
 1. name sample SX_case-N-tissue, i.e. S101_55-1-F.
@@ -92,3 +92,9 @@ A +/- flanking region is considered when annotating the 5' and 3' positions of s
 * [Modification by Dennis Kao](https://github.com/dennis-kao/MendelianRNA-seq-DB)
 * [Article: Cummings et al. 2017](http://stm.sciencemag.org/content/9/386/eaal5209) 
 * [Manual](https://macarthurlab.org/2017/05/31/improving-genetic-diagnosis-in-mendelian-disease-with-transcriptome-sequencing-a-walk-through/)
+
+## 7. List of scripts
+- crt.gonorazky.naumenko.2018 - human bulk RNA-seq to solve Mendelian cases: clustering, outlier analysis, coverage, plots, splicing analysis
+- crt.nishani2018.R - bulk RNA-seq of cancer stem cell experiment
+- crt.utils.R - common function for RNA-seq analysis
+- crt.tropak2018.R - bulk RNA-seq, clustering, DE in mouse
