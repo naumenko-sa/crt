@@ -122,15 +122,32 @@ get_genes_in_panels <- function(){
 }
 
 # read output of kallisto from bcbio and get TPM values for all isoforms of a gene
-get_isoform_expression_kallisto <- function(kallisto.tsv, gene, sample_name){
+read_gene_isoforms_tpms_kallisto <- function(kallisto.tsv, gene, sample_name){
     df_kallisto <- read.delim(kallisto.tsv, header = T, stringsAsFactors = F)
     genes_transcripts <- read.csv("~/cre/data/genes.transcripts.ens_only.csv", 
                                   stringsAsFactors = F, header = T)    
     gene_isoforms <- genes_transcripts[genes_transcripts$external_gene_name==gene,]
     df_gene <- df_kallisto[df_kallisto$target_id %in% gene_isoforms$Ensembl_transcript_id,]
     df_gene <- df_gene[,c("target_id","tpm")]
-    colnames (df_gene) <- c("ensembl_transcript_id",sample_name)
+    colnames(df_gene) <- c("ensembl_transcript_id",sample_name)
+    row.names(df_gene) <- df_gene$ensembl_transcript_id
+    df_gene$ensembl_transcript_id = NULL
     return(df_gene)
+}
+
+read_gene_kallisto_dir <- function(gene){
+    # test 
+    #gene <- "SMN2"
+    files <- list.files(".", ".tsv")
+    tpm_counts <- read_gene_isoforms_tpms_kallisto(files[1], gene, 
+                                                  gsub(".tsv","", files[1]))
+    for (file in tail(files,-1)){
+        print(file)
+        sample_name <- gsub(".tsv", "", file)
+        tpm_counts_buf <- read_gene_isoforms_tpms_kallisto(file, gene, sample_name)
+        tpm_counts <- merge_row_names(tpm_counts, tpm_counts_buf)
+    }
+    write.csv(tpm_counts,paste0(gene,".tpms.csv"), quote = F)
 }
 
 # calculates RPKMs using ~/bioscripts/bam.raw_coverage.sh input - 
@@ -240,7 +257,7 @@ feature_counts2rpkm <- function(filename){
 }
 
 # reads feature counts in the current directory and calculate RPKMs
-read.feature_counts_dir <- function(update = F)
+read_feature_counts_dir <- function(update = F)
 {
     if(file.exists("rpkms.txt") && update == F){
         counts <- read.table("rpkms.txt")
@@ -280,23 +297,18 @@ read.feature_counts <- function(filename){
 }
 
 #reads all counts in the current directory
-read.feature_counts_dir = function(update=F)
-{
-    if(file.exists("raw_counts.txt") && update == F)
-    {
-        counts = read.table("raw_counts.txt")
-    }
-    else
-    {
-        files = list.files(".","*feature_counts.txt")
-        counts = read.feature_counts(files[1])
-        for (file in tail(files,-1))
-        {
+read_feature_counts_dir <- function(update = F){
+    if(file.exists("raw_counts.txt") && update == F){
+        counts <- read.table("raw_counts.txt")
+    }else{
+        files <- list.files(".","*feature_counts.txt")
+        counts <- read.feature_counts(files[1])
+        for (file in tail(files,-1)){
             print(paste0("Reading ",file))
-            counts_buf = read.feature_counts(file)
-            counts = merge_row_names(counts,counts_buf)
+            counts_buf <- read.feature_counts(file)
+            counts <- merge_row_names(counts,counts_buf)
         }
-        write.table(counts,"raw_counts.txt",quote=F)
+        write.table(counts, "raw_counts.txt", quote = F)
     }
     return(counts)
 }

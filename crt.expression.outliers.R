@@ -3,6 +3,7 @@
 ###############################################################################
 expression_outliers_init <- function(){
     library(genefilter)
+    library(reshape2)
     source("~/crt/crt.utils.R")
     source("~/bioscripts/genes.R")
 }
@@ -47,12 +48,22 @@ get_expression_outliers_muscle <- function(){
 # comparing fibroblasts to fibroblasts because GTex fibroblasts have different expression profile
 get_expression_outliers_fibro <- function(){
     setwd("~/Desktop/work/expression/feature_counts/fibro/")
-    
+    #read_feature_counts_dir()
     omim_genes <- read.csv("~/cre/data/omim.genes.csv")
-    expression_outliers_zscore("rpkms.fibro.txt",
+    get_expression_outliers_zscore("rpkms.fibro.txt",
                                "rpkms.fibro.txt",
                                omim_genes$Ensembl_gene_id,
                                "Supplemental_table_X.Expression_outliers_in_fibroblasts.csv")
+}
+
+get_expression_outliers_myotubes <- function(){
+    setwd("~/Desktop/work/expression/feature_counts/myotubes/")
+    #read_feature_counts_dir()
+    muscular_genes <- read.csv("~/cre/data/muscular_genes.csv", stringsAsFactors = F)
+    get_expression_outliers_zscore("rpkms.myo.txt",
+                                   "rpkms.myo.txt",
+                                   muscular_genes$ensembl_gene_id,
+                                   "Supplemental_table_X.Expression_outliers_in_myotubes.csv")
 }
 
 # expression outliers detection using Z-scores:
@@ -76,7 +87,7 @@ get_expression_outliers_zscore <- function(rpkms_patients_filename,
     rpkms_patients <- read.table(rpkms_patients_filename, stringsAsFactors = F)
     
     rpkms_gtex <- rpkms_gtex[row.names(rpkms_gtex) %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
-    gene_names <- subset(rpkms_gtex, select=c("external_gene_name"))
+    gene_names <- subset(rpkms_gtex, select = c("external_gene_name"))
     rpkms_gtex$external_gene_name <- NULL
     
     rpkms_patients <- rpkms_patients[row.names(rpkms_patients) %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
@@ -88,11 +99,11 @@ get_expression_outliers_zscore <- function(rpkms_patients_filename,
     expression_stats$cohort_mean <- rowMeans(rpkms_patients)
     expression_stats$cohort_sd <- rowSds(rpkms_patients)
     
-    expression_stats <- expression.stats[expression.stats$gtex_mean >=0.1,]
+    expression_stats <- expression_stats[expression_stats$gtex_mean >=0.1,]
     
     rpkms_patients <- rpkms_patients[row.names(rpkms_patients) %in% row.names(expression_stats),]
     
-    expression_outliers <- (rpkms_patients - expression.stats$gtex_mean)/expression_stats$gtex_sd
+    expression_outliers <- (rpkms_patients - expression_stats$gtex_mean)/expression_stats$gtex_sd
     
     measure_vars <- colnames(expression_outliers)
     expression_outliers$ensembl_gene_id <- row.names(expression_outliers)
@@ -101,46 +112,47 @@ get_expression_outliers_zscore <- function(rpkms_patients_filename,
                                measure.vars = measure_vars,
                                variable.name = "sample",
                                value.name = "zscore_gtex")
-    expression_outliers <- expression_outliers[abs(expression_outliers$zscore)>=1.5,]
-    expression_outliers$gene <- gene_names[expression_outliers$ensembl_gene_id,1]
+    expression_outliers <- expression_outliers[abs(expression_outliers$zscore) >= 1.5,]
+    expression_outliers$gene <- gene_names[expression_outliers$ensembl_gene_id, 1]
     
     zscore_cohort <- (rpkms_patients - expression_stats$cohort_mean)/expression_stats$cohort_sd
-    measure_vars <- colnames(zscore.cohort)
+    measure_vars <- colnames(zscore_cohort)
     zscore_cohort$ensembl_gene_id <- row.names(zscore_cohort)
     zscore_cohort <- melt(zscore_cohort, measure.vars = measure_vars, 
                          variable.name = "sample", value.name = "zscore_cohort")
     
-    expression.outliers <- merge(expression_outliers, zscore_cohort,
+    expression_outliers <- merge(expression_outliers, zscore_cohort,
                                 by.x = c("ensembl_gene_id","sample"),
                                 by.y = c("ensembl_gene_id","sample"),
                                 all.x = T, all.Y = F)
     
-    expression_outliers$gtex_mean_rpkm <- expression_stats[expression_outliers$ensembl_gene_id,"gtex_mean"]
+    expression_outliers$gtex_mean_rpkm <- expression_stats[expression_outliers$ensembl_gene_id, "gtex_mean"]
     expression_outliers$gtex_sd <- expression_stats[expression_outliers$ensembl_gene_id,"gtex_sd"]
     expression_outliers$cohort_mean_rpkm <- expression_stats[expression_outliers$ensembl_gene_id,"cohort_mean"]
     expression_outliers$cohort_sd <- expression_stats[expression_outliers$ensembl_gene_id,"cohort_sd"]
     
-    measure_vars = colnames(rpkms.patients)
-    rpkms.patients$ensembl_gene_id = row.names(rpkms.patients)
-    rpkms.patients = melt(rpkms.patients,measure.vars = measure_vars,
-                          variable.name="sample",
-                          value.name="expression_rpkm")
+    measure_vars <- colnames(rpkms_patients)
+    rpkms_patients$ensembl_gene_id <- row.names(rpkms_patients)
+    rpkms_patients <- melt(rpkms_patients, measure.vars = measure_vars,
+                          variable.name = "sample",
+                          value.name = "expression_rpkm")
     
-    expression.outliers = merge(expression.outliers,rpkms.patients,by.x=c("ensembl_gene_id","sample"),
-                                by.y=c("ensembl_gene_id","sample"),all.x=T,all.y=F)
+    expression_outliers <- merge(expression_outliers, rpkms_patients, 
+                                by.x=c("ensembl_gene_id", "sample"),
+                                by.y=c("ensembl_gene_id", "sample"), all.x = T, all.y = F)
     
-    expression.outliers$fold_change = ifelse(expression.outliers$expression_rpkm>=expression.outliers$gtex_mean_rpkm,
-                                             expression.outliers$expression_rpkm/expression.outliers$gtex_mean_rpkm,
-                                             expression.outliers$gtex_mean_rpkm/expression.outliers$expression_rpkm)
-    expression.outliers$regulation = ifelse(expression.outliers$zscore_gtex>0,"UP","DOWN")
-    expression.outliers$comment = ""
+    expression_outliers$fold_change <- ifelse(expression_outliers$expression_rpkm >= expression_outliers$gtex_mean_rpkm,
+                                             expression_outliers$expression_rpkm/expression_outliers$gtex_mean_rpkm,
+                                             expression_outliers$gtex_mean_rpkm/expression_outliers$expression_rpkm)
+    expression_outliers$regulation <- ifelse(expression_outliers$zscore_gtex > 0, "UP", "DOWN")
+    expression_outliers$comment <- ""
     
-    expression.outliers = expression.outliers[,c("comment","sample","ensembl_gene_id","gene","expression_rpkm",
-                                                 "gtex_mean_rpkm","cohort_mean_rpkm","fold_change","regulation",
-                                                 "zscore_gtex","zscore_cohort","gtex_sd","cohort_sd")]
+    expression_outliers <- expression_outliers[,c("comment", "sample", "ensembl_gene_id", "gene", "expression_rpkm",
+                                                 "gtex_mean_rpkm", "cohort_mean_rpkm", "fold_change", "regulation",
+                                                 "zscore_gtex", "zscore_cohort","gtex_sd","cohort_sd")]
     
-    expression.outliers.panel = expression.outliers[expression.outliers$ensembl_gene_id %in% gene_panel,]
-    write.csv(expression.outliers.panel,output_file_name,row.names = F)
+    expression_outliers_panel <- expression_outliers[expression_outliers$ensembl_gene_id %in% gene_panel,]
+    write.csv(expression_outliers_panel, output_file_name, row.names = F)
 }
 
 ###################################################################################################

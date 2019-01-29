@@ -559,28 +559,30 @@ supplementary_table_3.genes_expressed_at_1rpkm = function()
 }
 
 # expression of SMN1 and SMN2 isoforms
-expression_smn = function()
-{
-    setwd ("~/Desktop/work/SMN/")
+expression_smn <- function(){
+    setwd("~/Desktop/work/SMN/")
 
-    S93.smn1 = get_isoform_expression_kallisto("S93_45-1-F.kallisto.tsv","SMN1","S93")
-    S93.smn2 = get_isoform_expression_kallisto("S93_45-1-F.kallisto.tsv","SMN2","S93")
+    read_gene_kallisto_dir("SMN1")
+    read_gene_kallisto_dir("SMN2")
     
-    S94.smn1 = get_isoform_expression_kallisto("S94_46-1-F.kallisto.tsv","SMN1","S94")
-    S94.smn2 = get_isoform_expression_kallisto("S94_46-1-F.kallisto.tsv","SMN2","S94")
+    S93.smn1 <- get_isoform_expression_kallisto("S93_45-1-F.tsv", "SMN1", "S93_45-1-F.tsv")
+    S93.smn2 <- get_isoform_expression_kallisto("S93_45-1-F.kallisto.tsv","SMN2","S93")
+    
+    S94.smn1 <- get_isoform_expression_kallisto("S94_46-1-F.kallisto.tsv","SMN1","S94")
+    S94.smn2 <- get_isoform_expression_kallisto("S94_46-1-F.kallisto.tsv","SMN2","S94")
 
-    smn2 = genes_transcripts[genes_transcripts$external_gene_name=="SMN2",]
+    smn2 <- genes_transcripts[genes_transcripts$external_gene_name=="SMN2",]
     
-    S93 = read.delim("S93_45-1-F.kallisto.tsv",header=T,stringsAsFactors = F)
-    S94 = read.delim("S94_46-1-F.kallisto.tsv",header=T,stringsAsFactors = F)
+    S93 <- read.delim("S93_45-1-F.kallisto.tsv",header=T,stringsAsFactors = F)
+    S94 <- read.delim("S94_46-1-F.kallisto.tsv",header=T,stringsAsFactors = F)
     
-    S93.smn1 = S93[S93$target_id %in% smn1$Ensembl_transcript_id,]
-    S93.smn2 = S93[S93$target_id %in% smn2$Ensembl_transcript_id,]
+    S93.smn1 <- S93[S93$target_id %in% smn1$Ensembl_transcript_id,]
+    S93.smn2 <- S93[S93$target_id %in% smn2$Ensembl_transcript_id,]
     
-    S94.smn1 = S94[S94$target_id %in% smn1$Ensembl_transcript_id,]
-    S94.smn2 = S94[S94$target_id %in% smn2$Ensembl_transcript_id,]
+    S94.smn1 <- S94[S94$target_id %in% smn1$Ensembl_transcript_id,]
+    S94.smn2 <- S94[S94$target_id %in% smn2$Ensembl_transcript_id,]
     
-    S93.smn1 = S93.smn1[,c("target_id","tpm")]
+    S93.smn1 <- S93.smn1[,c("target_id","tpm")]
     colnames (S93.smn1) = c("ensembl_transcript_id","S93")
     S93.smn2 = S93.smn2[,c("target_id","tpm")]
     colnames (S93.smn2) = c("ensembl_transcript_id","S93")
