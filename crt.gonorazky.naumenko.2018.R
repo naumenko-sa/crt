@@ -20,6 +20,7 @@ init <- function(){
     library(VennDiagram)    
     library(genefilter)
     library(reshape2)
+    library(tidyverse)
     source("~/crt/crt.utils.R")
     source("~/bioscripts/genes.R")
     setwd("~/Desktop/work")
@@ -29,12 +30,6 @@ init <- function(){
 ###############################################################################
 # 1. clustering, MDS, PCA plots
 ###############################################################################
-# large MDS 
-# run: qsub ~/crt.mds.pbs -v refresh=TRUE
-# source("~/crt/crt.utils.R")
-# args = commandArgs(trailingOnly = T)
-# print(args[1])
-# fig1A.mds_plot(refresh_files = as.logical(args[1]))
 fig2A.mds <- function(refresh_files = F){
     #refresh_files=F
     print("Reading counts ...")
@@ -46,17 +41,11 @@ fig2A.mds <- function(refresh_files = F){
     sample_types = colnames(counts)
   
     i=1
-    for (sname in sample_names)
-    {
+    for (sname in sample_names){
         v_sname = strsplit(sname,"\\.")[[1]]
-        if (length(v_sname)>=3)
-        {
+        if (length(v_sname)>=3){
           sample_type = v_sname[3]
-        }
-        else
-        {
-            sample_type = 'NA'
-        }
+        } sample_type = 'NA'
         sample_labels[i] = substr(sname,1,3) #i.e. S01
         #print(sname)
         #print(sample_type)
@@ -78,9 +67,7 @@ fig2A.mds <- function(refresh_files = F){
             sample_types[i]="Myo"
         }else if (grepl("F",sname)){
             sample_types[i]="F"
-        }else{
-            sample_types[i]="M"
-        }
+        }else sample_types[i]="M"
         i=i+1
     }
     print(sample_types)
@@ -152,115 +139,76 @@ fig2A.mds <- function(refresh_files = F){
     plotMDS(y, labels=sample_labels)
     dev.off()
 }
-
+# large MDS 
+# run: qsub ~/crt.mds.pbs -v refresh=TRUE
+# or Rscript ~/crt/gonorazky.naumenko.2018.R TRUE
+source("~/crt/crt.utils.R")
+args = commandArgs(trailingOnly = T)
+print(args[1])
+mds_work(update = as.logical(args[1]))
 # work qc function for mds plots (protein coding genes)
-mds.work <- function(){
-    counts <- read.feature_counts_dir(update=T)
-    #group = factor(c(rep(1,ncol(counts))))
+mds_work <- function(update = F){
+    #update <- T
+    counts <- read_feature_counts_dir(update = update)
     
     sample_names <- colnames(counts)
-    sample_labels <- colnames(counts)
-    sample_types <- colnames(counts)
     
-    i <- 1
-    for (sname in sample_names){
-        v_sname <- strsplit(sname,"\\.")[[1]]
-        if (length(v_sname) >= 3){
-            sample_type <- v_sname[3]
-        }else{
-            sample_type <- "NA"
-        }
-        sample_labels[i] <- strsplit(sname,"_")[[1]][1] #i.e. S01
-        #print(sname)
-        #print(sample_type)
-        if ((sample_type == "0005") || (sample_type == "0006")){
-            sample_types[i] <- "GTEXBLOOD"
-            sample_labels[i] <- ""
-        }else if (sample_type == "0008"){
-            sample_types[i]="GTEXFIBRO"
-            sample_labels[i] <- ""
-        }else if (grepl("GTEX",sname)){
-            sample_types[i] <- "GTEX"
-            
-            if (length(v_sname) >= 5 ){
-                sample_labels[i] <- v_sname[5] #i.e.2XCAL
-            }else{
-                sample_labels[i] <- v_sname[2]
-            }
-        }else if (grepl("Myo",sname)){
-            sample_types[i] <- "Myo"
-        }else if (grepl("F",sname)){
-            sample_types[i] <- "F"
-        }else{
-            sample_types[i] <- "M"
-        }
-        i <- i+1
-    }
-    print(sample_types)
-    group <- factor(sample_types)    
-    
-    v_colors = c()
-    for (i in 1:length(group)){
-        if(group[i] == "F"){
-            clr <- "orange"
-        }else if (group[i] == "Myo"){
-            clr <- "red"
-        }else if (group[i] == "GTEX"){
-            clr <- "darkgreen"
-        }else if (group[i] == "GTEXBLOOD"){
-            clr <- "cornflowerblue"
-        }else if (group[i] == "GTEXFIBRO"){
-            clr <- "yellow"
-        }else{ #muscle
-            clr <- "chartreuse"
-        }
-        v_colors[i] <- clr
-    }
+    samples <- read_csv("mds_samples.csv")
     
     print("Subsetting protein coding genes ...")
     #a file with ENSEMBL IDs
-    if (file.exists("~/Desktop/reference_tables/protein_coding_genes.list")){
-        protein_coding_genes <- read.csv("~/Desktop/reference_tables/protein_coding_genes.list", sep="", stringsAsFactors=FALSE)
+    if (file.exists("protein_coding_genes.list")){
+        protein_coding_genes <- read.csv("protein_coding_genes.list", sep="", stringsAsFactors=F)
         counts <- counts[row.names(counts) %in% protein_coding_genes$ENS_GENE_ID,]
     }else{
         print("Please provide protein_coding_genes.list with ENS_GENE_ID")
     }
     
     print("Removing zeroes ...")
-    
-    y <- DGEList(counts=counts, group=group,remove.zeros = T)
-    png("mds.png", res=300, width=2000, height=2000)
+    group <- factor(c(rep(1,ncol(counts))))
+    y <- DGEList(counts = counts, group = group,remove.zeros = T)
     
     print("Plotting ...")
+    png("mds.png", res=300, width=2000, height=2000)
+    mds <- plotMDS(y)
     
-    mds <- plotMDS(y, labels=sample_labels)
-    
+    v_colors <- filter(samples, sample_name %in% sample_names) %>% select(color) %>% unlist(use.names = F)
     plot(mds,
          col = v_colors,
-         pch=19,
+         pch = 19,
          xlab = "MDS dimension 1", 
          ylab = "MDS dimension 2")
-    
+    dev.off()
+    png("mds.legend.png", res=300, width=2000, height=2000)
+    plot(NULL ,xaxt='n',yaxt='n',bty='n',ylab='',xlab='', xlim=0:1, ylim=0:1)
     legend("topleft",
            title = "Tissue",
            c("GTEx blood",
+             "NebNext blood",
+             "RNADirect blood",
              "Primary fibroblasts",
              "GTEx transformed fibroblasts",
+             "RNADirect fibroblasts",
              "Transdifferentiated myotubes",
              "Muscle",
-             "GTEx muscle"
+             "GTEx muscle",
+             "RNADirect muscle"
            ),
            fill = c("cornflowerblue",
+                    "deepskyblue",
+                    "navyblue",
                   "orange",
                   "yellow",
+                  "chocolate1",
                   "red",
                   "chartreuse",
-                  "darkgreen"))
+                  "darkgreen",
+                  "yellowgreen"))
     
     dev.off()
-    
+    v_labels <- filter(samples, sample_name %in% sample_names) %>% select(sample_label) %>% unlist(use.names = F)
     png("mds.labels.png", res = 300, width = 2000, height = 2000)
-    plotMDS(y, labels = sample_labels)
+    plotMDS(y, labels = v_labels)
     dev.off()
 }
 

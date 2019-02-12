@@ -2,6 +2,8 @@ library(pheatmap)
 library(RColorBrewer)
 library(edgeR)   
 library(readr)
+library(tidyverse)
+library(tidyselect)
 
 trios = c("12.1","14.1","14.2","17.1","18.1","26.1","28.1","5.1","6.1","9.1","40.1","40.2","4.1")
 
@@ -257,8 +259,7 @@ feature_counts2rpkm <- function(filename){
 }
 
 # reads feature counts in the current directory and calculate RPKMs
-read_feature_counts_dir <- function(update = F)
-{
+read_feature_counts_dir <- function(update = F){
     if(file.exists("rpkms.txt") && update == F){
         counts <- read.table("rpkms.txt")
     }else{
@@ -284,30 +285,27 @@ read_feature_counts_dir <- function(update = F)
     return(counts)
 }
 
-read.feature_counts <- function(filename){
+read_feature_counts <- function(filename){
     #first line in the file is a comment
-    counts <- read.delim(filename, stringsAsFactors = F, row.names = 1, skip = 1)
-    counts$Chr <- NULL
-    counts$Start <- NULL
-    counts$End <- NULL
-    counts$Strand <- NULL
-    counts$Length <- NULL
-    colnames(counts) <- gsub(".bam","", colnames(counts))
+    #test: filename="S05_4-1-F.bam.feature_counts.txt"
+    counts <- read_delim(filename, skip = 1, delim = "\t") %>% select(Geneid, last_col())
+    colnames(counts) <- c("ensembl_gene_id", gsub(".bam","", colnames(counts)[2]))
     return(counts) 
 }
 
 #reads all counts in the current directory
 read_feature_counts_dir <- function(update = F){
     if(file.exists("raw_counts.txt") && update == F){
-        counts <- read.table("raw_counts.txt")
+        counts <- read_table("raw_counts.txt")
     }else{
         files <- list.files(".","*feature_counts.txt")
-        counts <- read.feature_counts(files[1])
+        counts <- read_feature_counts(files[1])
         for (file in tail(files,-1)){
             print(paste0("Reading ",file))
-            counts_buf <- read.feature_counts(file)
-            counts <- merge_row_names(counts,counts_buf)
+            counts_buf <- read_feature_counts(file)
+            counts <- left_join(counts, counts_buf, by = "ensembl_gene_id")
         }
+        counts <- column_to_rownames(counts, "ensembl_gene_id")
         write.table(counts, "raw_counts.txt", quote = F)
     }
     return(counts)
