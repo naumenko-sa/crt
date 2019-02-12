@@ -139,13 +139,6 @@ fig2A.mds <- function(refresh_files = F){
     plotMDS(y, labels=sample_labels)
     dev.off()
 }
-# large MDS 
-# run: qsub ~/crt.mds.pbs -v refresh=TRUE
-# or Rscript ~/crt/gonorazky.naumenko.2018.R TRUE
-source("~/crt/crt.utils.R")
-args = commandArgs(trailingOnly = T)
-print(args[1])
-mds_work(update = as.logical(args[1]))
 # work qc function for mds plots (protein coding genes)
 mds_work <- function(update = F){
     #update <- T
@@ -1259,3 +1252,11 @@ TableS15.expression.1rpkm <- function(rpkms.file){
     print(paste0("Genes at <1 RPKM:",length(row.names(rpkms.muscle[rpkms.muscle$average<1,]))))
     print(paste(sort(row.names(rpkms.muscle[rpkms.muscle$average<1,])),collapse=","))
 }
+
+# large MDS 
+# run: qsub ~/crt.mds.pbs -v refresh=TRUE
+# or Rscript ~/crt/gonorazky.naumenko.2018.R TRUE
+source("~/crt/crt.utils.R")
+args = commandArgs(trailingOnly = T)
+print(args[1])
+mds_work(update = as.logical(args[1]))
