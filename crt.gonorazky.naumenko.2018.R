@@ -45,7 +45,7 @@ fig2A.mds <- function(refresh_files = F){
         v_sname = strsplit(sname,"\\.")[[1]]
         if (length(v_sname)>=3){
           sample_type = v_sname[3]
-        } sample_type = 'NA'
+        }else sample_type = 'NA'
         sample_labels[i] = substr(sname,1,3) #i.e. S01
         #print(sname)
         #print(sample_type)
