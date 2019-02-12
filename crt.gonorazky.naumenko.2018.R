@@ -139,71 +139,6 @@ fig2A.mds <- function(refresh_files = F){
     plotMDS(y, labels=sample_labels)
     dev.off()
 }
-# work qc function for mds plots (protein coding genes)
-mds_work <- function(update = F){
-    #update <- T
-    counts <- read_feature_counts_dir(update = update)
-    
-    sample_names <- colnames(counts)
-    
-    samples <- read_csv("mds_samples.csv")
-    
-    print("Subsetting protein coding genes ...")
-    #a file with ENSEMBL IDs
-    if (file.exists("protein_coding_genes.list")){
-        protein_coding_genes <- read.csv("protein_coding_genes.list", sep="", stringsAsFactors=F)
-        counts <- counts[row.names(counts) %in% protein_coding_genes$ENS_GENE_ID,]
-    }else{
-        print("Please provide protein_coding_genes.list with ENS_GENE_ID")
-    }
-    
-    print("Removing zeroes ...")
-    group <- factor(c(rep(1,ncol(counts))))
-    y <- DGEList(counts = counts, group = group,remove.zeros = T)
-    
-    print("Plotting ...")
-    png("mds.png", res=300, width=2000, height=2000)
-    mds <- plotMDS(y)
-    
-    v_colors <- filter(samples, sample_name %in% sample_names) %>% select(color) %>% unlist(use.names = F)
-    plot(mds,
-         col = v_colors,
-         pch = 19,
-         xlab = "MDS dimension 1", 
-         ylab = "MDS dimension 2")
-    dev.off()
-    png("mds.legend.png", res=300, width=2000, height=2000)
-    plot(NULL ,xaxt='n',yaxt='n',bty='n',ylab='',xlab='', xlim=0:1, ylim=0:1)
-    legend("topleft",
-           title = "Tissue",
-           c("GTEx blood",
-             "NebNext blood",
-             "RNADirect blood",
-             "Primary fibroblasts",
-             "GTEx transformed fibroblasts",
-             "RNADirect fibroblasts",
-             "Transdifferentiated myotubes",
-             "Muscle",
-             "GTEx muscle",
-             "RNADirect muscle"
-           ),
-           fill = c("cornflowerblue",
-                    "deepskyblue",
-                    "navyblue",
-                  "orange",
-                  "yellow",
-                  "chocolate1",
-                  "red",
-                  "chartreuse",
-                  "darkgreen",
-                  "yellowgreen"))
-    
-    dev.off()
-    v_labels <- filter(samples, sample_name %in% sample_names) %>% select(sample_label) %>% unlist(use.names = F)
-    png("mds.labels.png", res = 300, width = 2000, height = 2000)
-    plotMDS(y, labels = v_labels)
-    dev.off()
-}
 
 # fig 1B - expression profiles in muscular samples vs sample age
 # input = TableS1.Samples
@@ -1252,11 +1187,3 @@ TableS15.expression.1rpkm <- function(rpkms.file){
     print(paste0("Genes at <1 RPKM:",length(row.names(rpkms.muscle[rpkms.muscle$average<1,]))))
     print(paste(sort(row.names(rpkms.muscle[rpkms.muscle$average<1,])),collapse=","))
 }
-
-# large MDS 
-# run: qsub ~/crt.mds.pbs -v refresh=TRUE
-# or Rscript ~/crt/gonorazky.naumenko.2018.R TRUE
-source("~/crt/crt.utils.R")
-args = commandArgs(trailingOnly = T)
-print(args[1])
-mds_work(update = as.logical(args[1]))
