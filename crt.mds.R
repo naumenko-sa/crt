@@ -1,7 +1,6 @@
-# large MDS 
+# MDS for protein coding genes
 # run: qsub ~/crt.mds.pbs -v refresh=TRUE
-# or Rscript ~/crt/gonorazky.naumenko.2018.R TRUE
-# work qc function for mds plots (protein coding genes)
+# or Rscript ~/crt/crt.mds.R TRUE
 mds_work <- function(update = F){
     update <- T
     counts <- read_feature_counts_dir(update = update)
