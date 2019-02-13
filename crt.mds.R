@@ -3,10 +3,10 @@
 # or Rscript ~/crt/gonorazky.naumenko.2018.R TRUE
 # work qc function for mds plots (protein coding genes)
 mds_work <- function(update = F){
-    #update <- T
+    update <- T
     counts <- read_feature_counts_dir(update = update)
     
-    sample_names <- colnames(counts)
+    sample_names <- tibble(sample_name = colnames(counts))
     
     samples <- read_csv("mds_samples.csv")
     
@@ -27,7 +27,7 @@ mds_work <- function(update = F){
     png("mds.png", res=300, width=2000, height=2000)
     mds <- plotMDS(y)
     
-    v_colors <- filter(samples, sample_name %in% sample_names) %>% select(color) %>% unlist(use.names = F)
+    v_colors <- left_join(sample_names, samples, by="sample_name") %>% select(color) %>% unlist(use.names = F)
     plot(mds,
          col = v_colors,
          pch = 19,
@@ -50,18 +50,18 @@ mds_work <- function(update = F){
              "RNADirect muscle"
            ),
            fill = c("cornflowerblue",
-                    "deepskyblue",
+                    "cyan",
                     "navyblue",
                     "orange",
                     "yellow",
-                    "chocolate1",
+                    "darkviolet",
                     "red",
                     "chartreuse",
                     "darkgreen",
-                    "yellowgreen"))
+                    "darkkhaki"))
     
     dev.off()
-    v_labels <- filter(samples, sample_name %in% sample_names) %>% select(sample_label) %>% unlist(use.names = F)
+    v_labels <- left_join(sample_names, samples, by="sample_name") %>% select(sample_label) %>% unlist(use.names = F)
     png("mds.labels.png", res = 300, width = 2000, height = 2000)
     plotMDS(y, labels = v_labels)
     dev.off()
