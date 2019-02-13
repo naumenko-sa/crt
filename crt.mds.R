@@ -1,7 +1,7 @@
 # MDS for protein coding genes
 # run: qsub ~/crt.mds.pbs -v refresh=TRUE
 # or Rscript ~/crt/crt.mds.R TRUE
-mds_work <- function(update = F){
+mds_work <- function(update = F, top_genes = 500){
     #update <- T
     counts <- read_feature_counts_dir(update = update)
     
@@ -24,7 +24,7 @@ mds_work <- function(update = F){
     
     print("Plotting ...")
     png("mds.png", res=300, width=2000, height=2000)
-    mds <- plotMDS(y)
+    mds <- plotMDS(y, top = top_genes)
     
     v_colors <- left_join(sample_names, samples, by="sample_name") %>% select(color) %>% unlist(use.names = F)
     plot(mds,
@@ -69,5 +69,5 @@ mds_work <- function(update = F){
 source("~/crt/crt.utils.R")
 args = commandArgs(trailingOnly = T)
 print(args[1])
-mds_work(update = as.logical(args[1]))
+mds_work(update = as.logical(args[1]), top_genes = as.numeric(args[2]))
 
