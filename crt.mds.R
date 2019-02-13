@@ -24,6 +24,7 @@ mds_work <- function(update = F, top_genes = 500){
     
     print("Plotting ...")
     png("mds.png", res=300, width=2000, height=2000)
+    print(paste0("Top genes: ", top_genes))
     mds <- plotMDS(y, top = top_genes)
     
     v_colors <- left_join(sample_names, samples, by="sample_name") %>% select(color) %>% unlist(use.names = F)
