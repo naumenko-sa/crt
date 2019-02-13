@@ -2,7 +2,7 @@
 # run: qsub ~/crt.mds.pbs -v refresh=TRUE
 # or Rscript ~/crt/crt.mds.R TRUE
 mds_work <- function(update = F){
-    update <- T
+    #update <- T
     counts <- read_feature_counts_dir(update = update)
     
     sample_names <- tibble(sample_name = colnames(counts))
@@ -62,7 +62,7 @@ mds_work <- function(update = F){
     dev.off()
     v_labels <- left_join(sample_names, samples, by="sample_name") %>% select(sample_label) %>% unlist(use.names = F)
     png("mds.labels.png", res = 300, width = 2000, height = 2000)
-    plotMDS(y, labels = v_labels)
+    plotMDS(y, labels = v_labels, cex = 0.2)
     dev.off()
 }
 
