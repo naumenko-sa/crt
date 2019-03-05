@@ -346,34 +346,29 @@ read.tpm = function(update = F)
 #  http://software.broadinstitute.org/cancer/software/gsea/wiki/index.php/Data_formats#Expression_Data_Formats
 #  for GSEA it is important to report all genes - genome wide
 #  hopefully cpms are better than logcpms
-prepare_file_4gsea = function(counts,samples,prefix)
+prepare_file_4gsea <- function(counts, samples, prefix)
 {
-  t_cpm = cpm(counts,prior.count=1,log=F)
-  t_cpm = t_cpm[,samples]
+    t_cpm <- cpm(counts, prior.count = 1, log = F)
+    t_cpm <- t_cpm[,samples]
   
-  #remove rows with 0 expression
-  t_cpm = t_cpm[rowSums(t_cpm)>0,]
+    #remove rows with 0 expression
+    t_cpm = t_cpm[rowSums(t_cpm)>0,]
   
-  t_cpm = merge(protein_coding_genes,t_cpm,by.x='row.names',by.y='row.names',all = F)
+    result_file = paste0(prefix,".4gsea.txt")
   
-  rownames(t_cpm)=t_cpm$Row.names
-  t_cpm$Row.names = NULL
+    t_cpm <- merge(t_cpm, ensembl_w_description, by.x = "row.names", by.y = "row.names", all.x = T, all.y = F)
+    colnames(t_cpm)[1] <- "ensembl_gene_id"
+    
+    t_cpm = t_cpm[c("external_gene_name","ensembl_gene_id",paste0(samples))]
+    colnames(t_cpm)[1:2]=c("NAME","DESCRIPTION")
   
-  result_file=paste0(prefix,".4gsea.txt")
-  
-  t_cpm$ensembl_gene_id = row.names(t_cpm)
-  
-  t_cpm = t_cpm[c("gene_name","ensembl_gene_id",paste0(samples))]
-  colnames(t_cpm)[1:2]=c("NAME","DESCRIPTION")
-  
-  o = order(rowSums(t_cpm[,c(samples)]),decreasing = T)
-  t_cpm = t_cpm[o,]
-  d = duplicated(t_cpm$NAME)
-  dy = t_cpm[d,]$NAME
-  t_cpm = t_cpm[!d,]
-  nrow(t_cpm)
-  
-  write.table(t_cpm,result_file,quote=F,row.names = F,sep = "\t")
+    o = order(rowSums(t_cpm[,c(samples)]),decreasing = T)
+    t_cpm = t_cpm[o,]
+    d = duplicated(t_cpm$NAME)
+    dy = t_cpm[d,]$NAME
+    t_cpm = t_cpm[!d,]
+    nrow(t_cpm)
+    write.table(t_cpm,result_file,quote=F,row.names = F,sep = "\t")
 }
 
 # usually heatmap is a part of a bigger figure - we don't need a title
