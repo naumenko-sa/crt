@@ -68,7 +68,12 @@ differential_expression <- function()
     
     protein_coding_genes <- read.csv("protein_coding_genes.list", sep="", stringsAsFactors=F)
     counts <- inner_join(counts, protein_coding_genes, by = c("Ensembl_gene_id" = "ENS_GENE_ID")) %>% 
-                select(Ensembl_gene_id, HCGM_WT, WG2, WG3, HCGM_K27M, KG2, KG3)
+        select(Ensembl_gene_id, HCGM_WT, WG2, WG3, HCGM_K27M, KG2, KG3)
+    # contrast 1
+    # select(Ensembl_gene_id, HCGM_WT, WG2, WG3, HCGM_K27M, KG2, KG3)
+    
+    # contrast 2
+    # select(Ensembl_gene_id, WG2, WG3, KG2, KG3)
     
     counts <- column_to_rownames(counts,var="Ensembl_gene_id")
     samples <- colnames(counts)
@@ -163,27 +168,17 @@ differential_expression <- function()
     write.csv(de_results$table, efilename, quote = T, row.names = F)
     
     de_results = read.csv(efilename, stringsAsFactors = F)
-    s_rownames = row.names(de_results)
-    #setnames(de_results,"genes","ensembl_gene_id")
-    #de_results = lrt$table
-    
     de_results = merge(de_results, ensembl_w_description,
-                       by.x = "ensembl_gene_id", by.y = "ensembl_gene_id", all.x = T)
-    #de_results = rename(de_results,c("Row.names"="ensembl_gene_id"))
-    #de_results <- merge(de_results, counts, by.x = "ensembl_gene_id", by.y = "row.names", all.x = T)
-    #rownames(de_results) = s_rownames
-    
-    #top_genes_cpm = logcpm[de_results$genes,]
-    #colnames(top_genes_cpm)=paste0(colnames(top_genes_cpm),".log2cpm")
-    #de_results = merge(de_results,top_genes_cpm,by.x = "genes", by.y="row.names",all.x=T)
-    
-    de_results <- de_results[order(abs(de_results$logFC),decreasing = T),]
+                       by.x = "ensembl_gene_id", by.y = "row.names", all.x = T)
     de_results <- de_results[c("ensembl_gene_id", "external_gene_name", "Gene_description", "Length",
                                "logFC", "logCPM", "LR", "PValue", "FDR", samples)]
+    de_results <- de_results[de_results$FDR < 0.05,]
+    de_results <- de_results[abs(de_results$logFC)>=2,]
+    de_results <- de_results[order(de_results$logFC),]
     write.csv(de_results, efilename, quote = T, row.names = F)
     
     prepare_file_4gsea(counts, samples, prefix)
     
     #plot_heatmap_separate (counts,samples,de_results,prefix)
-    plot_heatmap_separate (counts,samples,de_results,paste0(prefix,".top50genes"),50)
+    #plot_heatmap_separate (counts,samples,de_results,paste0(prefix,".top50genes"),50)
 }
