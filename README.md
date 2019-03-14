@@ -98,3 +98,6 @@ A +/- flanking region is considered when annotating the 5' and 3' positions of s
 - crt.nishani2018.R - bulk RNA-seq of cancer stem cell experiment
 - crt.utils.R - common function for RNA-seq analysis
 - crt.tropak2018.R - bulk RNA-seq, clustering, DE in mouse
+
+# Rescourses
+* http://www.rna-seqblog.com
