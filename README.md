@@ -1,17 +1,18 @@
-# crt
-Assuming that [crt](https://github.com/naumenko-sa/crt), [cre](https://github.com/naumenko-sa/cre), and [bioscripts](https://github.com/naumenko-sa/crt)
-are cloned to `~/crt`, `~/cre`, and `~/bioscripts`, bcbio installed, added to PATH, PYTHONPATH and running.
+# Installation
+1. Clone [crt](https://github.com/naumenko-sa/crt), [cre](https://github.com/naumenko-sa/cre), and [bioscripts](https://github.com/naumenko-sa/bioscripts) to
+to `~/crt`, `~/cre`, and `~/bioscripts`.
+2. Modify PATH: `export PATH=~/crt/scripts:~/cre/scripts:~/bioscripts/scripts`.
+3. Install [bcbio_nextgen](https://github.com/bcbio/bcbio-nextgen) add to PATH and PYTHONPATH.
 
-## 1. Run bcbio with ~/cre/crt.bcbio.rnaseq.yaml.
+# 2. Run bcbio with ~/crt/config/crt.bcbio.default.yaml.
 1. name sample SX_case-N-tissue, i.e. S101_55-1-F.
 2. create project/input, project = SX, input files [sample]_1.fq.gz, [sample]_2.fq.gz.
-3. ~/crt/crt.prepare_bcbio_run.sh project.
+3. `crt.prepare_bcbio_run.sh $project`.
 4. (optional) add strandedness: firststrand for stranded samples.
-5. ```qsub ~/cre/bcbio.pbs -v project=project```
+5. ```qsub ~/cre/scripts/bcbio.pbs -v project=project```
+Don't trim reads to save all data and delete (acrhive) fastq files.
 
-Don't trim reads to save all data and delete fastq files.
-
-## 2. Generate DNA variant report
+# 3. DNA variant report
 1. Copy SX-gatk-haplotype-annotated.vcf.gz from bcbio_output/final.
 2. Annotate variants:  
 `qsub ~/cre/cre.vcf2cre.sh -v original_vcf=SX-gatk-haplotype-annotated.vcf.gz,project=SX`
@@ -19,19 +20,19 @@ Don't trim reads to save all data and delete fastq files.
 `qsub ~/cre/cre.sh -v family=SX,type=rnaseq` - including rare intronic variants.  
 `qsub ~/cre/cre.sh -v family=SX,type=rnaseq` - only rare coding/splicing variants.
 
-## 3. Gene expression outlier analysis (RPKM)
+# 4. Gene expression outlier analysis (RPKM)
 1. ```qsub ~/crt/crt.feature_counts.sh -v bam=file.bam``` - counts for RPKM calculation in R.
 2. Use read.feature_counts_dir() from ~/crt/crt.utils.R to create RPKM matrix.
 3. crt.GonorazkyNaumenko2018.R - functions for muscular project.
 
-## 4. Isoform expression outlier analysis (TPM)
+# 5. Isoform expression outlier analysis (TPM)
 
-## 5. Splicing analysis (based on [MendelianRNA-seq](https://github.com/berylc/MendelianRNA-seq))
-1. (For every bam file including controls). Get junctions from a bam file with samtools:  
+# 6. Splicing analysis (based on [MendelianRNA-seq](https://github.com/berylc/MendelianRNA-seq))
+## 1. (For every bam file including controls). Get junctions from a bam file with samtools:  
 ```qsub ~/crt/crt.bam2junctions.pbs -v bam=file.bam```,  
 output: file.bam.junctions.txt
 
-2. Prepare reference database 
+## 2. Prepare reference database 
 Load GENCODE junctions: 
 ```
 python3 ~/crt/AddJunctionsToDatabase.py \
@@ -44,12 +45,12 @@ Load junctions from control samples:
 `qsub ~/crt/crt.load_junctions.pbs -v bam=file.bam`
 output: SpliceJunction.db
 
-3. (For every sample) Load junctions from a sample to SpliceJunctions.db
+## 3. (For every sample) Load junctions from a sample to SpliceJunctions.db
 `qsub ~/crt/crt.load_junctions.pbs -v bam=file.bam`
 
-4. Filter rare junctions: `qsub ~/crt/crt.filter_junctions.sh -v bam=file.bam`
+## 4. Filter rare junctions: `qsub ~/crt/crt.filter_junctions.sh -v bam=file.bam`
 
-5. Dependencies
+##5. Dependencies
 
 	1. ~/crt/genes.bed - protein coding genes. 
 	
