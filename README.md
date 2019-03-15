@@ -6,7 +6,6 @@
 ```
 export PATH=/path/bcbio/anaconda/bin:$PATH
 export PYTHONPATH=/path/bcbio/anaconda/lib/python2.7
-
 ```
 
 # 2. Run bcbio with ~/crt/config/crt.bcbio.default.yaml.
@@ -93,17 +92,15 @@ A single gene region can encompass partial or whole regions of other genes. Thus
 ### Splice site flanks and annotation
 A +/- flanking region is considered when annotating the 5' and 3' positions of sample junctions to increase the number of annotated junctions. This value is specified by the -flank parameter (default 1). There is an option to not use flanking at all (-flank 0).
 
-## 6. References
+## 6. References and resources
 * [Original MendelianRNA-seq by Beryl Cummings](https://github.com/berylc/MendelianRNA-seq)
 * [Modification by Dennis Kao](https://github.com/dennis-kao/MendelianRNA-seq-DB)
 * [Article: Cummings et al. 2017](http://stm.sciencemag.org/content/9/386/eaal5209) 
 * [Manual](https://macarthurlab.org/2017/05/31/improving-genetic-diagnosis-in-mendelian-disease-with-transcriptome-sequencing-a-walk-through/)
+* http://www.rna-seqblog.com
 
 ## 7. List of scripts
 - crt.gonorazky.naumenko.2018 - human bulk RNA-seq to solve Mendelian cases: clustering, outlier analysis, coverage, plots, splicing analysis
 - crt.nishani2018.R - bulk RNA-seq of cancer stem cell experiment
 - crt.utils.R - common function for RNA-seq analysis
 - crt.tropak2018.R - bulk RNA-seq, clustering, DE in mouse
-
-# Rescourses
-* http://www.rna-seqblog.com
