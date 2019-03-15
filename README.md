@@ -1,8 +1,13 @@
 # 1. Installation
 1. Clone [crt](https://github.com/naumenko-sa/crt), [cre](https://github.com/naumenko-sa/cre), and [bioscripts](https://github.com/naumenko-sa/bioscripts) to
-to `~/crt`, `~/cre`, and `~/bioscripts`.
-2. Modify PATH: `export PATH=~/crt/scripts:~/cre/scripts:~/bioscripts/scripts`.
-3. Install [bcbio_nextgen](https://github.com/bcbio/bcbio-nextgen) add to PATH and PYTHONPATH.
+`~/crt`, `~/cre`, and `~/bioscripts`.
+2. Set PATH: `export PATH=~/crt/scripts:~/cre/scripts:~/bioscripts/scripts` in ~/.bash_profile.
+3. Install [bcbio_nextgen](https://github.com/bcbio/bcbio-nextgen), set PATH and PYTHONPATH:
+```
+export PATH=/path/bcbio/anaconda/bin:$PATH
+export PYTHONPATH=/path/bcbio/anaconda/lib/python2.7
+
+```
 
 # 2. Run bcbio with ~/crt/config/crt.bcbio.default.yaml.
 1. name sample SX_case-N-tissue, i.e. S101_55-1-F.
