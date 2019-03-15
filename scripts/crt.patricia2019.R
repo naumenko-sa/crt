@@ -1,10 +1,9 @@
-init <- function()
-{
+init <- function(){
     setwd("~/Desktop/work/patricia")
     library(tidyverse)
     library(edgeR)
     ensembl_w_description <- read.delim2("~/cre/data/ensembl_w_description.txt", stringsAsFactors = F)
-    source("~/crt/crt.utils.R")
+    source("~/crt/scripts/crt.utils.R")
 }
 
 plot_mds <- function(){
@@ -66,23 +65,37 @@ differential_expression <- function()
     counts$Ensembl_gene_id <- str_replace(counts$Ensembl_gene_id,"\\.\\d+","")
     sample_names <- tibble(sample_name = colnames(counts)) %>% tail(-1)
     
-    protein_coding_genes <- read.csv("protein_coding_genes.list", sep="", stringsAsFactors=F)
+    protein_coding_genes <- read_csv("protein_coding_genes.list")
     counts <- inner_join(counts, protein_coding_genes, by = c("Ensembl_gene_id" = "ENS_GENE_ID")) %>% 
-        select(Ensembl_gene_id, HCGM_WT, WG2, WG3, HCGM_K27M, KG2, KG3)
+        select(Ensembl_gene_id, KG2, KG3, KN2, KN3)
+    
     # contrast 1
     # select(Ensembl_gene_id, HCGM_WT, WG2, WG3, HCGM_K27M, KG2, KG3)
     
     # contrast 2
     # select(Ensembl_gene_id, WG2, WG3, KG2, KG3)
     
-    counts <- column_to_rownames(counts,var="Ensembl_gene_id")
+    # contrast 3
+    # select(Ensembl_gene_id, HCGM_EV, EG2, EG3, HCGM_K27M, KG2, KG3)
+    
+    # contrast 4
+    # select(Ensembl_gene_id, HCGM_EV, EG3, HCGM_K27M, KG2, KG3)
+    
+    # contrast 5
+    # select(Ensembl_gene_id, HCGM_K27M, KG2, KG3, HCNSM_K27M, KN2, KN3)
+    
+    # contrast 6
+    # select(Ensembl_gene_id, KG2, KG3, KN2, KN3)
+    
+    counts <- column_to_rownames(counts, var = "Ensembl_gene_id")
     samples <- colnames(counts)
     n_samples <- length(samples)
     
     group <- factor(c(rep(1, n_samples/2), rep(2, n_samples/2)))
+    #group <- factor(c(1,1,2,2,2))
     filter <- 0.5
     
-    gene_lengths <- read.delim("~/crt/gene_lengths.txt", stringsAsFactors = F)
+    gene_lengths <- read.delim("~/crt/data/gene_lengths.txt", stringsAsFactors = F)
     gene_lengths <- gene_lengths[gene_lengths$ENSEMBL_GENE_ID %in% row.names(counts),]
     gene_lengths <- gene_lengths[order(gene_lengths$ENSEMBL_GENE_ID),]
     gene_lengths <- merge(gene_lengths, ensembl_w_description, by.x = "ENSEMBL_GENE_ID",
@@ -153,7 +166,7 @@ differential_expression <- function()
     fit <- glmFit(y,design)
     lrt <- glmLRT(fit)
     
-    prefix <- "2019-03-05"
+    prefix <- "2019-03-14"
     efilename <- paste0(prefix, ".csv")
     de_results <- topTags(lrt, n = max_genes, sort.by = "PValue", p.value = 1, adjust.method = "fdr")
     

@@ -1,4 +1,4 @@
-# Installation
+# 1. Installation
 1. Clone [crt](https://github.com/naumenko-sa/crt), [cre](https://github.com/naumenko-sa/cre), and [bioscripts](https://github.com/naumenko-sa/bioscripts) to
 to `~/crt`, `~/cre`, and `~/bioscripts`.
 2. Modify PATH: `export PATH=~/crt/scripts:~/cre/scripts:~/bioscripts/scripts`.
