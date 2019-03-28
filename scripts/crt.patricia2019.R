@@ -93,6 +93,18 @@ rpkm_table <- function(){
     write_excel_csv(rpkm_counts, "rpkms.csv")
 }
 
+#gsea_input_tsv <- "gsea/EV_MUT.GM.no_EG2/result/MUELLER_METHYLATED_IN_GLIOBLASTOMA.xls"
+#result_file <-  "ev_mut.gs.no_eg2.mueller.csv"
+add_rpkm_to_gsea <- function(gsea_input_tsv, result_file){
+    rpkm_counts <- read_csv("rpkms.csv")
+    gsea_result <- read_tsv(gsea_input_tsv) %>% 
+        select(PROBE, `DESCRIPTION<br>(from dataset)`, `CORE ENRICHMENT`)
+    colnames(gsea_result) <- c("gene","ensembl_gene_id", "core_enrichment")
+    
+    gsea_result <- left_join(gsea_result, rpkm_counts, by = c("ensembl_gene_id" = "rowname"))
+    write_excel_csv(gsea_result, result_file)
+}
+
 differential_expression <- function()
 {
     counts <- read_csv("raw_counts.csv")
