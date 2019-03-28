@@ -58,6 +58,41 @@ plot_mds <- function(){
     dev.off()
 }
 
+rpkm_table <- function(){
+    counts <- read_csv("raw_counts.csv")
+    # remove suffix
+    counts$Ensembl_gene_id <- str_replace(counts$Ensembl_gene_id,"\\.\\d+","")
+    
+    protein_coding_genes <- read_csv("protein_coding_genes.list")
+    counts <- inner_join(counts, protein_coding_genes, by = c("Ensembl_gene_id" = "ENS_GENE_ID")) 
+    counts <- column_to_rownames(counts, var = "Ensembl_gene_id")
+    
+    sample_names <- tibble(sample_name = colnames(counts))
+    
+    n_samples <- nrow(sample_names)
+    
+    group <- factor(c(rep(1, n_samples)))
+    filter <- 0.5
+    
+    gene_lengths <- read.delim("~/crt/data/gene_lengths.txt", stringsAsFactors = F)
+    gene_lengths <- gene_lengths[gene_lengths$ENSEMBL_GENE_ID %in% row.names(counts),]
+    gene_lengths <- gene_lengths[order(gene_lengths$ENSEMBL_GENE_ID),]
+    gene_lengths <- merge(gene_lengths, ensembl_w_description, by.x = "ENSEMBL_GENE_ID",
+                          by.y = "row.names", all.x = T, all.y = F)
+    #row.names(gene_lengths)=gene_lengths$ENSEMBL_GENE_ID
+    #gene_lengths$ENSEMBL_GENE_ID = NULL
+    
+    counts <- counts[row.names(counts) %in% gene_lengths$ENSEMBL_GENE_ID,]
+    
+    y <- DGEList(counts = counts,
+                 group = group,
+                 genes = gene_lengths,
+                 remove.zeros = T)
+    
+    rpkm_counts <- as_tibble(rownames_to_column(as.data.frame(rpkm(y))))
+    write_excel_csv(rpkm_counts, "rpkms.csv")
+}
+
 differential_expression <- function()
 {
     counts <- read_csv("raw_counts.csv")
