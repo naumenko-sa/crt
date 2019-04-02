@@ -114,7 +114,7 @@ differential_expression <- function()
     
     protein_coding_genes <- read_csv("protein_coding_genes.list")
     counts <- inner_join(counts, protein_coding_genes, by = c("Ensembl_gene_id" = "ENS_GENE_ID")) %>% 
-        select(Ensembl_gene_id, KG2, KG3, KN2, KN3)
+        select(Ensembl_gene_id, GLINS1, HCNSM_K27M, KN2, KN3)
     
     # contrast 1
     # select(Ensembl_gene_id, HCGM_WT, WG2, WG3, HCGM_K27M, KG2, KG3)
@@ -134,13 +134,17 @@ differential_expression <- function()
     # contrast 6
     # select(Ensembl_gene_id, KG2, KG3, KN2, KN3)
     
+    # contrast 7
+    # select(Ensembl_gene_id, GLINS1, HCNSM_K27M, KN2, KN3)
+    
     counts <- column_to_rownames(counts, var = "Ensembl_gene_id")
     samples <- colnames(counts)
     n_samples <- length(samples)
     
-    group <- factor(c(rep(1, n_samples/2), rep(2, n_samples/2)))
+    #group <- factor(c(rep(1, n_samples/2), rep(2, n_samples/2)))
     #group <- factor(c(1,1,2,2,2))
-    filter <- 0.5
+    group <- factor(c(1,2,2,2))
+    filter <- 1
     
     gene_lengths <- read.delim("~/crt/data/gene_lengths.txt", stringsAsFactors = F)
     gene_lengths <- gene_lengths[gene_lengths$ENSEMBL_GENE_ID %in% row.names(counts),]
