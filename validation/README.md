@@ -5,6 +5,33 @@
  
 ## [Piskol2013](https://www.ncbi.nlm.nih.gov/pubmed/24075185) article.
 
+## bcbio NA12878.yaml config
+```
+details:
+- algorithm:
+    aligner: star
+    strandedness: unstranded
+    variantcaller: gatk-haplotype
+  analysis: RNA-seq
+  description: NA12878_SRR307898
+  files:
+  - /path/NA12878/input/NA12878_SRR307898_1.fq.gz
+  - /path/NA12878/input/NA12878_SRR307898_2.fq.gz
+  genome_build: GRCh37
+  metadata:
+    batch: NA12878
+fc_name: NA12878
+resources:
+  default:
+    cores: 2
+    jvm_opts:
+    - -Xms750m
+    - -Xmx7000m
+    memory: 15G
+upload:
+  dir: ../final
+```
+
 ## Results
 
 |Metrics| gatk3.6, Nov 2016 |gatk 4.0.3.0|gatk3.8|
