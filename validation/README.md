@@ -1,7 +1,7 @@
-# Validation of small variant calling with RNA-seq data.
+# Validation of small variant calling with RNA-seq data
 
 ## Data
- RNA-Seq of GM12878, SRR307898.https://www.ncbi.nlm.nih.gov/sra/?term=SRR307898. (SRR307897 is a bad quality data).
+ RNA-Seq of GM12878, SRR307898.https://www.ncbi.nlm.nih.gov/sra/?term=SRR307898. (SRR307897 is of bad quality).
  
 ## [Piskol2013](https://www.ncbi.nlm.nih.gov/pubmed/24075185) article.
 
