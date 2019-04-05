@@ -1,9 +1,9 @@
 # Validation of small variant calling with RNA-seq data
 
 ## Data
- RNA-Seq of GM12878, SRR307898.https://www.ncbi.nlm.nih.gov/sra/?term=SRR307898. (SRR307897 is of bad quality).
- 
-## [Piskol2013](https://www.ncbi.nlm.nih.gov/pubmed/24075185) article.
+RNA-Seq of GM12878, SRR307898.https://www.ncbi.nlm.nih.gov/sra/?term=SRR307898. (SRR307897 is of bad quality).
+This dataset was used in [Piskol2013](https://www.ncbi.nlm.nih.gov/pubmed/24075185) article. Quite old - Illumina GAII.
+Better NA12878 RNA-seq?
 
 ## bcbio NA12878.yaml config
 ```
@@ -12,6 +12,8 @@ details:
     aligner: star
     strandedness: unstranded
     variantcaller: gatk-haplotype
+    tools_off:
+    - gatk4
   analysis: RNA-seq
   description: NA12878_SRR307898
   files:
@@ -30,6 +32,16 @@ resources:
     memory: 15G
 upload:
   dir: ../final
+```
+
+## Validation
+
+Uses two files from [cre](https://github.com/naumenko-sa/cre), required bcbio installation.
+
+```
+bcftools view -f PASS NA12878-gatk-haplotype-annotated.vcf.gz | grep -v possible_rnaedit | bgzip -c  > NA12878.pass.vcf.gz
+tabix NA12878.pass.vcf.gz
+cre.rtg.validate.sh NA12878.pass.vcf.gz ~/cre/data/intersect.bed
 ```
 
 ## Results
