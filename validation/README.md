@@ -36,7 +36,7 @@ upload:
 
 ## Validation
 
-Uses two files from [cre](https://github.com/naumenko-sa/cre), required bcbio installation.
+Uses two files from [cre](https://github.com/naumenko-sa/cre), requires bcbio installation.
 
 ```
 bcftools view -f PASS -e "INFO/DP<10 | INFO/possible_rnaedit==1" NA12878-gatk-haplotype-annotated.vcf.gz |  bgzip -c > NA12878.pass.vcf.gz
