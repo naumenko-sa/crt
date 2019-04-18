@@ -8,7 +8,7 @@ init <- function(){
 
 plot_mds <- function(){
     # ENSG00000187474.4 row was corrupted - 26 columns
-    counts <- read_csv("raw_counts.csv")
+    counts <- read_csv("raw_counts_joined.csv")
     # remove suffix
     counts$Ensembl_gene_id <- str_replace(counts$Ensembl_gene_id,"\\.\\d+","")
 
@@ -30,7 +30,9 @@ plot_mds <- function(){
     counts$Ensembl_gene_id <- NULL
     group <- factor(c(rep(1, ncol(counts))))
 
+    #counts <- drop_na(counts)
     y <- DGEList(counts = counts, group = group, remove.zeros = T)
+    
     top_genes = 1000
     print("Plotting ...")
     png("mds.png", res=300, width=2000, height=2000)
@@ -245,4 +247,17 @@ differential_expression <- function()
     
     #plot_heatmap_separate (counts,samples,de_results,prefix)
     #plot_heatmap_separate (counts,samples,de_results,paste0(prefix,".top50genes"),50)
+}
+
+merge_with_nishani2019 <- function(){
+    nishani2019 <- read_delim("LGK_counts.txt", delim = " ")
+
+    counts <- read_csv("raw_counts.csv")
+    tmp <- as_tibble(str_split(counts$Ensembl_gene_id, "\\.", n=2, simplify = T))
+    counts$Ensembl_gene_id <- tmp$V1
+    
+    counts <- left_join(counts, nishani2019, by = c("Ensembl_gene_id" = "ensembl_gene_id"))
+    
+    write_excel_csv(counts, "raw_counts_joined.csv")
+    
 }
