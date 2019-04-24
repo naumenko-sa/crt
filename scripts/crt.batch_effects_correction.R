@@ -1,37 +1,72 @@
-normalize.install = function() {
-  source("https://bioconductor.org/biocLite.R")
-  biocLite("sva")
-  library(sva)
-  library("Biobase")
+# batch effect correction with SVA
+# https://bioconductor.org/packages/release/bioc/html/sva.html
+# https://bioconductor.org/packages/release/bioc/vignettes/sva/inst/doc/sva.pdf
+installation <- function() {
+    if (!requireNamespace("BiocManager", quietly = TRUE))
+        install.packages("BiocManager")
+    BiocManager::install("sva", version = "3.8")
+    BiocManager::install("bladderbatch", version = "3.8")
 }
 
-#2 input files required: rpkm counts of all the samples and a phenotype csv 
-#Phenotype csv should have samples names as rows and columns should be sample number, outcome, batch and disease
-# sample number is unique id of sample, can be arbitrarily assigned (1,2,3...)
-#outcome can be "normal or disease"
-#batch is a description of all the batched (ex. 'CHEO or GTEx)
-#Disease is a value of either disease or normal 
-# number of rows of phenotype csv should be the same as number of columns of raw counts
+init <- function() {
+    library(sva)
+    #library("Biobase")
+    library(tidyverse)
+}
 
-combat = function() {
-  raw_counts = read.csv("nofibro.original.rpkms.csv", check.names = F, row.names = 1)
-  #Log transform values
-  for (coll in colnames(raw_counts)) {
-    raw_counts[,coll] = log(raw_counts[,coll] + 1)
-  }
-  # remove any rows which have 0 variance
-  raw_counts = raw_counts[ - as.numeric(which(apply(raw_counts, 1, var) == 0)),]
-  raw_counts = as.matrix(raw_counts, row.names = 1)
+tutorial <- function(){
+    #install.packages("pamr")
+    library(sva)
+    library(bladderbatch)
+    data(bladderdata)
+    library(pamr)
+    library(limma)
+    
+    pheno <- pData(bladderEset)
+    edata <- exprs(bladderEset)
+    
+    mod <- model.matrix(~as.factor(cancer), data = pheno)
+    mod0 <- model.matrix(~1, data = pheno)
+    
+    n.sv <- num.sv(edata, mod, method="leek")
+    svobj <- sva(edata, mod, mod0, n.sv=n.sv)
+}
 
-  pheno = read.csv("pheno_nofibro.csv", row.names = 1)
-  pheno = as(pheno, "AnnotatedDataFrame") 
-  pheno = pData(pheno)
+# input
+# - rpkm counts (why rpkm not raw?)
+# - phenotype.csv 
+#   sample names as rows, columns: sample number, outcome, batch and disease
+#   sample number is unique id of sample, can be arbitrarily assigned (1,2,3...)
+#   outcome can be "normal or disease"
+#   batch is a description of all the batched (ex. 'CHEO or GTEx)
+#   Disease is a value of either disease or normal 
+#   number of rows of phenotype csv should be the same as number of columns of raw counts
+correct_known_batches <-  function(){
+    counts <-  read_csv("raw_counts_joined.coding.csv")
+   
+    sample_names <- tibble(sample_name = colnames(counts)) %>% tail(-1) %>% pull(sample_name)
+    #Log transform values
+    
+    counts <- counts %>% 
+        mutate_at(vars(-Ensembl_gene_id), log1p) %>% 
+        mutate(sd = rowSds(as.matrix(.[sample_names]))) %>% 
+        filter(sd != 0)
+        
+    raw_counts = as.matrix(raw_counts, row.names = 1)
+
+    pheno = read.csv("pheno_nofibro.csv", row.names = 1)
+    pheno = as(pheno, "AnnotatedDataFrame") 
+    pheno = pData(pheno)
   
-  batch = pheno$batch
-  modcombat = model.matrix(~1, data=pheno)
-  
-  combat_rpkm = ComBat(dat=raw_counts, batch=batch, mod=modcombat, par.prior = TRUE, prior.plots = TRUE)
-  #write.csv(combat_rpkm, file="combat_rpkm.csv")
+    batch = pheno$batch
+    modcombat = model.matrix(~1, data = pheno)
+    
+    combat_counts <- ComBat(dat = raw_counts, 
+                            batch = batch, 
+                            mod = modcombat, 
+                            par.prior = TRUE, 
+                            prior.plots = TRUE)
+    #write.csv(combat_rpkm, file="combat_rpkm.csv")
   
   for (coll in colnames(combat_rpkm)) {
     combat_rpkm[,coll] = exp(combat_rpkm[,coll]) - 1 
@@ -76,9 +111,8 @@ batch_effects = function() {
 #PCA plots of adjusted and raw data
 
 pca = function() {
-  
-  adjusted = read.csv("nofibro_rpkms_adjusted.csv", check.names = F, row.names = 1)
-  raw_counts = read.csv("nofibro.original.rpkms.csv", check.names = F, row.names = 1)
+    adjusted = read.csv("nofibro_rpkms_adjusted.csv", check.names = F, row.names = 1)
+    raw_counts = read.csv("nofibro.original.rpkms.csv", check.names = F, row.names = 1)
 
   
   raw_counts.pca <- prcomp(t(raw_counts))

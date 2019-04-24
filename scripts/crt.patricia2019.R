@@ -20,7 +20,7 @@ plot_mds <- function(){
     print("Subsetting protein coding genes ...")
     #a file with ENSEMBL IDs
     if (file.exists("protein_coding_genes.list")){
-        protein_coding_genes <- read.csv("protein_coding_genes.list", sep="", stringsAsFactors=F)
+        protein_coding_genes <- read_csv("protein_coding_genes.list.csv")
         counts <- inner_join(counts, protein_coding_genes, by = c("Ensembl_gene_id" = "ENS_GENE_ID"))
     }else{
         print("Please provide protein_coding_genes.list with ENS_GENE_ID")
