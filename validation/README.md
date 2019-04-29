@@ -58,3 +58,5 @@ cre.rtg.validate.sh NA12878.pass.vcf.gz ~/cre/data/intersect.bed
 2019-03-01|INDEL|1.1.3|4.1.0.0|374|3,131|2,670|89%|88%|3,044|3,505
 2019-03-01|SNP|1.1.3|3.8|6,244|558|32,499|8%|84%|38,743|6,802
 2019-03-01|INDEL|1.1.3|3.8|192|1,951|2,852|91%|94%|3,044|2,143
+
+Another pipline for variant calling with RNA-seq for Cancer related projects: https://github.com/NCIP/ctat-mutations/wiki/Performance-Assessment

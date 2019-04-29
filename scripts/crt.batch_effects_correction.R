@@ -66,6 +66,8 @@ correct_known_batches <-  function(){
                             mod = modcombat, 
                             par.prior = TRUE, 
                             prior.plots = TRUE)
+    
+    
     #write.csv(combat_rpkm, file="combat_rpkm.csv")
   
   for (coll in colnames(combat_rpkm)) {
