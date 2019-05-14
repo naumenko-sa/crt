@@ -1,6 +1,6 @@
 init <- function(){
-    setwd("~/Desktop/work/wilson/feature_counts/")
-    source("~/crt/crt.utils.R")    
+    setwd("~/Desktop/work/wilson/muscle")
+    source("~/crt/scripts/crt.utils.R")    
 }
 
 plot_mds <- function(file.png,counts,filter=0){
@@ -70,6 +70,13 @@ plot_mds("mds.fibro.png",counts)
 
 #tpm100 = head(tpm,100)
 #write.csv(tpm100,"tpm100.csv",quote = F)
+}
+
+ranked_expression <- function(){
+    rpkms <- feature_counts2rpkm_dir()
+    muscular_genes <- get_genes_in_panels()
+    rpkms <- rpkms %>% filter(external_gene_name %in% muscular_genes)
+    write_excel_csv(rpkms, "expression.in_muscle.csv")
 }
 
 diff_expression <- function(){
