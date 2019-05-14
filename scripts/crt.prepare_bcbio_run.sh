@@ -23,11 +23,11 @@ do
 done < samples.txt
 
 # default template
-template=~/crt/crt.bcbio.default.yaml
+template=~/crt/config/crt.bcbio.default.yaml
 # if a different template is used
 if [ -n "$2" ]
 then
-    template=~/crt/crt.bcbio.$2.yaml
+    template=~/crt/config/crt.bcbio.$2.yaml
 fi
 
 echo "Creating bcbio project for " $project " with template: " $template

@@ -16,13 +16,13 @@ export PYTHONPATH=/path/bcbio/anaconda/lib/python2.7
 5. ```qsub ~/cre/scripts/bcbio.pbs -v project=project```
 Don't trim reads to save all data and delete (acrhive) fastq files.
 
-# 3. DNA variant report
+# 3. Small variant report
 1. Copy SX-gatk-haplotype-annotated.vcf.gz from bcbio_output/final.
 2. Annotate variants:  
 `qsub ~/cre/cre.vcf2cre.sh -v original_vcf=SX-gatk-haplotype-annotated.vcf.gz,project=SX`
 3. Generate reports (SX dir prepared by step2 should be ./SX, i.e. in the current dir):  
 `qsub ~/cre/cre.sh -v family=SX,type=rnaseq` - including rare intronic variants.  
-`qsub ~/cre/cre.sh -v family=SX,type=rnaseq` - only rare coding/splicing variants.
+`qsub ~/cre/cre.sh -v family=SX` - only rare coding/splicing variants.
 
 # 4. Gene expression outlier analysis (RPKM)
 1. ```qsub ~/crt/crt.feature_counts.sh -v bam=file.bam``` - counts for RPKM calculation in R.
@@ -33,7 +33,7 @@ Don't trim reads to save all data and delete (acrhive) fastq files.
 
 # 6. Splicing analysis (based on [MendelianRNA-seq](https://github.com/berylc/MendelianRNA-seq))
 ## 1. (For every bam file including controls). Get junctions from a bam file with samtools:  
-```qsub ~/crt/crt.bam2junctions.pbs -v bam=file.bam```,  
+```qsub ~/crt/scripts/crt.bam2junctions.pbs -v bam=file.bam```,  
 output: file.bam.junctions.txt
 
 ## 2. Prepare reference database 
