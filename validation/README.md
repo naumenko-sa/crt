@@ -3,7 +3,7 @@
 ## Data
 RNA-Seq of GM12878, SRR307898. https://www.ncbi.nlm.nih.gov/sra/?term=SRR307898. (SRR307897 is of bad quality).
 This dataset was used in [Piskol2013](https://www.ncbi.nlm.nih.gov/pubmed/24075185) article. Quite old - Illumina GAII.
-Is ther a better NA12878 RNA-seq?
+Is there a better NA12878 RNA-seq?
 
 ## bcbio NA12878.yaml config
 ```
@@ -59,4 +59,5 @@ cre.rtg.validate.sh NA12878.pass.vcf.gz ~/cre/data/intersect.bed
 2019-03-01|SNP|1.1.3|3.8|6,244|558|32,499|8%|84%|38,743|6,802
 2019-03-01|INDEL|1.1.3|3.8|192|1,951|2,852|91%|94%|3,044|2,143
 
-Another pipline for variant calling with RNA-seq for Cancer related projects: https://github.com/NCIP/ctat-mutations/wiki/Performance-Assessment
+Another pipline for variant calling with RNA-seq for Cancer related projects:  
+https://github.com/NCIP/ctat-mutations/wiki/Performance-Assessment

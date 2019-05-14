@@ -1,5 +1,5 @@
 ###############################################################################
-# Functions for RNA-seq article Gonorazky.Naumenko.et_al.Dowling.2018
+# Functions for RNA-seq article Gonorazky.Naumenko.et_al.Dowling.2019
 # expression outlier detection in ~/crt/crt.expression.outliers.R
 # 1. Clustering, MDS, PCA plots
 # 2. Heatmaps
@@ -21,8 +21,8 @@ init <- function(){
     library(genefilter)
     library(reshape2)
     library(tidyverse)
-    source("~/crt/crt.utils.R")
-    source("~/bioscripts/genes.R")
+    source("~/crt/scripts/crt.utils.R")
+    source("~/bioscripts/gene_panels/genes.R")
     setwd("~/Desktop/work")
     #gene_lengths = read.delim("~/Desktop/project_muscular/reference/gene_lengths.txt", stringsAsFactors=F, row.names=1)
 }
@@ -817,6 +817,16 @@ expression.variation = function()
     genes = read.table("genes1rpkm_in_muscle.trios.txt",header=T,stringsAsFactors = F)$ensembl_gene_id
     expression.variation.boxplot(genes,"expression.cov.1rpkm_genes.png",
                                  "Expression variation in 1rpkm genes")
+}
+
+expression_in_a_sample <- function(){
+    gene <- "NEB"
+    rpkms <- read_csv("rpkms.csv") %>% filter (external_gene_name == gene)
+    rpkms$ensembl_gene_id <- NULL
+    rpkms$external_gene_name <- NULL
+    rpkms$gene_description <- NULL
+    rowMeans(rpkms)
+    sd(rpkms)
 }
 
 ###############################################################################

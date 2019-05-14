@@ -81,14 +81,11 @@ linkage_region7 = c("PEX11G", "C19orf45", "ZNF358", "MCOLN1", "PNPLA6", "CAMPSAP
 linkage_region8 = c("NDUFA7", "RPS28", "KANK3", "ANGPTL4", "RAB11B-AS1", "MIR4999", "RAB11B", "MARCH2", "HNRNPM", 
                     "PRAM1", "ZNF414", "MYO1F", "ADAMTS10", "ACTL9", "OR2Z1", "ZNF558", "MBD3L1", "OR1M1", "MUC16")
 
-#protein_coding_genes <- read.table("~/cre/data/protein_coding_genes.txt", stringsAsFactors=F, header=T)
-
 protein_coding_genes <- read_csv("~/cre/data/protein_coding_genes.csv")
 
 protein_coding_genes.bed = read.delim("~/cre/data/protein_coding_genes.bed", header=F, stringsAsFactors=F)
 colnames(protein_coding_genes.bed) = c("chrom","start","end","gene","ensembl_gene_id")
 
-protein_coding_genes.ens_ids <- read.table("~/cre/data/protein_coding_genes.ens_ids.txt", stringsAsFactors=F,header=T)
 genes_transcripts = read.csv("~/cre/data/genes.transcripts.ens_only.csv",stringsAsFactors = F)
 
 omim.file = "~/Desktop/reference_tables/omim_inheritance.csv"
@@ -105,11 +102,11 @@ if (file.exists(gtex_rpkm_file))
     gtex_rpkm = read.csv(gtex_rpkm_file, sep="", stringsAsFactors = F)
 }
 
-ensembl_w_description = read.delim2("~/cre/data/ensembl_w_description.txt", row.names=1, stringsAsFactors=F)
+ensembl_w_description <- read_csv("~/cre/data/ensembl_genes_w_description.csv")
+
 #gene_lengths = read.delim("~/Desktop/project_RNAseq_diagnostics/reference/gene_lengths.txt", stringsAsFactors=F, row.names=1)
 
-installation = function()
-{
+installation <- function(){
     source("http://bioconductor.org/biocLite.R")
     biocLite("edgeR")
     install.packages("pheatmap")
@@ -237,52 +234,45 @@ read.coverage2counts_dir = function(update=F)
 }
 
 # Loads a file with counts from feature_counts
-# loads gene lengths
-# loads gene names
 # calculates RPKMs
-# returns ENS_ID, rpkm, Gene_name
+# returns ensembl_gene_id, sample
 feature_counts2rpkm <- function(filename){
-    #test:
-    #filename="S01_1-1-B.bam.rpkm_counts.txt"
-    #first line in the file is a comment
-    counts <- read.delim(filename, stringsAsFactors=F, row.names=1, skip=1)
-    counts$Chr <- NULL
-    counts$Start <- NULL
-    counts$End <- NULL
-    counts$Strand <- NULL
-    
-    Gene_lengths <- counts$Length
-    counts$Length <- NULL
-    
-    counts <- rpkm(counts,Gene_lengths)
-    colnames(counts) <- gsub(".bam","",colnames(counts))
-    
+    # test:
+    # filename <- "S100_47-1-Myo.bam.feature_counts.txt"
+    # first line in the file is a comment
+    counts <- read_tsv(filename, skip = 1) %>% 
+                select(Geneid, Length, last_col()) %>% 
+                rename(ensembl_gene_id = Geneid, length = Length)
+    colnames(counts) <- gsub(".bam","", colnames(counts))
+                
+    sample_name <- colnames(counts)[3]
+    counts$rpkm <- rpkm(counts[,sample_name], counts$length)
+    counts <- counts %>% select(ensembl_gene_id, rpkm) %>% rename(!!sample_name := rpkm)
     return(counts)
 }
 
 # reads feature counts in the current directory and calculate RPKMs
-read_feature_counts_dir <- function(update = F){
-    if(file.exists("rpkms.txt") && update == F){
-        counts <- read.table("rpkms.txt")
+feature_counts2rpkm_dir <- function(update = F){
+    if(file.exists("rpkms.csv") && update == F){
+        counts <- read_csv("rpkms.csv")
     }else{
-        files <- list.files(".","*feature_counts.txt")
+        files <- list.files(".", "*feature_counts.txt")
         counts <- feature_counts2rpkm(files[1])
         for (file in tail(files,-1)){
             print(file)
             counts_buf <- feature_counts2rpkm(file)
-            counts <- merge_row_names(counts,counts_buf)
+            counts <- left_join(counts, counts_buf, by = "ensembl_gene_id")
         }
         
-        counts <- merge(counts, ensembl_w_description, by.x = "row.names", by.y = "row.names")
-        row.names(counts) <- counts$Row.names
-        counts$Row.names <- NULL
-        counts$Gene_description <- NULL
-    
-        #remove a second entry of CLN3 from rpkm_counts.txt
-        counts <- counts[!row.names(counts) %in% c("ENSG00000261832","ENSG00000267059","ENSG00000200733","ENSG00000207199","ENSG00000252408",
-                                                  "ENSG00000212270","ENSG00000212377","ENSG00000167774"),]
+        counts <- left_join(counts, ensembl_w_description, by = "ensembl_gene_id")
         
-        write.table(counts, "rpkms.txt", quote = F)
+        # remove a second entry of CLN3 from rpkm_counts.txt
+        counts <- counts %>% filter(!ensembl_gene_id %in% c("ENSG00000261832", "ENSG00000267059",
+                                                           "ENSG00000200733", "ENSG00000207199",
+                                                           "ENSG00000252408", "ENSG00000212270",
+                                                           "ENSG00000212377", "ENSG00000167774"))
+        
+        write_excel_csv(counts, "rpkms.csv", quote = F)
     }
     return(counts)
 }
@@ -296,14 +286,14 @@ read_feature_counts <- function(filename){
 }
 
 #reads all counts in the current directory
-read_feature_counts_dir <- function(update = F){
+raw_read_feature_counts_dir <- function(update = F){
     if(file.exists("raw_counts.txt") && update == F){
         counts <- read_table("raw_counts.txt")
     }else{
         files <- list.files(".","*feature_counts.txt")
         counts <- read_feature_counts(files[1])
-        for (file in tail(files,-1)){
-            print(paste0("Reading ",file))
+        for (file in tail(files, -1)){
+            print(paste0("Reading ", file))
             counts_buf <- read_feature_counts(file)
             counts <- left_join(counts, counts_buf, by = "ensembl_gene_id")
         }
