@@ -4,6 +4,8 @@ library(edgeR)
 library(readr)
 library(tidyverse)
 library(tidyselect)
+library(GO.db)
+library(org.Hs.eg.db)
 
 trios = c("12.1","14.1","14.2","17.1","18.1","26.1","28.1","5.1","6.1","9.1","40.1","40.2","4.1")
 
@@ -684,19 +686,69 @@ decode_tissue_type = function (row){
 
 splicing.read_novel_splice_events = function(file){
     ############################################################
-    # debug
-    # setwd("~/Desktop/work/splicing/muscle")
-    # file = "S12_9-1-M.bam_specific_rc5_norm_rc0.05_n_gtex_184"
+    # test
+    # setwd("~/Desktop/work/splicing_flank2")
+    # file <- "S05_4-1-F.bam.rare_junctions.txt"
     ############################################################
     
-    sample = strsplit(file,".",fixed=T)[[1]][1]
+    sample <- str_split_fixed(file, "\\.", 2)[1]
     print(sample)
-    splice_events = read.csv(file,stringsAsFactors=FALSE)
-    splice_events$sample = sample
-    #splice_events = merge(splice_events,omim,by.x = "gene", by.y = "Gene",all.x = T)
-    splice_events$Omim=""
-    splice_events = splice_events[,c("sample","gene","pos","annotation","read_count","norm_read_count",
-                                     "n_gtex_seen","total_gtex_read_count","Omim")]
-    #write.csv(splice_events,file = paste0(sample,".csv"),row.names = F)
+    splice_events <- read_csv(file)
+    splice_events$sample <- sample
+    splice_events$Omim <- ""
+    splice_events <- splice_events %>% select(sample, gene, pos, annotation, read_count, norm_read_count,
+                                     n_gtex_seen, total_gtex_read_count, Omim)
+    #write_excel_csv(splice_events, file = paste0(sample,".csv"))
     return(splice_events)
 }
+
+# plot go pictures
+# http://cbl-gorilla.cs.technion.ac.il/GOrilla
+# UP means upregulated in the second group, i.e. WT WT WT vs MUT MUT MUT, 
+# up is up in MUT
+go_analysis = function (lrt, prefix="")
+{
+    go <- goana(lrt, species = "Hs", geneid = "ENTREZID")
+    top_go <- 50
+    
+    for(on in c("BP","CC","MF"))
+    {
+        go.up <-  rownames_to_column(topGO(go, on = on, sort = "Up", n = top_go), var = "GO")
+        go.up$log2pvalue = -log2(go.up$P.Up)
+        
+        write_csv(go.up, paste0(prefix, "GO_",on,"_up.csv"))
+        
+        go.down = rownames_to_column(topGO(go, on = on, sort = "Down", n = top_go), var = "GO")
+        go.down$log2pvalue = -log2(go.down$P.Down)
+        
+        write_csv(go.down, paste0(prefix, "GO_",on,"_down.csv"))
+    }
+}
+
+#pathway analysis
+kegg_analysis = function (lrt, prefix="")
+{
+    kegg <- kegga(lrt, species = "Hs", geneid = "ENTREZID")
+    
+    kegg.up <- rownames_to_column(topKEGG(kegg, sort = "Up", number = 50), var = "KEGG")
+    kegg.up$log2pvalue <- -log2(kegg.up$P.Up)
+    write_csv(kegg.up, paste0(prefix, "kegg_up.csv"))
+    
+    kegg.down <- rownames_to_column(topKEGG(kegg, sort = "Down", number = 50), var = "KEGG")
+    kegg.down$log2pvalue <- -log2(kegg.down$P.Down)
+    write_csv(kegg.down, paste0(prefix,"kegg_down.csv"))
+}
+
+###############################################################################
+args <- commandArgs(trailingOnly = T)
+if (length(args) == 0 || args[1] == "--help"){
+    cat("Usage: Rscript function_name function_args\n")
+    cat("Available functions:\n")
+    cat("splicing.read_novel_splice_events sample.bam.rare_junctions.txt\n")
+}else{
+    cat(paste0("Running function: ", args[1],"\n"))
+    init()
+    fcn <- get(args[1])
+    fcn(tail(args,-1))
+}
+###############################################################################

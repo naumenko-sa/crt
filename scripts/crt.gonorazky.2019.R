@@ -1072,23 +1072,23 @@ count_rpkm_for_exons = function()
 ###################################################################################################
 # 5. Splicing 
 ###################################################################################################
-Supplementary_Table_9.Splicing.Panels.Frequency = function()
-{
+# Supplementary_Table_9
+splicing_panels_frequency = function(){
     setwd("~/Desktop/work/splicing_flank2/")
-    files = list.files(".","*rare_junctions.txt")
-    events = splicing.read_novel_splice_events(files[1])
-    for (file in tail(files,-1))
+    files <- list.files(".","*rare_junctions.txt")
+    events <- splicing.read_novel_splice_events(files[1])
+    for (file in tail(files, -1))
     {
-        events_buf = splicing.read_novel_splice_events(file)
-        events = rbind(events,events_buf)
+        events_buf <- splicing.read_novel_splice_events(file)
+        events <- bind_rowd(events, events_buf)
     }
     
-    events$norm_read_count = as.numeric(events$norm_read_count)
-    events$read_count = as.numeric(events$read_count)
+    events$norm_read_count <- as.numeric(events$norm_read_count)
+    events$read_count <- as.numeric(events$read_count)
     
-    filtered = events[events$norm_read_count >= 0.5,]
+    filtered <- events[events$norm_read_count >= 0.5,]
     
-    filtered = filtered[filtered$read_count >= 30,]
+    filtered <- filtered[filtered$read_count >= 30,]
     
     frequencies = as.data.frame(table(filtered$pos))
     colnames(frequencies) = c("pos","frequency")
@@ -1197,3 +1197,17 @@ TableS15.expression.1rpkm <- function(rpkms.file){
     print(paste0("Genes at <1 RPKM:",length(row.names(rpkms.muscle[rpkms.muscle$average<1,]))))
     print(paste(sort(row.names(rpkms.muscle[rpkms.muscle$average<1,])),collapse=","))
 }
+
+###############################################################################
+args <- commandArgs(trailingOnly = T)
+if (length(args) == 0 || args[1] == "--help"){
+    cat("Usage: Rscript function_name function_args\n")
+    cat("Available functions:\n")
+    cat("splicing_panels_frequency\n")
+}else{
+    cat(paste0("Running function: ", args[1],"\n"))
+    init()
+    fcn <- get(args[1])
+    fcn(tail(args,-1))
+}
+###############################################################################

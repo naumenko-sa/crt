@@ -2,7 +2,6 @@ init <- function(){
     setwd("~/Desktop/work/patricia")
     library(tidyverse)
     library(edgeR)
-    ensembl_w_description <- read.delim2("~/cre/data/ensembl_w_description.txt", stringsAsFactors = F)
     source("~/crt/scripts/crt.utils.R")
 }
 
@@ -114,10 +113,9 @@ differential_expression <- function()
     counts$Ensembl_gene_id <- str_replace(counts$Ensembl_gene_id,"\\.\\d+","")
     sample_names <- tibble(sample_name = colnames(counts)) %>% tail(-1)
     
-    protein_coding_genes <- read_csv("protein_coding_genes.list")
-    counts <- inner_join(counts, protein_coding_genes, by = c("Ensembl_gene_id" = "ENS_GENE_ID")) %>% 
-        select(Ensembl_gene_id, GLINS1, HCNSM_K27M, KN2, KN3)
-    
+    counts <- inner_join(counts, protein_coding_genes, by = c("Ensembl_gene_id" = "ensembl_gene_id")) %>% 
+        dplyr::select(Ensembl_gene_id, HCNSM_EV, EN2, EN3, HCNSM_K27M, KN2, KN3)
+
     # contrast 1
     # select(Ensembl_gene_id, HCGM_WT, WG2, WG3, HCGM_K27M, KG2, KG3)
     
@@ -139,13 +137,16 @@ differential_expression <- function()
     # contrast 7
     # select(Ensembl_gene_id, GLINS1, HCNSM_K27M, KN2, KN3)
     
+    # contrast 8
+    # select(Ensembl_gene_id, HCNSM_EV, EN2, EN3, HCNSM_K27M, KN2, KN3)
+    
     counts <- column_to_rownames(counts, var = "Ensembl_gene_id")
     samples <- colnames(counts)
     n_samples <- length(samples)
     
-    #group <- factor(c(rep(1, n_samples/2), rep(2, n_samples/2)))
+    group <- factor(c(rep(1, n_samples/2), rep(2, n_samples/2)))
     #group <- factor(c(1,1,2,2,2))
-    group <- factor(c(1,2,2,2))
+    #group <- factor(c(1,2,2,2))
     filter <- 1
     
     gene_lengths <- read.delim("~/crt/data/gene_lengths.txt", stringsAsFactors = F)
@@ -177,16 +178,15 @@ differential_expression <- function()
     keep <- rowSums(cpm(y)>filter) >= n_samples/2
     y <- y[keep,, keep.lib.sizes = F]
     
-    #necessary for goana
-    #idfound = y$genes$genes %in% mappedRkeys(org.Hs.egENSEMBL)
-    #y = y[idfound,]
-    
-    #egENSEMBL=toTable(org.Hs.egENSEMBL)
-    #m = match (y$genes$genes,egENSEMBL$ensembl_id)
-    #y$genes$EntrezGene = egENSEMBL$gene_id[m]
-    #egSYMBOL = toTable(org.Hs.egSYMBOL)
-    #m = match (y$genes$EntrezGene,egSYMBOL$gene_id)
-    #y$genes$Symbol = egSYMBOL$symbol[m]
+    # necessary for goana - it uses ENTREZ gene ids
+    idfound <- y$genes$ENSEMBL_GENE_ID %in% mappedRkeys(org.Hs.egENSEMBL)
+    y <- y[idfound, ]
+    egENSEMBL <- toTable(org.Hs.egENSEMBL)
+    m <- match (y$genes$ENSEMBL_GENE_ID, egENSEMBL$ensembl_id)
+    y$genes$ENTREZID <- egENSEMBL$gene_id[m]
+    egSYMBOL <- toTable(org.Hs.egSYMBOL)
+    m <- match(y$genes$ENTREZID,egSYMBOL$gene_id)
+    y$genes$Symbol <- egSYMBOL$symbol[m]
     
     #remove duplications - just 1 gene in this dataset
     #first order by counts to remove duplicated names with 0 counts
@@ -214,36 +214,35 @@ differential_expression <- function()
     
     design <- model.matrix(~group)
     
-    y <- estimateDisp(y,design)
+    y <- estimateDisp(y, design)
     
     fit <- glmFit(y,design)
     lrt <- glmLRT(fit)
     
-    prefix <- "2019-03-14"
+    prefix <- "contrast8_"
     efilename <- paste0(prefix, ".csv")
-    de_results <- topTags(lrt, n = max_genes, sort.by = "PValue", p.value = 1, adjust.method = "fdr")
+    de_results <- topTags(lrt, n = max_genes, sort.by = "PValue", p.value = 1, adjust.method = "fdr")$table
+    de_results$ENSEMBL_GENE_ID <- NULL
+    de_results$ensembl_gene_id <- NULL
+    de_results$ENTREZID <- NULL
+    de_results$external_gene_name <- NULL
+    de_results$gene_description <- NULL
     
-    de_results$table$ensembl_gene_id <- NULL
-    de_results$table$external_gene_name <- NULL
-    de_results$table$Gene_description <- NULL
-    de_results$table$ENSEMBL_GENE_ID <- NULL
+    rpkm.counts <- read_csv("rpkms.csv")
+    de_results <- rownames_to_column(as.data.frame(de_results), var = "ensembl_gene_id")
     
-    de_results$table <- merge(de_results$table, rpkm.counts, by.x = "row.names", by.y = "row.names", 
-                              all.x = T, all.y = F)
-    colnames(de_results$table)[1] = "ensembl_gene_id"
-    write.csv(de_results$table, efilename, quote = T, row.names = F)
-    
-    de_results = read.csv(efilename, stringsAsFactors = F)
-    de_results = merge(de_results, ensembl_w_description,
-                       by.x = "ensembl_gene_id", by.y = "row.names", all.x = T)
-    de_results <- de_results[c("ensembl_gene_id", "external_gene_name", "Gene_description", "Length",
-                               "logFC", "logCPM", "LR", "PValue", "FDR", samples)]
-    de_results <- de_results[de_results$FDR < 0.05,]
-    de_results <- de_results[abs(de_results$logFC)>=2,]
-    de_results <- de_results[order(de_results$logFC),]
-    write.csv(de_results, efilename, quote = T, row.names = F)
+    de_results <- left_join(de_results, rpkm.counts, by = c("ensembl_gene_id" = "ensembl_gene_id")) %>% 
+                    left_join(ensembl_w_description, by = c("ensembl_gene_id" = "ensembl_gene_id")) %>% 
+                    dplyr::select(ensembl_gene_id, external_gene_name, gene_description, Length,
+                               logFC, logCPM, LR, PValue, FDR, one_of(samples)) %>% 
+                    filter(FDR < 0.05, abs(logFC)>=2) %>% 
+                    arrange(logFC)
+    write_excel_csv(de_results, efilename)
     
     prepare_file_4gsea(counts, samples, prefix)
+    
+    go_analysis(lrt, "contrast8_")
+    kegg_analysis(lrt, "contrast8_")
     
     #plot_heatmap_separate (counts,samples,de_results,prefix)
     #plot_heatmap_separate (counts,samples,de_results,paste0(prefix,".top50genes"),50)

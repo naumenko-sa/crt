@@ -19,7 +19,7 @@ init <- function(){
     reference_tables_path = "~/Desktop/reference_tables"
     setwd("~/Desktop/project_csc")
     
-    source("~/crt/crt.utils.R")
+    source("~/crt/scripts/utils.R")
     source("~/bioscripts/genes.R")
 }
 
@@ -140,59 +140,6 @@ figure2c.diff_expression <- function(){
     #plot_heatmap_separate (counts,samples,de_results,prefix)
     plot_heatmap_separate (counts,samples,de_results,paste0(prefix,".top50genes"),50)
     
-}
-
-#plot go pictures
-go_analysis = function (lrt,prefix)
-{
-  go = goana(lrt,species="Hs")
-  
-  for(on in c("BP","CC","MF"))
-  {
-    go.up = topGO(go,on=on,sort="Up",n=4)
-    go.up$log2pvalue = -log2(go.up$P.Up)
-    
-    go.down = topGO(go,ont=on,sort="Down",n=4)
-    go.down$log2pvalue = -log2(go.down$P.Down)
-    
-    png(paste0(prefix,".HI.",on,".png"),width=1000)
-    barplot(go.up$log2pvalue,horiz=T,
-            xlab = "-Log2 (Pvalue)",col = "cornflowerblue",cex.axis=1.5,cex.lab = 1.5)
-    labels = go.up$Term
-    text(x=rep(0.2,4),y=c(0.65,1.85,3.05,4.25),pos=rep(4,1),labels=labels,cex=1.5,font=2)
-    dev.off()
-    
-    png(paste0(prefix,".LO.",on,".png"),width=1000)
-    barplot(go.down$log2pvalue,horiz=T,
-            xlab = "-Log2 (Pvalue)",col = "cornflowerblue",cex.axis=1.5,cex.lab = 1.5)
-    labels = go.down$Term
-    text(x=rep(0.2,4),y=c(0.65,1.85,3.05,4.25),pos=rep(4,1),labels=labels,cex=1.5,font=2)
-    dev.off()
-  }
-}
-
-#pathway analysis
-kegg_analysis = function (lrt,prefix)
-{
-  kegg = kegga(lrt,species="Hs")
-  kegg.up = topKEGG(kegg,sort="Up",number = 4)
-  kegg.up$log2pvalue = -log2(kegg.up$P.Up)
-  kegg.down = topKEGG(kegg,sort="Down",number = 4)
-  kegg.down$log2pvalue = -log2(kegg.down$P.Down)
-
-  png(paste0(prefix,".HI.kegg.png"),width=1000)
-  barplot(kegg.up$log2pvalue,horiz=T,
-        xlab = "-Log2 (Pvalue)",col = "cornflowerblue",cex.axis=1.5,cex.lab = 1.5)
-  labels = kegg.up$Pathway
-  text(x=rep(0.2,4),y=c(0.65,1.85,3.05,4.25),pos=rep(4,1),labels=labels,cex=1.5,font=2)
-  dev.off()
-
-  png(paste0(prefix,".LO.kegg.png"),width=1000)
-  barplot(kegg.down$log2pvalue,horiz=T,
-        xlab = "-Log2 (Pvalue)",col = "cornflowerblue",cex.axis=1.5,cex.lab = 1.5)
-  labels = kegg.down$Pathway
-  text(x=rep(0.2,4),y=c(0.65,1.85,3.05,4.25),pos=rep(4,1),labels=labels,cex=1.5,font=2)
-  dev.off()
 }
 
 calc_de = function(all_counts,samples,prefix,filter)
