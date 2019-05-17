@@ -2,10 +2,11 @@
 # Expression outlier detection based on Z-scores, detects control outliers well
 ###############################################################################
 expression_outliers_init <- function(){
+    library(tidyverse)
     library(genefilter)
     library(reshape2)
-    source("~/crt/crt.utils.R")
-    source("~/bioscripts/genes.R")
+    source("~/crt/scripts/crt.utils.R")
+    source("~/bioscripts/gene_panels/genes.R")
 }
 
 ###############################################################################
@@ -19,7 +20,7 @@ expression_outliers_init <- function(){
 get_expression_outliers_muscle <- function(){
     setwd("~/Desktop/work/expression")
     
-    muscular_genes <- read.csv("~/cre/data/muscular_genes.csv",stringsAsFactors = F)
+    muscular_genes <- read_csv("~/bioscripts/gene_panels/gonorazky2019_muscular_genes.csv")
     get_expression_outliers_zscore("rpkms.muscle.txt",
                                "rpkms.50gtex.txt",
                                muscular_genes$ensembl_gene_id,
