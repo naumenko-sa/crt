@@ -10,7 +10,7 @@ CRT_HOME='/home/naumenko/crt'
 module load python/3.5.2
 module load sqlite/3.20.0
 
-python3 $CRT_HOME/AddJunctionsToDatabase.py \
+python3 $CRT_HOME/scripts/AddJunctionsToDatabase.py \
 	--addBAM \
 	-bam=$bam \
 	-flank=2

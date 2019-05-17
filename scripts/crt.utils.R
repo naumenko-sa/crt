@@ -243,13 +243,13 @@ feature_counts2rpkm <- function(filename){
     # filename <- "S100_47-1-Myo.bam.feature_counts.txt"
     # first line in the file is a comment
     counts <- read_tsv(filename, skip = 1) %>% 
-                select(Geneid, Length, last_col()) %>% 
+                dplyr::select(Geneid, Length, last_col()) %>% 
                 rename(ensembl_gene_id = Geneid, length = Length)
     colnames(counts) <- gsub(".bam","", colnames(counts))
                 
     sample_name <- colnames(counts)[3]
     counts$rpkm <- rpkm(counts[,sample_name], counts$length)
-    counts <- counts %>% select(ensembl_gene_id, rpkm) %>% rename(!!sample_name := rpkm)
+    counts <- counts %>% dplyr::select(ensembl_gene_id, rpkm) %>% rename(!!sample_name := rpkm)
     return(counts)
 }
 
@@ -747,7 +747,6 @@ if (length(args) == 0 || args[1] == "--help"){
     cat("splicing.read_novel_splice_events sample.bam.rare_junctions.txt\n")
 }else{
     cat(paste0("Running function: ", args[1],"\n"))
-    init()
     fcn <- get(args[1])
     fcn(tail(args,-1))
 }

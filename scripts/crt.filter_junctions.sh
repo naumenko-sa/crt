@@ -13,6 +13,6 @@ then
     bam=$1
 fi
 
-python3 ~/crt/FilterSpliceJunctions.py --sample $bam 5 0.05
+python3 ~/crt/scripts/FilterSpliceJunctions.py --sample $bam 5 0.05
 
 cat ${bam}_specific_rc5_norm_rc0.05_n_gtex_184 | grep -v BOTH > $bam.rare_junctions.txt
