@@ -745,6 +745,7 @@ args <- commandArgs(trailingOnly = T)
 if (length(args) == 0 || args[1] == "--help"){
     cat("Usage: Rscript function_name function_args\n")
     cat("Available functions:\n")
+    cat("feature_counts2rpkm_dir\n")
     cat("splicing.read_novel_splice_events sample.bam.rare_junctions.txt\n")
 }else{
     cat(paste0("Running function: ", args[1],"\n"))
