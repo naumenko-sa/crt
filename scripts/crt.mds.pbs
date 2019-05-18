@@ -5,4 +5,4 @@
 #PBS -d .
 #PBS -l vmem=20g,mem=20g
 
-Rscript ~/crt/crt.naumenko2018.R $refresh
+Rscript ~/crt/scripts/crt.mds.R mds_work $refresh

@@ -245,6 +245,7 @@ feature_counts2rpkm <- function(filename){
     counts <- read_tsv(filename, skip = 1) %>% 
                 dplyr::select(Geneid, Length, last_col()) %>% 
                 dplyr::rename(ensembl_gene_id = Geneid, length = Length)
+
     colnames(counts) <- gsub(".bam","", colnames(counts))
                 
     sample_name <- colnames(counts)[3]
@@ -747,7 +748,6 @@ if (length(args) == 0 || args[1] == "--help"){
     cat("splicing.read_novel_splice_events sample.bam.rare_junctions.txt\n")
 }else{
     cat(paste0("Running function: ", args[1],"\n"))
-    init()
     fcn <- get(args[1])
     fcn(tail(args,-1))
 }

@@ -9,8 +9,8 @@ CRT_HOME='/home/naumenko/crt'
 
 if [ -z "$genes" ]
 then
-	genes=$CRT_HOME/genes.bed
+	genes=$CRT_HOME/data/genes.bed
 fi
 
 module load python/3.5.2
-python3 $CRT_HOME/SpliceJunctionDiscovery.py -genes=$genes -bam=$bam
+python3 $CRT_HOME/scripts/SpliceJunctionDiscovery.py -genes=$genes -bam=$bam
