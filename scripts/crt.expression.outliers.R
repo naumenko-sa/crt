@@ -10,7 +10,7 @@ expression_outliers_init <- function(){
 }
 
 ###############################################################################
-# Supplemental tables for Gonorazky.Naumenko.2018 RNA-seq article
+# Supplemental tables for Gonorazky.Naumenko.2019 RNA-seq article
 ###############################################################################
 # returns 4 tables:
 # - for muscle genes
@@ -21,8 +21,8 @@ get_expression_outliers_muscle <- function(){
     setwd("~/Desktop/work/expression")
     
     muscular_genes <- read_csv("~/bioscripts/gene_panels/gonorazky2019_muscular_genes.csv")
-    get_expression_outliers_zscore("rpkms.muscle.txt",
-                               "rpkms.50gtex.txt",
+    get_expression_outliers_zscore("rpkms.muscle.csv",
+                               "rpkms.50gtex.csv",
                                muscular_genes$ensembl_gene_id,
                               "Supplemental_table_9.Expression_outliers_in_muscular_panels.csv")
     
@@ -78,23 +78,23 @@ get_expression_outliers_myotubes <- function(){
 get_expression_outliers_zscore <- function(rpkms_patients_filename,
                                       rpkms_gtex_filename,
                                       gene_panel,
-                                      output_file_name = "expression_outliers.csv"){
+                                      output_file_name = "expression_outliers.csv")
     # debug
     # setwd("~/Desktop/work/expression")
-    # rpkms.patients.filename = "rpkms.muscle.txt"
-    # rpkms.gtex.filename = "rpkms.50gtex.txt"
+    rpkms_patients_filename = "rpkms.muscle.csv"
+    rpkms_gtex_filename = "rpkms.50gtex.csv"
     expression_outliers_init()
-    rpkms_gtex <- read.table(rpkms_gtex_filename, stringsAsFactors = F)
-    rpkms_patients <- read.table(rpkms_patients_filename, stringsAsFactors = F)
+    rpkms_gtex <- read_csv(rpkms_gtex_filename)
+    rpkms_patients <- read_csv(rpkms_patients_filename)
     
-    rpkms_gtex <- rpkms_gtex[row.names(rpkms_gtex) %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
+    rpkms_gtex <- rpkms_gtex[rpkms_gtex$GTEX.111CU.2026.SM.5GZZC %in% protein_coding_genes$ensembl_gene_id,]
     gene_names <- subset(rpkms_gtex, select = c("external_gene_name"))
     rpkms_gtex$external_gene_name <- NULL
     
-    rpkms_patients <- rpkms_patients[row.names(rpkms_patients) %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
+    rpkms_patients <- rpkms_patients[row.names(rpkms_patients) %in% protein_coding_genes$ensembl_gene_id,]
     rpkms_patients$external_gene_name <- NULL
     
-    expression_stats <- data.frame(row.names = row.names(rpkms_gtex))
+    expression_stats <- data.frame(row.names = rpkms_gtex$
     expression_stats$gtex_mean <- rowMeans(rpkms_gtex)
     expression_stats$gtex_sd <- rowSds(rpkms_gtex)
     expression_stats$cohort_mean <- rowMeans(rpkms_patients)

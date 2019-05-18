@@ -1,11 +1,10 @@
 library(pheatmap)
 library(RColorBrewer)
 library(edgeR)   
-library(readr)
 library(tidyverse)
 library(tidyselect)
-library(GO.db)
-library(org.Hs.eg.db)
+#library(GO.db)
+#library(org.Hs.eg.db)
 
 trios = c("12.1","14.1","14.2","17.1","18.1","26.1","28.1","5.1","6.1","9.1","40.1","40.2","4.1")
 
@@ -242,14 +241,15 @@ feature_counts2rpkm <- function(filename){
     # test:
     # filename <- "S100_47-1-Myo.bam.feature_counts.txt"
     # first line in the file is a comment
+    # filename <- "1130_BD-B175.bam.feature_counts.txt"
     counts <- read_tsv(filename, skip = 1) %>% 
-                select(Geneid, Length, last_col()) %>% 
-                rename(ensembl_gene_id = Geneid, length = Length)
+                dplyr::select(Geneid, Length, last_col()) %>% 
+                dplyr::rename(ensembl_gene_id = Geneid, length = Length)
     colnames(counts) <- gsub(".bam","", colnames(counts))
                 
     sample_name <- colnames(counts)[3]
     counts$rpkm <- rpkm(counts[,sample_name], counts$length)
-    counts <- counts %>% select(ensembl_gene_id, rpkm) %>% rename(!!sample_name := rpkm)
+    counts <- counts %>% dplyr::select(ensembl_gene_id, rpkm) %>% rename(!!sample_name := rpkm)
     return(counts)
 }
 
@@ -274,7 +274,7 @@ feature_counts2rpkm_dir <- function(update = F){
                                                            "ENSG00000252408", "ENSG00000212270",
                                                            "ENSG00000212377", "ENSG00000167774"))
         
-        write_excel_csv(counts, "rpkms.csv", quote = F)
+        write_excel_csv(counts, "rpkms.csv")
     }
     return(counts)
 }
