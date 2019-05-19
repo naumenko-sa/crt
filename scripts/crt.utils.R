@@ -2,7 +2,6 @@ library(pheatmap)
 library(RColorBrewer)
 library(edgeR)   
 library(tidyverse)
-library(tidyselect)
 #library(GO.db)
 #library(org.Hs.eg.db)
 
@@ -111,6 +110,41 @@ installation <- function(){
     source("http://bioconductor.org/biocLite.R")
     biocLite("edgeR")
     install.packages("pheatmap")
+}
+
+# input:
+# file_rpkm.csv - merged output of feature counts
+# sample_dictionary.csv: sample_name, sample_label, color
+# not filters for protein coding genes - filter upstream!
+# output: mds.png, mds.labels.png
+plot_mds <- function(file_rpkms.csv, sample_dictionary.csv){
+    counts <- read_csv(file_rpkms.csv) %>% select(-ensembl_gene_id, 
+                                                  -external_gene_name,
+                                                  -gene_description)
+    sample_names <- tibble(sample_name = colnames(counts))
+    samples <- read_csv(sample_dictionary.csv)
+    
+    group <- factor(c(rep(1, ncol(counts))))
+    y <- DGEList(counts = counts, group = group, remove.zeros = T)
+
+    v_colors <- left_join(sample_names, samples, by = "sample_name") %>% 
+        select(color) %>% unlist(use.names = F)
+        
+    png("mds.png", res = 300, width = 2000, height = 2000)
+    mds <- plotMDS(y)
+    plot(mds,
+         col = v_colors,
+         pch = 19,
+         xlab = "MDS dimension 1", 
+         ylab = "MDS dimension 2")
+    dev.off()
+    
+    v_labels <- left_join(sample_names, samples, by="sample_name") %>% 
+        select(sample_label) %>% unlist(use.names = F)
+    
+    png("mds.labels.png", res = 300, width = 2000, height = 2000)
+    plotMDS(y, labels = v_labels, cex = 0.7)
+    dev.off()
 }
 
 get_genes_in_panels <- function(){
@@ -255,29 +289,29 @@ feature_counts2rpkm <- function(filename){
 }
 
 # reads feature counts in the current directory and calculate RPKMs
-feature_counts2rpkm_dir <- function(update = F){
-    if(file.exists("rpkms.csv") && update == F){
-        counts <- read_csv("rpkms.csv")
-    }else{
-        files <- list.files(".", "*feature_counts.txt")
-        counts <- feature_counts2rpkm(files[1])
-        for (file in tail(files,-1)){
-            print(file)
-            counts_buf <- feature_counts2rpkm(file)
-            counts <- left_join(counts, counts_buf, by = "ensembl_gene_id")
-        }
-        
-        counts <- left_join(counts, ensembl_w_description, by = "ensembl_gene_id")
-        
-        # remove a second entry of CLN3 from rpkm_counts.txt
-        counts <- counts %>% filter(!ensembl_gene_id %in% c("ENSG00000261832", "ENSG00000267059",
+# output: rpkms.csv
+feature_counts2rpkm_dir <- function(){
+    files <- list.files(".", "*feature_counts.txt")
+    counts <- feature_counts2rpkm(files[1])
+    for (file in tail(files, -1)){
+        counts_buf <- feature_counts2rpkm(file)
+        counts <- left_join(counts, counts_buf, by = "ensembl_gene_id")
+    }
+    counts <- left_join(counts, ensembl_w_description, by = "ensembl_gene_id")
+    # remove a second entry of CLN3 and some other bad genes
+    counts <- counts %>% filter(!ensembl_gene_id %in% c("ENSG00000261832", "ENSG00000267059",
                                                            "ENSG00000200733", "ENSG00000207199",
                                                            "ENSG00000252408", "ENSG00000212270",
                                                            "ENSG00000212377", "ENSG00000167774"))
-        
-        write_excel_csv(counts, "rpkms.csv")
-    }
-    return(counts)
+    write_excel_csv(counts, "rpkms.csv")
+}
+
+filter_protein_coding_genes <- function(rpkms.csv)
+{
+    counts <- read_csv(rpkms.csv)
+    counts <- counts %>% filter(ensembl_gene_id %in% protein_coding_genes$ensembl_gene_id) %>% drop_na()
+    new_name <- str_replace(rpkms.csv, ".csv",".protein_coding.csv")
+    write_excel_csv(counts, new_name)
 }
 
 read_feature_counts <- function(filename){
@@ -746,10 +780,17 @@ if (length(args) == 0 || args[1] == "--help"){
     cat("Usage: Rscript function_name function_args\n")
     cat("Available functions:\n")
     cat("feature_counts2rpkm_dir\n")
+    cat("filter_protein_coding_genes(rpkms.csv): rpkms.protein_coding.csv\n")
+    cat("plot_mds file_rpkms.csv sample_dictionary.csv\n")
     cat("splicing.read_novel_splice_events sample.bam.rare_junctions.txt\n")
 }else{
     cat(paste0("Running function: ", args[1],"\n"))
     fcn <- get(args[1])
-    fcn(tail(args,-1))
+    if (length(args)>1){
+        params <- as.list(tail(args, -1))
+        do.call(fcn, params)
+    }else{
+        fcn()
+    }
 }
 ###############################################################################
