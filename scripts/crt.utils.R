@@ -2,8 +2,8 @@ library(pheatmap)
 library(RColorBrewer)
 library(edgeR)   
 library(tidyverse)
-#library(GO.db)
-#library(org.Hs.eg.db)
+library(GO.db)
+library(org.Hs.eg.db)
 
 trios = c("12.1","14.1","14.2","17.1","18.1","26.1","28.1","5.1","6.1","9.1","40.1","40.2","4.1")
 
@@ -143,7 +143,7 @@ plot_mds <- function(file_rpkms.csv, sample_dictionary.csv){
         select(sample_label) %>% unlist(use.names = F)
     
     png("mds.labels.png", res = 300, width = 2000, height = 2000)
-    plotMDS(y, labels = v_labels, cex = 0.7)
+    plotMDS(y, labels = v_labels, cex = 0.3)
     dev.off()
 }
 

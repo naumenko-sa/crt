@@ -402,7 +402,7 @@ expression_smn <- function(){
 
 dexpression <- function()
 {
-    counts = read.feature_counts_dir(update = T)
+    #counts <- read_csv
     
     counts = counts[row.names(counts) %in% protein_coding_genes.ens_ids$ENS_GENE_ID,]
     
