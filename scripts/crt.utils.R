@@ -128,7 +128,7 @@ plot_mds <- function(file_rpkms.csv, sample_dictionary.csv){
     y <- DGEList(counts = counts, group = group, remove.zeros = T)
 
     v_colors <- left_join(sample_names, samples, by = "sample_name") %>% 
-        select(color) %>% unlist(use.names = F)
+        dplyr::select(color) %>% unlist(use.names = F)
         
     png("mds.png", res = 300, width = 2000, height = 2000)
     mds <- plotMDS(y)
