@@ -290,7 +290,7 @@ feature_counts2rpkm <- function(filename){
 
 # reads feature counts in the current directory and calculate RPKMs
 # output: rpkms.csv
-feature_counts2rpkm_dir <- function(){
+feature_counts_dir2rpkm <- function(){
     files <- list.files(".", "*feature_counts.txt")
     counts <- feature_counts2rpkm(files[1])
     for (file in tail(files, -1)){
@@ -306,14 +306,6 @@ feature_counts2rpkm_dir <- function(){
     write_excel_csv(counts, "rpkms.csv")
 }
 
-filter_protein_coding_genes <- function(rpkms.csv)
-{
-    counts <- read_csv(rpkms.csv)
-    counts <- counts %>% filter(ensembl_gene_id %in% protein_coding_genes$ensembl_gene_id) %>% drop_na()
-    new_name <- str_replace(rpkms.csv, ".csv",".protein_coding.csv")
-    write_excel_csv(counts, new_name)
-}
-
 read_feature_counts <- function(filename){
     #first line in the file is a comment
     #test: filename="S05_4-1-F.bam.feature_counts.txt"
@@ -323,21 +315,22 @@ read_feature_counts <- function(filename){
 }
 
 #reads all counts in the current directory
-raw_read_feature_counts_dir <- function(update = F){
-    if(file.exists("raw_counts.txt") && update == F){
-        counts <- read_table("raw_counts.txt")
-    }else{
-        files <- list.files(".","*feature_counts.txt")
-        counts <- read_feature_counts(files[1])
-        for (file in tail(files, -1)){
-            print(paste0("Reading ", file))
-            counts_buf <- read_feature_counts(file)
-            counts <- left_join(counts, counts_buf, by = "ensembl_gene_id")
-        }
-        counts <- column_to_rownames(counts, "ensembl_gene_id")
-        write.table(counts, "raw_counts.txt", quote = F)
+feature_counts_dir <- function(update = F){
+    files <- list.files(".", "*feature_counts.txt")
+    counts <- read_feature_counts(files[1])
+    for (file in tail(files, -1)){
+        counts_buf <- read_feature_counts(file)
+        counts <- left_join(counts, counts_buf, by = "ensembl_gene_id")
     }
-    return(counts)
+    write_excel_csv(counts, "raw_counts.csv")    
+}
+
+filter_protein_coding_genes <- function(rpkms.csv)
+{
+    counts <- read_csv(rpkms.csv)
+    counts <- counts %>% filter(ensembl_gene_id %in% protein_coding_genes$ensembl_gene_id) %>% drop_na()
+    new_name <- str_replace(rpkms.csv, ".csv",".protein_coding.csv")
+    write_excel_csv(counts, new_name)
 }
 
 # merge two dataframes by row.names and fix the row.names of the resulting df
@@ -779,7 +772,8 @@ args <- commandArgs(trailingOnly = T)
 if (length(args) == 0 || args[1] == "--help"){
     cat("Usage: Rscript function_name function_args\n")
     cat("Available functions:\n")
-    cat("feature_counts2rpkm_dir\n")
+    cat("feature_counts_dir2rpkm\n")
+    cat("feature_counts_dir\n")
     cat("filter_protein_coding_genes(rpkms.csv): rpkms.protein_coding.csv\n")
     cat("plot_mds file_rpkms.csv sample_dictionary.csv\n")
     cat("splicing.read_novel_splice_events sample.bam.rare_junctions.txt\n")

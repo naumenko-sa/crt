@@ -400,7 +400,7 @@ expression_smn <- function(){
     write.csv(smn2,"smn2.csv",row.names = F)
 }
 
-dexpression = function()
+dexpression <- function()
 {
     counts = read.feature_counts_dir(update = T)
     

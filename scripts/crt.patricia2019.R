@@ -110,11 +110,24 @@ differential_expression <- function()
 {
     counts <- read_csv("raw_counts.csv")
     # remove suffix
-    counts$Ensembl_gene_id <- str_replace(counts$Ensembl_gene_id,"\\.\\d+","")
+    counts$ensembl_gene_id <- str_replace(counts$ensembl_gene_id,"\\.\\d+","")
     sample_names <- tibble(sample_name = colnames(counts)) %>% tail(-1)
     
-    counts <- inner_join(counts, protein_coding_genes, by = c("Ensembl_gene_id" = "ensembl_gene_id")) %>% 
-        dplyr::select(Ensembl_gene_id, HCNSM_EV, EN2, EN3, HCNSM_K27M, KN2, KN3)
+    counts <- inner_join(counts, protein_coding_genes, by = c("ensembl_gene_id" = "ensembl_gene_id")) %>% 
+        dplyr::select(ensembl_gene_id, `1130_BD-B175`, `1158_AC-A79`, `1256_TS-T11`, `1275_BK-B225`, 
+                      `1365_SD-S169`, `1388_MJ-M219`, `1400_SN-S169`, `1481_TJ-T11`, `2180_CB-C365`, 
+                      `2296_GA-G207`, `6034_SA-G207`, `6087_PD-B317G`, `6100_DD-D360`, 
+                      `S07_4-1-M`, `S11_8-1-M`, `S12_9-1-M`, `S14_10-1-M`, 
+                      `S18_3-1-M_IV-21_9776_RNAseq_polya`, `S19_3-3-M_IV-24_RNAseq_polya`, 
+                      `S20_12-1-Mpv`, `S21_12-1-Mvl`, `S22_13-1-M`, `S43_14-1-M`, 
+                      `S44_14-2-M`, `S46_17-1-M`, 
+                      `S54_33-1-M`, `S56_31-1-M`, `S57_32-1-M`, 
+                      `S63_34-1-M`, `S64_35-1-M`, `S65_36-1-M`, 
+                      `S67_38-1-M`,
+                      `S68_39-1-M`, `S69_39-2-M`, `S70_40-1-M`, `S71_40-2-M`, 
+                      `S72_28-1-M`, `S73_18-1-M`, `S77_5-1-M`, `S78_6-1-M`, `S91_43-1-M`, `S92_44-1-M`)
+        
+         # dplyr::select(Ensembl_gene_id, HCNSM_EV, EN2, EN3, HCNSM_K27M, KN2, KN3)
 
     # contrast 1
     # select(Ensembl_gene_id, HCGM_WT, WG2, WG3, HCGM_K27M, KG2, KG3)
@@ -140,11 +153,12 @@ differential_expression <- function()
     # contrast 8
     # select(Ensembl_gene_id, HCNSM_EV, EN2, EN3, HCNSM_K27M, KN2, KN3)
     
-    counts <- column_to_rownames(counts, var = "Ensembl_gene_id")
+    counts <- column_to_rownames(counts, var = "ensembl_gene_id")
     samples <- colnames(counts)
     n_samples <- length(samples)
     
-    group <- factor(c(rep(1, n_samples/2), rep(2, n_samples/2)))
+    #group <- factor(c(rep(1, n_samples/2), rep(2, n_samples/2)))
+    group <- factor(c(rep(1,13),rep(2,29)))
     #group <- factor(c(1,1,2,2,2))
     #group <- factor(c(1,2,2,2))
     filter <- 1
@@ -175,7 +189,7 @@ differential_expression <- function()
     
     plotMDS(y)
     
-    keep <- rowSums(cpm(y)>filter) >= n_samples/2
+    keep <- rowSums(cpm(y)>filter) >= n_samples/10
     y <- y[keep,, keep.lib.sizes = F]
     
     # necessary for goana - it uses ENTREZ gene ids
@@ -219,7 +233,7 @@ differential_expression <- function()
     fit <- glmFit(y,design)
     lrt <- glmLRT(fit)
     
-    prefix <- "contrast8_"
+    prefix <- "contrast_mh_"
     efilename <- paste0(prefix, ".csv")
     de_results <- topTags(lrt, n = max_genes, sort.by = "PValue", p.value = 1, adjust.method = "fdr")$table
     de_results$ENSEMBL_GENE_ID <- NULL
@@ -228,8 +242,10 @@ differential_expression <- function()
     de_results$external_gene_name <- NULL
     de_results$gene_description <- NULL
     
-    rpkm.counts <- read_csv("rpkms.csv")
+    rpkm.counts <- read_csv("rpkms.muscle.csv")
     de_results <- rownames_to_column(as.data.frame(de_results), var = "ensembl_gene_id")
+    rpkm.counts$external_gene_name <- NULL
+    rpkm.counts$gene_description <- NULL
     
     de_results <- left_join(de_results, rpkm.counts, by = c("ensembl_gene_id" = "ensembl_gene_id")) %>% 
                     left_join(ensembl_w_description, by = c("ensembl_gene_id" = "ensembl_gene_id")) %>% 
