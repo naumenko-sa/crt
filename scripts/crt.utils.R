@@ -118,7 +118,7 @@ installation <- function(){
 # not filters for protein coding genes - filter upstream!
 # output: mds.png, mds.labels.png
 plot_mds <- function(file_rpkms.csv, sample_dictionary.csv){
-    counts <- read_csv(file_rpkms.csv) %>% select(-ensembl_gene_id, 
+    counts <- read_csv(file_rpkms.csv) %>% dplyr::select(-ensembl_gene_id, 
                                                   -external_gene_name,
                                                   -gene_description)
     sample_names <- tibble(sample_name = colnames(counts))
@@ -140,7 +140,7 @@ plot_mds <- function(file_rpkms.csv, sample_dictionary.csv){
     dev.off()
     
     v_labels <- left_join(sample_names, samples, by="sample_name") %>% 
-        select(sample_label) %>% unlist(use.names = F)
+        dplyr::select(sample_label) %>% unlist(use.names = F)
     
     png("mds.labels.png", res = 300, width = 2000, height = 2000)
     plotMDS(y, labels = v_labels, cex = 0.3)
