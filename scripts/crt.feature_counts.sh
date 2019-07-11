@@ -12,6 +12,10 @@
 # bam=file.bam
 # strandedness = [0,1]
 
+# by default it counts exon features, use 
+# -t transcript or -t three_prime_utr
+# for custom gtf
+
 if [ -z $bam ]
 then
     bam=$1
@@ -35,6 +39,7 @@ echo "strandedness: " $strandedness
 # -B only properly paired (both ends mapped)
 # -C don't count mapped to different chromosomes or different strands
 featureCounts -T 8 \
+	-t three_prime_utr \
 	-g gene_id \
 	-s $strandedness \
 	-C \

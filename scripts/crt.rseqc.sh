@@ -15,4 +15,5 @@ module load gcc/6.2.0
 module load python/2.7.12
 module load rseqc/2.6.4
 
-geneBody_coverage.py -r GRCm38_mm10_Ensembl.nochr.bed -i gene_body  -o output
+geneBody_coverage.py -r GRCm38_mm10_Ensembl.nochr.bed -i gene_body -o output
+
