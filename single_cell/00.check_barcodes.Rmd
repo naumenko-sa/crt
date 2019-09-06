@@ -1,0 +1,63 @@
+---
+title: "Quality control before running bcbio"
+author: "Sergey Naumenko"
+date: "`r Sys.Date()`"
+output:
+    html_document:
+        code_folding: hide
+        df_print: paged
+        highlights: tango
+        number_sections: true
+        self_contained: true
+        theme: default
+        toc: true
+        toc_float:
+            collapsed: true
+            smooth_scroll: false
+---
+
+```{r setup, include = FALSE}
+library(tidyverse)
+library(knitr)
+
+ggplot2::theme_set(theme_light(base_size = 14))
+
+opts_chunk[["set"]](
+    cache = FALSE,
+    dev = c("png", "pdf"),
+    error = TRUE,
+    highlight = TRUE,
+    message = FALSE,
+    prompt = FALSE,
+    tidy = FALSE,
+    warning = FALSE)
+```
+
+# Overview
+
+- Principal Investigator:
+- Researcher:
+- Experiment:
+
+# Factual cellular barcode frequencies
+
+This is factual cellular barcode frequencies from R3 fastq file (the first 10 mln reads). 
+
+```{r}
+barcodes <- read_csv("./tables/barcode_frequencies.csv")
+barcodes %>% ggplot(aes(x=barcode, y = count/10000000)) + geom_col() +theme_classic() +
+                theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+                scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+        ylab("Amount of the barcode in the first 10 mln reads") +
+    ggtitle("Cell barcode frequency")
+
+```
+
+# Barcode table
+
+```{r, rows.print = 17}
+barcodes
+```
+
+# Conclusions
+
