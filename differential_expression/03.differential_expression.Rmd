@@ -1,0 +1,103 @@
+---
+title: "Differential Expression"
+author: "Sergey Naumenko"
+date: "`r Sys.Date()`"
+params:
+    alpha: 0.05
+    lfc: 1
+    data_dir: data
+    results_dir: results
+    heavy_calc: FALSE
+    day: day14
+output:
+   html_document:
+      code_folding: hide
+      df_print: paged
+      highlights: pygments
+      number_sections: true
+      self_contained: true
+      theme: default
+      toc: true
+      toc_float:
+         collapsed: true
+         smooth_scroll: true
+---
+
+# Overview
+
+- Principal Investigator: 
+- Experiment: 
+
+```{r, cache = FALSE, message = FALSE}
+library(tidyverse)
+library(knitr)
+library(DESeq2)
+
+ggplot2::theme_set(theme_light(base_size = 14))
+
+opts_chunk[["set"]](
+    cache = FALSE,
+    dev = c("png", "pdf"),
+    error = TRUE,
+    highlight = TRUE,
+    message = FALSE,
+    prompt = FALSE,
+    tidy = FALSE,
+    warning = FALSE)
+```
+
+```{r setup, message=FALSE}
+protein_coding_genes <- read_csv("data/mouse.protein_coding.csv")
+se <- readRDS("data/bcbio.se.RDS")
+se <- se[, se$category %in% c("control", params$day)]
+se <- subset(se, rownames(se) %in% protein_coding_genes$ensembl_gene_id)
+dds <- DESeqDataSet(se, design = ~category)
+```
+
+```{r prefilter}
+keep <- rowSums(counts(dds)) >= 10
+dds <- dds[keep, ]
+
+dds <- estimateSizeFactors(dds)
+#idx <- rowSums(counts(dds, normalized = TRUE) >= 5 ) >= 4
+#dds <- dds[idx,]
+#print(dds)
+```
+
+# Differentially expressed genes
+Thresholds:
+
+- alpha <= `r params$alpha`
+
+- |lfc| >= `r params$lfc`
+
+```{r deseq}
+dds <- DESeq(dds)
+de_results <- results(dds, )
+de_results_shrunken <- lfcShrink(dds = dds,
+                                  res = de_results,
+                                  type = "normal",
+                                  contrast = c("category", params$day, "control"))
+
+res_tbl <- resultsTables(object = de_results_shrunken,
+    lfcThreshold = params$lfc,
+    alpha = params$alpha
+)
+
+mouse_genes <- read_csv("data/ensembl_w_description.mouse.csv")
+tpm_counts <- read_csv("data/tpm.csv")
+
+genes_up <- res_tbl["up"] %>% as_tibble(rownames = "ensembl_gene_id")  %>% 
+  left_join(mouse_genes, by = c("ensembl_gene_id" = "ensembl_gene_id")) %>% 
+  left_join(tpm_counts, by = c("ensembl_gene_id" = "ensembl_gene_id"))
+
+genes_down <- res_tbl["down"] %>% as_tibble(rownames = "ensembl_gene_id")  %>% 
+  left_join(mouse_genes, by = c("ensembl_gene_id" = "ensembl_gene_id")) %>% 
+  left_join(tpm_counts, by = c("ensembl_gene_id" = "ensembl_gene_id"))
+
+write_excel_csv(genes_up, paste0("data/", params$day,"_vs_control.genes_up.csv"))
+write_excel_csv(genes_down, paste0("data/", params$day,"_vs_control.genes_down.csv"))
+```
+
+- [View upgregulated genes in excel](`paste0("data/", params$day,"/",params$day,"_svs_controlgenes_up.csv")`)
+- [View downregulated genes in excel]('paste0("data/", params$day,"/",params$day,"_svs_controlgenes_down.csv")`)
