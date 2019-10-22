@@ -39,7 +39,6 @@ echo "strandedness: " $strandedness
 # -B only properly paired (both ends mapped)
 # -C don't count mapped to different chromosomes or different strands
 featureCounts -T 8 \
-	-t three_prime_utr \
 	-g gene_id \
 	-s $strandedness \
 	-C \
