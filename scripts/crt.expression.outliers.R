@@ -54,14 +54,14 @@ get_expression_outliers_fibro <- function(){
                                "Supplemental_table_X.Expression_outliers_in_fibroblasts.csv")
 }
 
-get_expression_outliers_myotubes <- function(rpkms_myo.csv = "rpkms.csv",
+get_expression_outliers_myotubes <- function(rpkms_myo.csv = "rpkms.myo.csv",
+                                             rpkms_gtex.csv = "rpkms.50gtex.csv",
                                              muscular_genes.csv = "~/Desktop/code/bioscripts/gene_panels/gonorazky2019_muscular_genes.csv",
                                              output.csv = "Supplemental_table_X.Expression_outliers_in_myotubes.csv")
 {
-    muscular_genes <- read_csv(muscular_genes.csv)
     get_expression_outliers_zscore(rpkms_myo.csv,
-                                   rpkms_myo.csv,
-                                   muscular_genes$ensembl_gene_id,
+                                   rpkms_gtex.csv,
+                                   muscular_genes.csv,
                                    output.csv
                                    )
 }
@@ -76,7 +76,7 @@ get_expression_outliers_myotubes <- function(rpkms_myo.csv = "rpkms.csv",
 # - output.file.name = name of csv file to write expression outliers table
 get_expression_outliers_zscore <- function(rpkms_patients.csv,
                                       rpkms_gtex.csv,
-                                      gene_panel,
+                                      gene_panel.csv,
                                       output_file.csv = "expression_outliers.csv")
 {
     # debug
@@ -84,8 +84,12 @@ get_expression_outliers_zscore <- function(rpkms_patients.csv,
     # rpkms_patients_filename = "rpkms.muscle.csv"
     # rpkms_gtex_filename = "rpkms.50gtex.csv"
     
-    rpkms_patients.csv <- "rpkms.csv"
-    rpkms_gtex.csv <- "rpkms.csv"
+    # rpkms_patients.csv <- "rpkms.myo.csv"
+    # rpkms_gtex.csv <- "rpkms.50gtex.csv"
+    # gene_panel.csv <- "~/Desktop/code/bioscripts/gene_panels/gonorazky2019_muscular_genes.csv"
+    
+    
+    gene_panel <- read_csv(gene_panel.csv) %>% select (ensembl_gene_id)
     
     expression_outliers_init()
     
