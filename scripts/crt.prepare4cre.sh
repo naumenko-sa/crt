@@ -92,6 +92,13 @@ function f_prepare
 
     bgzip $sample.vcf
     tabix $sample.vcf.gz
+    
+    cre.annotation.strip.sh $sample.vcf.gz
+    
+    rm $sample.vcf.gz $sample.vcf.gz.tbi
+    
+    mv $sample.no_anno.vcf.gz $sample.vcf.gz
+    mv $sample.no_anno.vcf.gz.tbi $sample.vcf.gz.tbi
 
     cre.vt.decompose.sh $sample.vcf.gz
     cre.vep.sh $sample.decomposed.vcf.gz
