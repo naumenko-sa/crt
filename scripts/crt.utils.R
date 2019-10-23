@@ -1,9 +1,9 @@
 library(pheatmap)
 library(RColorBrewer)
-library(edgeR)   
+library(edgeR)
 library(tidyverse)
-library(GO.db)
-library(org.Hs.eg.db)
+#library(GO.db)
+#library(org.Hs.eg.db)
 
 trios = c("12.1","14.1","14.2","17.1","18.1","26.1","28.1","5.1","6.1","9.1","40.1","40.2","4.1")
 
@@ -81,20 +81,20 @@ linkage_region7 = c("PEX11G", "C19orf45", "ZNF358", "MCOLN1", "PNPLA6", "CAMPSAP
 linkage_region8 = c("NDUFA7", "RPS28", "KANK3", "ANGPTL4", "RAB11B-AS1", "MIR4999", "RAB11B", "MARCH2", "HNRNPM", 
                     "PRAM1", "ZNF414", "MYO1F", "ADAMTS10", "ACTL9", "OR2Z1", "ZNF558", "MBD3L1", "OR1M1", "MUC16")
 
-protein_coding_genes <- read_csv("~/cre/data/protein_coding_genes.csv")
+protein_coding_genes <- read_csv("~/Desktop/code/cre/data/protein_coding_genes.csv")
 
-protein_coding_genes.bed = read.delim("~/cre/data/protein_coding_genes.bed", header=F, stringsAsFactors=F)
-colnames(protein_coding_genes.bed) = c("chrom","start","end","gene","ensembl_gene_id")
+#protein_coding_genes.bed = read.delim("~/cre/data/protein_coding_genes.bed", header=F, stringsAsFactors=F)
+#colnames(protein_coding_genes.bed) = c("chrom","start","end","gene","ensembl_gene_id")
 
-genes_transcripts = read.csv("~/cre/data/genes.transcripts.ens_only.csv",stringsAsFactors = F)
+#genes_transcripts = read.csv("~/cre/data/genes.transcripts.ens_only.csv",stringsAsFactors = F)
 
-omim.file = "~/Desktop/reference_tables/omim_inheritance.csv"
+#omim.file = "~/Desktop/reference_tables/omim_inheritance.csv"
 
-if (file.exists(omim.file))
-{
-    omim = read.csv(omim.file, sep=";", stringsAsFactors=FALSE)
-    omim = subset(omim,select=c("Gene","Omim"))
-}
+#if (file.exists(omim.file))
+#{
+#    omim = read.csv(omim.file, sep=";", stringsAsFactors=FALSE)
+#    omim = subset(omim,select=c("Gene","Omim"))
+#}
 
 gtex_rpkm_file = "/home/sergey/Desktop/stories/4_RNAseq_diagnostics/rnaseq_article/figures/expression_plots/gtex.muscle_genes.rpkm.txt"
 if (file.exists(gtex_rpkm_file))
@@ -102,7 +102,7 @@ if (file.exists(gtex_rpkm_file))
     gtex_rpkm = read.csv(gtex_rpkm_file, sep="", stringsAsFactors = F)
 }
 
-ensembl_w_description <- read_csv("~/cre/data/ensembl_genes_w_description.csv")
+ensembl_w_description <- read_csv("~/Desktop/code/cre/data/ensembl_genes_w_description.csv")
 
 #gene_lengths = read.delim("~/Desktop/project_RNAseq_diagnostics/reference/gene_lengths.txt", stringsAsFactors=F, row.names=1)
 

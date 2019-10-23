@@ -3,8 +3,8 @@
 ###############################################################################
 expression_outliers_init <- function(){
     library(genefilter)
-    source("~/crt/scripts/crt.utils.R")
-    source("~/bioscripts/gene_panels/genes.R")
+    source("~/Desktop/code/crt/scripts/crt.utils.R")
+    source("~/Desktop/code/bioscripts/gene_panels/genes.R")
 }
 
 ###############################################################################
@@ -43,7 +43,6 @@ get_expression_outliers_muscle <- function(){
     write.csv(case40.outliers, "Supplemental_table_11.Expression_outliers.case40.csv", 
               row.names = F)
 }
-
 # comparing fibroblasts to fibroblasts because GTex fibroblasts have different expression profile
 get_expression_outliers_fibro <- function(){
     setwd("~/Desktop/work/expression/feature_counts/fibro/")
@@ -55,14 +54,16 @@ get_expression_outliers_fibro <- function(){
                                "Supplemental_table_X.Expression_outliers_in_fibroblasts.csv")
 }
 
-get_expression_outliers_myotubes <- function(){
-    setwd("~/Desktop/work/expression/feature_counts/myotubes/")
-    #read_feature_counts_dir()
-    muscular_genes <- read.csv("~/cre/data/muscular_genes.csv", stringsAsFactors = F)
-    get_expression_outliers_zscore("rpkms.myo.txt",
-                                   "rpkms.myo.txt",
+get_expression_outliers_myotubes <- function(rpkms_myo.csv = "rpkms.csv",
+                                             muscular_genes.csv = "~/Desktop/code/bioscripts/gene_panels/gonorazky2019_muscular_genes.csv",
+                                             output.csv = "Supplemental_table_X.Expression_outliers_in_myotubes.csv")
+{
+    muscular_genes <- read_csv(muscular_genes.csv)
+    get_expression_outliers_zscore(rpkms_myo.csv,
+                                   rpkms_myo.csv,
                                    muscular_genes$ensembl_gene_id,
-                                   "Supplemental_table_X.Expression_outliers_in_myotubes.csv")
+                                   output.csv
+                                   )
 }
 
 # expression outliers detection using Z-scores:
@@ -73,24 +74,28 @@ get_expression_outliers_myotubes <- function(){
 # - rpkms.gtex.filename - table of RPKM values for all genes for gtex controls, output of ~/crt/crt.utils.R/read.rpkm_counts_dir
 # - gene_panel - vector of ENSEMBL_IDs of genes to filter (muscular genes, omim, mitochondrial, protein_coding)
 # - output.file.name = name of csv file to write expression outliers table
-get_expression_outliers_zscore <- function(rpkms_patients_filename,
-                                      rpkms_gtex_filename,
+get_expression_outliers_zscore <- function(rpkms_patients.csv,
+                                      rpkms_gtex.csv,
                                       gene_panel,
-                                      output_file_name = "expression_outliers.csv")
+                                      output_file.csv = "expression_outliers.csv")
 {
     # debug
     # setwd("~/Desktop/work/expression")
     # rpkms_patients_filename = "rpkms.muscle.csv"
     # rpkms_gtex_filename = "rpkms.50gtex.csv"
+    
+    rpkms_patients.csv <- "rpkms.csv"
+    rpkms_gtex.csv <- "rpkms.csv"
+    
     expression_outliers_init()
     
-    rpkms_gtex <- read_csv(rpkms_gtex_filename) %>%
+    rpkms_gtex <- read_csv(rpkms_gtex.csv) %>%
         semi_join(protein_coding_genes, by = c("ensembl_gene_id" = "ensembl_gene_id")) %>%
         mutate(gtex_mean = rowMeans(select(., starts_with("GTEX"))),
                gtex_sd = rowSds(select(., starts_with("GTEX")))) %>% 
         select(ensembl_gene_id, external_gene_name, gene_description, gtex_mean, gtex_sd)
     
-    rpkms_patients <- read_csv(rpkms_patients_filename) %>%
+    rpkms_patients <- read_csv(rpkms_patients.csv) %>%
         semi_join(protein_coding_genes, by = c("ensembl_gene_id" = "ensembl_gene_id")) %>% 
         select(-external_gene_name, -gene_description)
         
@@ -112,7 +117,7 @@ get_expression_outliers_zscore <- function(rpkms_patients_filename,
                                                  "gtex_mean", "cohort_mean", "fold_change", "regulation",
                                                  "zscore_gtex", "zscore_cohort","gtex_sd","cohort_sd")) %>% 
         semi_join(gene_panel, by = c("ensembl_gene_id" = "ensembl_gene_id"))
-    write_excel_csv(rpkms_patients, output_file_name)
+    write_excel_csv(rpkms_patients, output_file.csv)
 }
 
 ###################################################################################################

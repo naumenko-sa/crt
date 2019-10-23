@@ -1,9 +1,9 @@
-# cluster: use interact job with 20G RAM
+# O2: use interact job with 20G RAM
+# sometimes Rscript is not working but works from R
 # conda activate r
 # which R
-# Rscript 00_bcbio_to_seurat.R
+# Rscript 00_create_seurat_object.R
 # conda deactivate
-# Read10X expects to see matrix.mtx.gz barcodes.tsv.gz features.tsv.gz (genes)
 library(Seurat)
 counts <- Read10X(data.dir = "data", gene.column = 1)
 seurat_object <- CreateSeuratObject(counts = counts, min.features = 100)
