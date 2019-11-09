@@ -1,0 +1,81 @@
+---
+title: "Clustering"
+author: "Sergey Naumenko"
+date: "`r Sys.Date()`"
+output:
+    html_document:
+        code_folding: hide
+        df_print: paged
+        highlight: tango
+        theme: default
+        number_sections: true
+        toc: true
+        toc_float:
+            collapsed: true
+            smooth_scroll: false
+params:
+    variable_features: 3000
+---
+
+# Overview
+- Researcher:
+- Experiment:
+- variable_features: `r params$variable_features`
+
+```{r setup, include = FALSE}
+library(knitr)
+library(cowplot)
+library(tidyverse)
+library(Seurat)
+library(RCurl)
+ggplot2::theme_set(theme_light(base_size = 14))
+opts_chunk[["set"]](
+    cache = FALSE,
+    dev = c("png", "pdf"),
+    error = TRUE,
+    highlight = TRUE,
+    message = FALSE,
+    prompt = FALSE,
+    tidy = FALSE,
+    warning = FALSE)
+```
+
+```{r read_seurat}
+seurat_file <- "data/seurat.filtered.RDS"
+seurat <- readRDS(seurat_file)
+```
+
+```{r sctranscform}
+seurat <- SCTransform(seurat, vars.to.regress = "mitoRatio")
+# conserve.memory = TRUE)
+```
+
+```{r pca}
+seurat <- RunPCA(seurat)
+```
+
+```{r findneighbors}
+seurat <- FindNeighbors(dims = 1:30)
+```
+
+```{r runumap}
+# default R-cpp umap crashes even with 100G
+seurat <- RunUMAP(seurat, dims = 1:30, umap.method = "umap-learn", metric = "correlation")
+```
+
+```{r findclusters}
+seurat <- FindClusters(seurat)
+```
+
+```{r save_seurat}
+saveRDS(seurat, "data/seurat.clusters.RDS")
+```
+
+```{r dimplot}
+DimPlot(seurat, label = TRUE) + NoLegend()
+```
+
+# R session information
+```{r}
+sessionInfo()
+```
