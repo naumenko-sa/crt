@@ -55,7 +55,7 @@ seurat <- RunPCA(seurat)
 ```
 
 ```{r findneighbors}
-seurat <- FindNeighbors(dims = 1:30)
+seurat <- FindNeighbors(seurat, dims = 1:30)
 ```
 
 ```{r runumap}
