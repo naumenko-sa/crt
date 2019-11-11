@@ -1,0 +1,85 @@
+---
+title: "Clusters"
+author: "Sergey Naumenko"
+date: "`r Sys.Date()`"
+output:
+    html_document:
+        code_folding: hide
+        df_print: paged
+        highlight: tango
+        theme: default
+        number_sections: true
+        toc: true
+        toc_float:
+            collapsed: true
+            smooth_scroll: false
+params:
+    variable_features: 3000
+    npcs: 30
+---
+
+# Overview
+- Researcher: 
+- Experiment: 
+- variable_features: `r params$variable_features`
+- PCs: `r params$npcs`
+
+```{r setup, include = FALSE}
+library(knitr)
+library(cowplot)
+library(tidyverse)
+library(Seurat)
+library(RCurl)
+ggplot2::theme_set(theme_light(base_size = 14))
+opts_chunk[["set"]](
+    cache = FALSE,
+    dev = c("png", "pdf"),
+    error = TRUE,
+    highlight = TRUE,
+    message = FALSE,
+    prompt = FALSE,
+    tidy = FALSE,
+    warning = FALSE)
+```
+
+```{r read_seurat}
+if (file.exists("data/seurat.clusters.RDS")){
+    seurat <- readRDS("data/seurat.clusters.RDS")
+}else{
+    seurat_file <- "data/seurat.filtered.RDS"
+    seurat <- readRDS(seurat_file)
+    seurat <- SCTransform(seurat, vars.to.regress = "mitoRatio", conserve.memory = TRUE)
+    seurat <- RunPCA(seurat)
+    seurat <- FindNeighbors(seurat, dims = 1:params$npcs)
+    seurat <- RunUMAP(seurat, dims = 1:params$npcs, umap.method = "umap-learn", metric = "correlation")
+    seurat <- FindClusters(seurat)
+    saveRDS(seurat, "data/seurat.clusters.RDS")
+}
+```
+
+# UMAP clusters
+```{r dimplot}
+DimPlot(seurat, label = TRUE) + NoLegend()
+```
+
+# UMAP clusters colored by condition
+```{r umap_condition}
+DimPlot(seurat,
+        reduction = "umap",
+        group.by = "condition"
+        ) +
+        ggtitle("Clusters by condition")
+```
+
+# UMAP clusters colored by sample
+```{r}
+DimPlot(seurat,
+        reduction = "umap",
+        group.by = "sample_name"
+) +  ggtitle("Clusters by sample")
+```
+
+# R session information
+```{r}
+sessionInfo()
+```
