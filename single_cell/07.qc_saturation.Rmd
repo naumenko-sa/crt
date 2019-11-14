@@ -17,8 +17,8 @@ output:
 ---
 
 # Overview
-- Researcher: 
-- Experiment: 
+- Researcher: Robert Fenster 
+- Experiment: PFC = prefrontal cortex in fear extinction
 
 # Templates by Lorena Pantano used:
 - https://code.harvard.edu/HSPH/hbc_john_garber_indrop_scrnaseq_patients/
@@ -74,7 +74,7 @@ plot_saturation = function(m){
         theme(legend.position = "none") +
         ggtitle("Saturation rate vs Total Reads"),
     m %>% 
-        ggplot(aes(nGenes, dupReads, color = sample)) +
+        ggplot(aes(dupReads, nGenes, color = sample)) +
         geom_point() +
         geom_smooth() +
         geom_vline(xintercept = 1) +
