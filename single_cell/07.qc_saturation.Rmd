@@ -14,14 +14,9 @@ output:
       toc_float:
          collapsed: true
          smooth_scroll: true
-params:
-    replicate: km2
-    heavy_calc: TRUE
 ---
 
 # Overview
-
-- Principal Investigator: 
 - Researcher: 
 - Experiment: 
 
@@ -52,7 +47,7 @@ opts_chunk[["set"]](
 ```
 
 ```{r}
-se <- readRDS(paste0("data/",params$replicate, "/se.RDS"))
+se <- readRDS("data/se.RDS")
 metrics <- colData(se) %>% as.data.frame
 ```
 
@@ -65,39 +60,36 @@ plot_total_cells = function(m){
 }
 
 plot_saturation = function(m){
-    plot_grid(ncol=1, 
+    plot_grid(ncol = 1, 
     m %>% 
         ggplot(aes(saturation_rate, sample)) +
         geom_density_ridges() +
         ggtitle("Saturation rate"),
     m %>% 
-        ggplot(aes(dupReads, saturation_rate, color=sample)) +
+        ggplot(aes(dupReads, saturation_rate, color = sample)) +
         geom_point() +
         geom_smooth() +
         scale_x_log10() +
         geom_vline(xintercept = 15000) +
-        theme(legend.position="none") +
+        theme(legend.position = "none") +
         ggtitle("Saturation rate vs Total Reads"),
     m %>% 
-        ggplot(aes(dupMeanReads, saturation_rate, color=sample)) +
+        ggplot(aes(nGenes, dupReads, color = sample)) +
         geom_point() +
         geom_smooth() +
         geom_vline(xintercept = 1) +
-        theme(legend.position="bottom") +
+        theme(legend.position = "bottom") +
         ggtitle("nGenes vs Total Reads")
     )
 }
 
 plot_metrics = function(m){
     plot_grid(
+        m %>% ggplot(aes(y=sample,  x=nReads)) + geom_density_ridges() + scale_x_log10() + geom_vline(xintercept = 5000),
+        m %>% ggplot(aes(y = sample,  x=nUMI)) + geom_density_ridges() + scale_x_log10() + geom_vline(xintercept = 500),
+        m %>% ggplot(aes(y=sample,  x=nGenes)) + geom_density_ridges() + scale_x_log10() + geom_vline(xintercept = 500),
         m %>% 
-            ggplot(aes(y=sample,  x=nReads)) + geom_density_ridges() + scale_x_log10() + geom_vline(xintercept = 5000),
-        m %>% 
-            ggplot(aes(y=sample,  x=nUMI)) + geom_density_ridges() + scale_x_log10() + geom_vline(xintercept = 500),
-        m %>% 
-            ggplot(aes(y=sample,  x=nGenes)) + geom_density_ridges() + scale_x_log10() + geom_vline(xintercept = 500),
-        m %>% 
-            ggplot(aes(y=sample,  x=mitoRatio)) + geom_density_ridges() + geom_vline(xintercept = params$max_mito_ratio)
+            ggplot(aes(y=sample,  x=mitoRatio)) + geom_density_ridges() + geom_vline(xintercept = 0.25)
     )
 }
 
@@ -127,6 +119,10 @@ plot_total_cells(metrics)
 ```
 
 ## Saturation
+> - Saturation_rate = 1 - unique_counts/duplicated_counts for each cell
+> - 50% saturation_rate means all reads are unique
+> - 100% saturation_rate means all reads are duplicates, sequencing deeper won't add unique transcript counts.
+
 ```{r}
 plot_saturation(metrics)
 ```
@@ -145,5 +141,3 @@ plot_correlation(metrics)
 ```{r}
 plot_novelty(metrics)
 ```
-
-
