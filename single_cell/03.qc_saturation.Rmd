@@ -1,0 +1,149 @@
+---
+title: "Quality control with saturation"
+author: "Sergey Naumenko"
+date: "`r Sys.Date()`"
+output:
+   html_document:
+      code_folding: hide
+      df_print: paged
+      highlights: pygments
+      number_sections: true
+      self_contained: true
+      theme: default
+      toc: true
+      toc_float:
+         collapsed: true
+         smooth_scroll: true
+params:
+    replicate: km2
+    heavy_calc: TRUE
+---
+
+# Overview
+
+- Principal Investigator: 
+- Researcher: 
+- Experiment: 
+
+# Templates by Lorena Pantano used:
+- https://code.harvard.edu/HSPH/hbc_john_garber_indrop_scrnaseq_patients/
+- https://github.com/hbc/hbcABC/blob/master/inst/rmarkdown/Rscripts/singlecell/from_bcbio_to_singlecell.R
+
+
+```{r setup, include = FALSE}
+library(cowplot)
+library(tidyverse)
+library(ggridges)
+library(scales)
+library(SingleCellExperiment)
+library(Matrix)
+library(knitr)
+
+opts_chunk[["set"]](
+    cache = FALSE,
+    cache.lazy = FALSE,
+    error = TRUE,
+    fig.height = 10L,
+    fig.width = 10L,
+    message = FALSE,
+    tidy = TRUE,
+    warning = FALSE
+)
+```
+
+```{r}
+se <- readRDS(paste0("data/",params$replicate, "/se.RDS"))
+metrics <- colData(se) %>% as.data.frame
+```
+
+```{r}
+plot_total_cells = function(m){
+    m %>% 
+  ggplot(aes(x = sample)) + geom_bar() + ggtitle("NCells") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+}
+
+plot_saturation = function(m){
+    plot_grid(ncol=1, 
+    m %>% 
+        ggplot(aes(saturation_rate, sample)) +
+        geom_density_ridges() +
+        ggtitle("Saturation rate"),
+    m %>% 
+        ggplot(aes(dupReads, saturation_rate, color=sample)) +
+        geom_point() +
+        geom_smooth() +
+        scale_x_log10() +
+        geom_vline(xintercept = 15000) +
+        theme(legend.position="none") +
+        ggtitle("Saturation rate vs Total Reads"),
+    m %>% 
+        ggplot(aes(dupMeanReads, saturation_rate, color=sample)) +
+        geom_point() +
+        geom_smooth() +
+        geom_vline(xintercept = 1) +
+        theme(legend.position="bottom") +
+        ggtitle("nGenes vs Total Reads")
+    )
+}
+
+plot_metrics = function(m){
+    plot_grid(
+        m %>% 
+            ggplot(aes(y=sample,  x=nReads)) + geom_density_ridges() + scale_x_log10() + geom_vline(xintercept = 5000),
+        m %>% 
+            ggplot(aes(y=sample,  x=nUMI)) + geom_density_ridges() + scale_x_log10() + geom_vline(xintercept = 500),
+        m %>% 
+            ggplot(aes(y=sample,  x=nGenes)) + geom_density_ridges() + scale_x_log10() + geom_vline(xintercept = 500),
+        m %>% 
+            ggplot(aes(y=sample,  x=mitoRatio)) + geom_density_ridges() + geom_vline(xintercept = params$max_mito_ratio)
+    )
+}
+
+plot_correlation =  function(m){
+    plot_grid(
+    m %>% 
+        ggplot(aes(x=nUMI, y=nReads, color=mitoRatio)) + geom_point(alpha = 0.4) + scale_x_log10() + scale_y_log10() + geom_vline(xintercept = 800) +
+        facet_wrap(~sample),
+    m %>% 
+        ggplot(aes(x=nUMI, y=nGenes, color=mitoRatio)) + geom_point() + scale_x_log10() + scale_y_log10() + geom_vline(xintercept = 800)+
+        facet_wrap(~sample)
+    )
+}
+
+plot_novelty = function(m){
+    m %>%
+    ggplot(aes(x=log10GenesPerUMI, y = sample)) +
+    geom_density_ridges()
+}
+```
+
+# Quality control metrics
+## Cell/genes per sample
+
+```{r}
+plot_total_cells(metrics)
+```
+
+## Saturation
+```{r}
+plot_saturation(metrics)
+```
+
+## QC plots
+```{r}
+plot_metrics(metrics)
+```
+
+## UMIs vs. genes detected vs. reads
+```{r}
+plot_correlation(metrics)
+```
+
+## Novelty
+```{r}
+plot_novelty(metrics)
+```
+
+
