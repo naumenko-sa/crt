@@ -1,0 +1,38 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(Seurat)
+seurat <- readRDS("data/seurat.clusters.RDS")
+DimPlot(seurat, reduction = "umap", label = TRUE) + NoLegend()
+```
+
+```{r}
+levels(seurat)
+
+de_results <- NULL
+
+for (id1 in levels(seurat))
+{
+    for (id2 in levels(seurat))
+    {
+        if (id1 < id2 & id1 != id2){
+
+            de_buf <- FindMarkers(seurat, ident.1 = id1, ident.2 = id2) %>% rownames_to_column(var = "gene")
+            de_buf$cluster1 <- id1
+            de_buf$cluster2 <- id2
+
+            de_buf <- de_buf %>% select(cluster1, cluster2, gene, p_val, avg_logFC, pct.1, pct.2, p_val_adj)
+
+            de_results <- bind_rows(de_results, de_buf)
+        }
+    }
+}
+
+```

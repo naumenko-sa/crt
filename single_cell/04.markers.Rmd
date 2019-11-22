@@ -1,0 +1,113 @@
+---
+title: "Marker identification"
+author: "Sergey Naumenko"
+date: "`r Sys.Date()`"
+output:
+    html_document:
+        code_folding: hide
+        df_print: paged
+        highlight: tango
+        theme: default
+        number_sections: true
+        toc: true
+        toc_float:
+            collapsed: true
+            smooth_scroll: false
+params:
+    variable_features: 3000
+    npcs: 30
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+library(tidyverse)
+library(readxl)
+library(writexl)
+library(Seurat)
+
+ggplot2::theme_set(theme_light(base_size = 14))
+
+opts_chunk[["set"]](
+    cache = FALSE,
+    dev = c("png", "pdf"),
+    error = TRUE,
+    highlight = TRUE,
+    message = FALSE,
+    prompt = FALSE,
+    tidy = FALSE,
+    warning = FALSE)
+
+```
+
+# Overview
+- Researcher: 
+- Experiment: 
+- markers annotated with [brainrnaseq](https://www.brainrnaseq.org/)
+
+# All markers
+Description of the columns:
+
+- cluster: cluster ID
+- gene: ENSEMBL gene id
+- external_gene_name: gene name
+- description: gene_description
+- p_val_adj: Bonferroni-corrected p-value
+- p_val: raw p-value
+- avg_logFC: average log2 fold change. Positive values indicate that the gene is more highly expressed in the cluster.
+- pct.1: The percentage of cells where the gene is detected in the cluster
+- pct.2: The percentage of cells where the gene is detected on average in the other clusters
+
+```{r, rows.print = 25}
+seurat <- readRDS("data/seurat.clusters.RDS")
+if (file.exists("tables/markers.annotated.xlsx")){
+    markers <- read_csv("tables/markers.csv")
+    ann_markers <- read_xlsx("tables/markers.annotated.xlsx")
+}else{
+    # long (~1h)
+    markers <- FindAllMarkers(object = seurat,
+                          only.pos = TRUE,
+                          logfc.threshold = 0.25,
+                          min.pct = 0.25
+                          )
+    write_csv(markers, "tables/markers.csv")
+    ensembl_w_description <- read_csv("tables/ensembl_w_description.mouse.protein_coding.csv")
+
+    #combine markers with gene descriptions
+    ann_markers <- inner_join(x = markers,
+                          y = ensembl_w_description,
+                          by = c("gene" = "ensembl_gene_id")) %>% unique()
+
+    # Order the rows by p-adjusted values
+    ann_markers <- ann_markers %>%
+            dplyr::arrange(cluster, p_val_adj) %>% 
+        select(cluster, gene, external_gene_name, description, p_val_adj, p_val, avg_logFC, pct.1, pct.2)                      
+    write_xlsx(list(ann_markers), "tables/markers.annotated.xlsx")
+}
+ann_markers
+
+```
+[Open the annontated markers table in Excel](tables/markers.annotated.xlsx)
+
+# Top 5 markers per cluster
+```{r top5_markers}
+if(file.exists("tables/top5_per_cluster.xlsx")){
+    top5 <- read_xlsx("tables/top5_per_cluster.xlsx")
+}else{
+    top5 <- ann_markers %>% 
+            group_by(cluster) %>% 
+            top_n(n = 5, wt = avg_logFC)
+    
+    write_xlsx(list(top5), "tables/top5_per_cluster.xlsx")
+}
+top5 
+```
+
+[Open top 5 markers per cluster table in excel](data/top5_per_cluster.xlsx)
+
+# References
+[UMAP clustering](https://umap-learn.readthedocs.io/en/latest/clustering.html)
+
+# R session information
+```{r}
+sessionInfo()
+```

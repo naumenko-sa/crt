@@ -47,15 +47,19 @@ opts_chunk[["set"]](
 ```
 
 ```{r}
-pbmc_data <- Read10X(data.dir = "data/pbmc3k_filtered_gene_bc_matrices/filtered_gene_bc_matrices/hg19/")
-pbmc <- CreateSeuratObject(counts = pbmc_data, 
+if (file.exists("data/seurat.RDS")){
+    seurat <- readRDS("data/seurat.RDS")
+}else{
+    pbmc_data <- Read10X(data.dir = "data/pbmc3k_filtered_gene_bc_matrices/filtered_gene_bc_matrices/hg19/")
+    pbmc <- CreateSeuratObject(counts = pbmc_data, 
                            project = "pbmc3k", 
                            min.cells = 3, 
                            min.features = 200)
+    pbmc[["percent.mt"]] <- PercentageFeatureSet(pbmc, pattern = "^MT-")
+    saveRDS(pbmc, "data/seurat.RDS")
+}
 
-pbmc[["percent.mt"]] <- PercentageFeatureSet(pbmc, pattern = "^MT-")
-
-VlnPlot(pbmc, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+VlnPlot(seurat, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
 ```
 
 ```{r}
@@ -65,25 +69,41 @@ CombinePlots(list(plot1, plot2))
 ```
 
 ```{r}
-pbmc <- subset(pbmc, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
+seurat <- subset(seurat, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
 ```
 
 
 # Normalization
-```{r normalization}
+```{r normalization, message = F, warning = F}
 # Normalize, Scale, Find Variable Features
-pbmc <- SCTransform(pbmc, vars.to.regress = "percent.mt")
+seurat <- SCTransform(seurat, vars.to.regress = "percent.mt")
 ```
 
 # Clustering
 ```{r}
-pbmc <- RunPCA(pbmc, verbose = FALSE)
-pbmc <- RunUMAP(pbmc, dims = 1:30, verbose = FALSE)
-pbmc <- FindNeighbors(pbmc, dims = 1:30, verbose = FALSE)
-pbmc <- FindClusters(pbmc, verbose = FALSE)
-DimPlot(pbmc, label = TRUE) + NoLegend()
+seurat <- RunPCA(seurat, verbose = FALSE)
+seurat <- RunUMAP(seurat, dims = 1:30, verbose = FALSE)
+seurat <- FindNeighbors(seurat, dims = 1:30, verbose = FALSE)
+seurat <- FindClusters(seurat, verbose = FALSE, resolution = 0.8)
+DimPlot(seurat, label = TRUE, reduction = "umap") + NoLegend()
+
+saveRDS(seurat, "data/seurat.clusters.RDS")
 ```
 
+# Subset and re-clustering
+```{r}
+seurat <- subset(seurat, idents = c("0", "1", "4", "5", "7", "9"))
+DimPlot(seurat, label = TRUE) + NoLegend()
+```
+
+```{r}
+seurat <- SCTransform(seurat, vars.to.regress = "percent.mt", do.scale = T)
+seurat <- RunPCA(seurat, verbose = FALSE)
+seurat <- RunUMAP(seurat, dims = 1:30, verbose = FALSE)
+seurat <- FindNeighbors(seurat, dims = 1:30, verbose = FALSE)
+seurat <- FindClusters(seurat, verbose = FALSE)
+DimPlot(seurat, label = TRUE) + NoLegend()
+```
 
 # Top variable genes
 ```{r, fig.width = 20, fig.height = 10}

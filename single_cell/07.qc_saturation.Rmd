@@ -48,7 +48,9 @@ opts_chunk[["set"]](
 
 ```{r}
 se <- readRDS("data/se.RDS")
-metrics <- colData(se) %>% as.data.frame
+# filtering by nGenes > 1 otherwise log plots don't work
+metrics <- colData(se) %>% as.data.frame() %>% filter(nGenes > )
+
 ```
 
 ```{r}
@@ -85,11 +87,10 @@ plot_saturation = function(m){
 
 plot_metrics = function(m){
     plot_grid(
-        m %>% ggplot(aes(y=sample,  x=nReads)) + geom_density_ridges() + scale_x_log10() + geom_vline(xintercept = 5000),
-        m %>% ggplot(aes(y = sample,  x=nUMI)) + geom_density_ridges() + scale_x_log10() + geom_vline(xintercept = 500),
-        m %>% ggplot(aes(y=sample,  x=nGenes)) + geom_density_ridges() + scale_x_log10() + geom_vline(xintercept = 500),
-        m %>% 
-            ggplot(aes(y=sample,  x=mitoRatio)) + geom_density_ridges() + geom_vline(xintercept = 0.25)
+        m %>% ggplot(aes(y = sample,  x = nReads)) + geom_density_ridges() + scale_x_log10() + geom_vline(xintercept = 5000),
+        m %>% ggplot(aes(y = sample,  x = nUMI)) + geom_density_ridges() + scale_x_log10() + geom_vline(xintercept = 500),
+        m %>% ggplot(aes(y = sample,  x = nGenes)) + geom_density_ridges() + scale_x_log10() + geom_vline(xintercept = 500),
+        m %>% ggplot(aes(y=sample,  x=mitoRatio)) + geom_density_ridges() + geom_vline(xintercept = 0.25)
     )
 }
 
