@@ -1,5 +1,5 @@
 ---
-title: "Untitled"
+title: "DS example"
 output: html_document
 ---
 
@@ -9,4 +9,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(ExperimentHub)
+eh <- ExperimentHub()
+query(eh, "Kang")
+sce <- eh[["EH2259"]]
 ```
