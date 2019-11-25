@@ -40,11 +40,14 @@ opts_chunk[["set"]](
 ```
 
 # Overview
+- Principal Investigator: 
 - Researcher: 
 - Experiment: 
+- [I used this lesson as a template](https://github.com/hbctraining/scRNA-seq/blob/master/lessons/07_SC_marker_identification.md)
 - markers annotated with [brainrnaseq](https://www.brainrnaseq.org/)
 
 # All markers
+
 Description of the columns:
 
 - cluster: cluster ID
@@ -59,17 +62,14 @@ Description of the columns:
 
 ```{r, rows.print = 25}
 seurat <- readRDS("data/seurat.clusters.RDS")
-if (file.exists("tables/markers.annotated.xlsx")){
-    markers <- read_csv("tables/markers.csv")
-    ann_markers <- read_xlsx("tables/markers.annotated.xlsx")
-}else{
+markers_file <- "tables/markers.annotated.xlsx"
+if (!file.exists("markers_file")){
     # long (~1h)
     markers <- FindAllMarkers(object = seurat,
                           only.pos = TRUE,
                           logfc.threshold = 0.25,
                           min.pct = 0.25
                           )
-    write_csv(markers, "tables/markers.csv")
     ensembl_w_description <- read_csv("tables/ensembl_w_description.mouse.protein_coding.csv")
 
     #combine markers with gene descriptions
@@ -81,31 +81,15 @@ if (file.exists("tables/markers.annotated.xlsx")){
     ann_markers <- ann_markers %>%
             dplyr::arrange(cluster, p_val_adj) %>% 
         select(cluster, gene, external_gene_name, description, p_val_adj, p_val, avg_logFC, pct.1, pct.2)                      
-    write_xlsx(list(ann_markers), "tables/markers.annotated.xlsx")
+
+    write_xlsx(list(ann_markers), "markers_file")
+}else{
+    ann_marders <- read_xlsx("markers_file")
 }
 ann_markers
 
 ```
-[Open the annontated markers table in Excel](tables/markers.annotated.xlsx)
-
-# Top 5 markers per cluster
-```{r top5_markers}
-if(file.exists("tables/top5_per_cluster.xlsx")){
-    top5 <- read_xlsx("tables/top5_per_cluster.xlsx")
-}else{
-    top5 <- ann_markers %>% 
-            group_by(cluster) %>% 
-            top_n(n = 5, wt = avg_logFC)
-    
-    write_xlsx(list(top5), "tables/top5_per_cluster.xlsx")
-}
-top5 
-```
-
-[Open top 5 markers per cluster table in excel](data/top5_per_cluster.xlsx)
-
-# References
-[UMAP clustering](https://umap-learn.readthedocs.io/en/latest/clustering.html)
+[Open the annontated markers table in Excel](`r markers_file`)
 
 # R session information
 ```{r}
