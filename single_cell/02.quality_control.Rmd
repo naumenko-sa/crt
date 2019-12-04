@@ -1,0 +1,293 @@
+---
+title: "Quality control and filtration"
+author: "Sergey Naumenko"
+date: "`r Sys.Date()`"
+output:
+    html_document:
+        code_folding: hide
+        df_print: paged
+        highlights: tango
+        number_sections: true
+        self_contained: true
+        theme: default
+        toc: true
+        toc_float:
+            collapsed: true
+            smooth_scroll: false
+---
+
+```{r setup, include = FALSE}
+library(tidyverse)
+library(Seurat)
+library(knitr)
+
+ggplot2::theme_set(theme_light(base_size = 14))
+
+opts_chunk[["set"]](
+    cache = FALSE,
+    dev = c("png", "pdf"),
+    error = TRUE,
+    highlight = TRUE,
+    message = FALSE,
+    prompt = FALSE,
+    tidy = FALSE,
+    warning = FALSE)
+```
+
+# Overview
+- Researcher: 
+- Experiment: 
+
+```{r seurat_object, rows.print = 24}
+# Metadata
+metadata <- read_csv("data/metadata.csv", col_types = "cfcf")
+if (file.exists("data/seurat.metadata.RDS")){
+    seurat_object <- readRDS("data/seurat.metadata.RDS")
+}else{
+    seurat_object <- readRDS("data/seurat.bcbio.RDS")
+    # Mitochondrial ratio
+    seurat_object$log10GenesPerUMI <- log10(seurat_object$nFeature_RNA) / log10(seurat_object$nCount_RNA)
+    mito_genes <- read_csv("tables/mitochondrial_genes_mouse.csv")
+    # Compute percent mito ratio
+    seurat_object$mitoRatio <- PercentageFeatureSet(object = seurat_object, 
+                                                features = mito_genes$ensembl_gene_id)
+    seurat_object$mitoRatio <- seurat_object@meta.data$mitoRatio / 100
+
+    # note if trimmed sample barcodes used or not
+    metadata1 <- seurat_object@meta.data
+    metadata1$cells <- rownames(metadata1)
+    metadata1 <- metadata1 %>%
+        dplyr::rename(seq_folder = orig.ident,
+                      nUMI = nCount_RNA,
+                      nGene = nFeature_RNA)
+
+    metadata1$sample_id <- str_split_fixed((metadata1$cells),":",2)[,1]
+
+    metadata2 <- metadata1 %>% left_join(metadata, by = c("sample_id" = "bcbio_id"))
+    metadata2$seq_folder <- metadata2$sample_name
+
+    row.names(metadata2) <- metadata2$cells
+
+    seurat_object@meta.data <- metadata2
+    saveRDS(seurat_object, "data/seurat.metadata.RDS")
+    metadata
+}
+metadata2 <- seurat_object@meta.data    
+```
+
+# Number of cells
+```{r}
+cell_counts <- metadata2 %>% 
+               count(sample_id) %>%
+               left_join(metadata, by = c("sample_id" = "bcbio_id")) %>% 
+               dplyr::select(sample_id, sample_n, condition, n) %>% 
+               dplyr::rename(n_cells = n)
+
+cell_counts %>% ggplot(aes(x = reorder(sample_n, -n_cells), 
+                           y = n_cells, 
+                           fill = condition)) + 
+                geom_col() +
+                theme_classic() +
+                theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+                xlab("sample_id") +
+                ylab("Number of cells") +
+                ylim(0, 45000) +
+                coord_flip() +
+                geom_text(aes(label = n_cells), hjust = "left") +
+                theme(plot.title = element_text(hjust = 0.5, face = "bold")) +
+  	            ggtitle("Number of cells per sample")
+```
+
+```{r, rows.print = 24}
+cell_counts %>% arrange(n_cells)
+```
+
+- Total cells:`r sum(cell_counts$n_cells)`
+
+# Number of transcripts(UMIs) per cell
+```{R UMI_per_cell}
+metadata2 %>%
+  	ggplot(aes(color = sample_n, x = nUMI)) + 
+  	geom_density(alpha = 0.2) + 
+  	scale_x_log10(breaks = c(100, 200, 500, 1000, 10000)) + 
+  	theme_classic() +
+    geom_vline(xintercept = 150, linetype = "dashed") +
+    geom_vline(xintercept = 200, linetype = "dashed") +
+    geom_vline(xintercept = 500, linetype = "dashed") +
+    ylim(0, 5) +
+    guides(color = guide_legend(ncol = 2)) +
+    ggtitle("UMI per cell, all samples")
+```
+
+
+```{R nUMI_violin}
+metadata2 %>% 
+  	ggplot(aes(sample_n, nUMI)) + 
+  	geom_violin(aes(fill = condition)) + 
+  	ylab("log10 nUMI") +
+  	geom_vline(xintercept = 500, linetype = "dashed") +
+    scale_y_log10() +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+# Distribution of genes detected per cell
+
+## Histogram
+
+```{R distribution_of_genes_histrogram}
+metadata2 %>% 
+  	ggplot(aes(color = sample_n, 
+  	           x = nGene)) + 
+  	geom_density(alpha = 0.2) + 
+  	theme_classic() +
+  	scale_x_log10(breaks = c(100, 300, 500, 1000, 3000, 5000, 10000)) + 
+  	geom_vline(xintercept = 300, linetype = "dashed")+
+  	geom_vline(xintercept = 500, linetype = "dashed")+
+  	geom_vline(xintercept = 3000, linetype = "dashed")+
+    ylab("Log10 Genes per cell")+
+    guides(color = guide_legend(ncol = 1))
+```
+
+## Boxplot
+```{R genes_per_cell_boxplot}
+metadata2 %>%
+  	ggplot(aes(x = sample_n, 
+  	           y = log10(nGene), 
+  	           fill = condition)) + 
+  	geom_boxplot() + 
+  	theme_classic() +
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+
+## Violin plot
+```{R genes_per_cell_violin}
+metadata2 %>%
+  	ggplot(aes(x = sample_n, y = log10(nGene))) + 
+  	geom_violin(aes(fill = condition)) + 
+        theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+# Correlation between genes detected and number of UMIs and determine whether strong presence of cells with low numbers of genes/UMIs
+Poor quality cells are likely to have low genes and UMIs per cell. Therefore, a poor sample is likely to have cells in the lower left of the graph. Good cells should exhibit both higher number of genes per cell and higher numbers of UMIs. We also expect similar lines with similar slopes for all samples.
+
+```{R correlation_genes_UMIs}
+metadata2 %>%
+  	ggplot(aes(x = nUMI, y = nGene, color = mitoRatio)) + 
+  	geom_point() + 
+  	stat_smooth(method=lm) +
+  	scale_x_log10() + 
+  	scale_y_log10() + 
+  	theme_classic() +
+  	geom_vline(xintercept = 500) +
+  	geom_hline(yintercept = 250) +
+  	facet_wrap(~sample_id)
+```
+
+# Mitochondrial gene ratio
+This metric can identify whether there is a higher than typical relative abundance of mitochondrial gene transcripts represented, indicative of dead or dying cells. Poor quality samples for mitochondrial counts would have larger peaks above the 0.1 mitochondrial ratio mark, unless it is expected based on sample type.
+
+```{R mitochondrial}
+metadata2 %>% 
+  	ggplot(aes(color = sample_n,
+  	           x = mitoRatio)) +
+  	geom_density(alpha = 0.2) +
+  	scale_x_log10(breaks = c(0.001, 0.010, 0.1, 0.15, 0.2)) +
+  	theme_classic() +
+    ggtitle("Ratio (percent/100) of mitochondrial genes detected") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+  	geom_vline(xintercept = 0.1, linetype = "dashed") +
+  	geom_vline(xintercept = 0.15, linetype = "dashed") +
+  	geom_vline(xintercept = 0.2, linetype = "dashed") +
+    guides(color = guide_legend(ncol = 2))
+```
+
+```{R mito_violin}
+metadata2 %>% 
+  	ggplot(aes(x = sample_n, 
+  	           y = log10(mitoRatio))) + 
+  	geom_violin(aes(fill = condition)) + 
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+    ggtitle("Ratio (percent/100) of mitochondrial genes detected") +
+    theme(plot.title = element_text(hjust = 0.5))
+```
+
+# Overall novelty of the gene expression by visualizing the genes detected per UMI
+“Novelty” is the ratio of nGENE to nUMI, i.e. relative number of genes detected. Cells with relatively low “Novelty” have fewer genes detected per total UMI counts than average (a less complex RNA profile), and can indicate low quality cells, or contamination with less complex cell types like erythrocytes. Generally, we expect the novelty score to be above 0.80.
+
+```{R novelty}
+metadata2 %>%
+  	ggplot(aes(x = log10GenesPerUMI, 
+  	           color = condition)) +
+  	geom_density(alpha = 0.2) +
+  	theme_classic() +
+  	geom_vline(xintercept = 0.8)
+```
+
+# Filter: nGene in [500, 3000], mitoRatio < 0.15, keeping genes expression in >=10 cells
+```{r stringent_filter, include = FALSE}
+if (file.exists("data/seurat.filtered.RDS")){
+    seurat_filtered <- readRDS("data/seurat.filtered.RDS")
+}else{
+    seurat.stringent_filter <- subset(seurat_object,
+                                      nGene >= 500 & nGene <= 3000 & mitoRatio < 0.15)
+    # seurat.stringent_filter <- subset(seurat.stringent_filter,
+    #                                   sample_n %in% c("S16", "S17", "S18"),
+    #                                   invert = TRUE)
+    # Extract counts
+    counts <- GetAssayData(object = seurat.stringent_filter, slot = "counts")
+    # Output a logical vector for every gene on whether the more than zero counts per cell
+    nonzero <- counts > 0L
+
+    # Sums all TRUE values and returns TRUE if more than 10 TRUE values per gene
+    keep_genes <- Matrix::rowSums(nonzero) >= 10
+    # Only keeping those genes expressed in more than 10 cells
+    filtered_counts <- counts[keep_genes, ]
+    # Create a new Seurat object
+    seurat_filtered <- CreateSeuratObject(filtered_counts, meta.data = seurat.stringent_filter@meta.data)
+    saveRDS(seurat_filtered, "data/seurat.filtered.RDS")
+}
+
+seurat_filtered@meta.data %>%
+  	ggplot(aes(color = sample_n, x = nGene)) + 
+  	geom_density(alpha = 0.2) + 
+  	scale_x_log10(breaks = c(100, 200, 500, 1000, 3000)) + 
+  	theme_classic() +
+    geom_vline(xintercept = 150, linetype = "dashed") +
+    geom_vline(xintercept = 200, linetype = "dashed") +
+    geom_vline(xintercept = 500, linetype = "dashed") +
+    ylim(0, 5) +
+    guides(color = guide_legend(ncol = 2)) +
+    ggtitle("Genes per cell")
+```
+
+```{r include = TRUE}
+cell_counts <- seurat_filtered@meta.data %>% 
+               count(sample_id) %>%
+               left_join(metadata, by = c("sample_id" = "bcbio_id")) %>% 
+               dplyr::select(sample_id, n, sample_n, condition) %>% 
+               rename(n_cells = n)
+```
+- Total cells:`r sum(cell_counts$n_cells)`
+
+```{r include = TRUE}
+cell_counts %>% ggplot(aes(x = reorder(sample_n, -n_cells), 
+                           y = n_cells, 
+                           fill = condition)) + 
+                geom_col() +
+                theme_classic() +
+                theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+                xlab("sample_id") +
+                ylab("Number of cells") +
+                ylim(0, 20000) +
+                coord_flip() +
+                geom_text(aes(label = n_cells), hjust = "left") +
+                theme(plot.title = element_text(hjust = 0.5, face = "bold")) +
+  	            ggtitle("Number of cells per sample after filtration")
+```
+
+# R session information
+```{r}
+sessionInfo()
+```
