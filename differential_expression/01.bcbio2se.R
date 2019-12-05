@@ -6,7 +6,7 @@ library(janitor)
 library(DESeq2)
 
 #project_dir <- args[1]
-project_dir <- "/home/sergey/cluster/2_bcbio_5samples/final/2019-12-03_metadata"
+project_dir <- "/n/data1/cores/bcbio/PIs/konstantina_stankovic/rnaseq_and_drug_repurposing_analysis_of_mutant_TMPRSS3_iPSC_line_hbc03750/2_bcbio/final/2019-12-04_metadata"
 
 metadata <- read_csv(file.path(project_dir, "metadata.csv"))
 
@@ -15,9 +15,9 @@ metadata$genotype <- as.factor(metadata$genotype)
 metrics <- read_tsv(file.path(project_dir, "multiqc", "multiqc_data", "multiqc_bcbio_metrics.txt")) %>% 
     clean_names(case = "snake")
 
-sample_dirs <- file.path(project_dir, "..", metadata$samplename)
+sample_dirs <- file.path(project_dir, "..", metadata$sample)
 salmon_files <- file.path(sample_dirs, "salmon", "quant.sf")
-#names(salmon_files) <- metadata$sample
+names(salmon_files) <- metadata$sample
 
 transcripts2genes_file <- file.path(project_dir, "tx2gene.csv")
 transcripts2genes <- read_csv(transcripts2genes_file, col_names = c("ensembl_transcript_id", "ensembl_gene_id"))
@@ -25,7 +25,7 @@ transcripts2genes <- read_csv(transcripts2genes_file, col_names = c("ensembl_tra
 txi_salmon <- tximport(salmon_files, type = "salmon", tx2gene = transcripts2genes,
                       countsFromAbundance = "lengthScaledTPM")
 
-col_data <- metadata %>% column_to_rownames(var = "samplename")
+col_data <- metadata %>% column_to_rownames(var = "sample")
 col_data$sample <- rownames(col_data)
 
 raw_counts <- round(data.frame(txi_salmon$counts, check.names = FALSE), 0) %>% as.matrix()
