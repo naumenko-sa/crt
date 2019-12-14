@@ -1,0 +1,335 @@
+---
+title: "Functional Analysis"
+author: "Sergey Naumenko"
+date: "`r Sys.Date()`"
+output:
+   html_document:
+      code_folding: hide
+      df_print: paged
+      highlights: pygments
+      number_sections: true
+      self_contained: true
+      theme: default
+      toc: true
+      toc_float:
+         collapsed: true
+         smooth_scroll: true
+---
+
+# Overview
+
+- Principal Investigator: Konstantina Stankovic
+- Researcher: Minjin Jeong
+- Experiment: RNAseq and drug repurposing analysis of mutant TMPRSS3 iPSC line [hbc03750]
+- more about functional analysis: https://hbctraining.github.io/DGE_workshop_salmon/lessons/functional_analysis_2019.html
+
+```{r setup, message = FALSE}
+library(tidyverse)
+library(clusterProfiler)
+library(topGO)
+library(DOSE)
+library(pathview)
+library(org.Hs.eg.db)
+library(AnnotationHub)
+library(GSEABase)
+library(readxl)
+library(writexl)
+
+# functions
+# genes2test - up or down ensembl_gene_id vector
+# all_genes - all genes ensembl_gene_id_vector
+# ont = ["BP", "CC", "MF"]
+# returns: enrichResult
+go_analysis <- function(genes2test, all_genes, ont){
+    ego <- enrichGO(
+            gene = genes2test,
+            universe = all_genes,
+            OrgDb = org.Hs.eg.db,
+            keyType = "ENSEMBL",
+            ont = ont,
+            qvalueCutoff = 0.05,
+            readable = TRUE) 
+    return(ego)
+}
+
+gsea_analysis <- function(genes2test, all_genes){
+    genes <- genes_df$log2FoldChange
+    names(genes) <- genes_df$entrezgene_id
+    genes <- sort(genes, decreasing = T)
+
+    ewp2 <- GSEA(genes, 
+             TERM2GENE = wpid2gene, 
+             TERM2NAME = wpid2name, 
+             verbose = FALSE)
+
+    ewp2 <- setReadable(ewp2, org.Hs.eg.db, keyType = "ENTREZID")
+    ewp2 <- ewp2 %>% as.data.frame()
+    return(ewp2)
+}
+
+#hub <- AnnotationHub()
+# query(hub, "Homo sapiens")
+#hsapiens <- hub[["AH75011"]]
+```    
+
+# Wiki Pathways analysis
+Pathway analysis is for up- and down- regulated genes together as genes could work in a pathway both ways.
+```{r wiki_pathways, rows.print = 20}
+# input: entrez_id vector
+wiki_pathway_analysis <- function(genes){
+    wp2gene <- read.gmt("tables/wikipathways-20191110-gmt-Homo_sapiens.gmt")
+    wp2gene <- wp2gene %>% separate(ont, c("name", "version", "wpid", "org"), "%")
+    wpid2gene <- wp2gene %>% dplyr::select(wpid, gene) #TERM2GENE
+    wpid2name <- wp2gene %>% dplyr::select(wpid, name) #TERM2NAME
+    ewp <- enricher(genes, 
+                TERM2GENE = wpid2gene, 
+                TERM2NAME = wpid2name)
+    ewp <- setReadable(ewp, org.Hs.eg.db, keyType = "ENTREZID")
+    ewp_df <- ewp %>% as.data.frame()
+    return(ewp_df)
+}
+
+genes_up <- read_xlsx("tables/genes_up.xlsx") %>% 
+        drop_na(entrezgene_id) %>% 
+        dplyr::filter(log2FoldChange >= 1)
+
+ewp_df <- wiki_pathway_analysis(genes_up$entrezgene_id)
+
+ewp_df
+```
+
+```{r}
+genes_down <- read_xlsx("tables/genes_down.xlsx") %>% 
+        drop_na(entrezgene_id) %>% 
+        dplyr::filter(log2FoldChange <= -1)
+
+ewp_df <- wiki_pathway_analysis(genes_down$entrezgene_id)
+ewp_df
+```
+
+# Gene ontology enrichment analysis
+## Upregulated genes
+```{r go_enrichment_bp, fig.width = 15, fig.height = 15, include = FALSE}
+all_genes <- read_csv("tables/genes_all.csv")
+go_result <- go_analysis(genes_up$ensembl_gene_id, all_genes$ensembl_gene_id, "BP")
+df_go_up_bp <- as.data.frame(go_result)
+```
+
+### Biological process
+```{r, fig.width = 10, fig.height = 10}
+dotplot(go_result, showCategory = 50) + ggtitle ("Biological process")
+```
+```{r fig.width = 10, fig.height = 10}
+emapplot(go_result, showCategory = 50)
+```
+```{r, fig.width = 10, fig.height = 10}
+foldchanges <- genes_up$log2FoldChange
+names(foldchanges) <- genes_up$external_gene_name
+
+cnetplot(go_result,
+         categorySize="pvalue", 
+         showCategory = 5, 
+         foldChange = foldchanges, 
+         vertex.label.font = 6)
+```
+
+### Cellular compartment
+
+```{r go_enrichment_cc, fig.width = 10, fig.height = 10}
+go_result <- go_analysis(genes_up$ensembl_gene_id, all_genes$ensembl_gene_id, "CC")
+df_go_up_cc <- as.data.frame(go_result)
+dotplot(go_result, showCategory = 50) + ggtitle ("Cellular compartment")
+```
+
+```{r fig.width = 10, fig.height = 10}
+emapplot(go_result, showCategory = 50)
+```
+
+```{r, fig.width = 10, fig.height = 10}
+cnetplot(go_result,
+         categorySize = "pvalue", 
+         showCategory = 5, 
+         foldChange = foldchanges, 
+         vertex.label.font = 6)
+```
+
+### Molecular function
+
+```{r go_enrichment_mf, fig.width = 10, fig.height = 10}
+go_result <- go_analysis(genes_up$ensembl_gene_id, all_genes$ensembl_gene_id, "MF")
+df_go_up_mf <- as.data.frame(go_result)
+dotplot(go_result, showCategory = 50) + ggtitle ("Molecular function")
+```
+
+```{r fig.width = 10, fig.height = 10}
+emapplot(go_result, showCategory = 50)
+```
+
+```{r, fig.width = 10, fig.height = 10}
+cnetplot(go_result,
+         categorySize = "pvalue", 
+         showCategory = 5, 
+         foldChange = foldchanges, 
+         vertex.label.font = 6)
+```
+
+## Downregulated genes - no enrichment
+
+### Biological process
+```{r go_enrichment_down_bp, fig.width = 10, fig.height = 10}
+go_result <- go_analysis(genes_down$ensembl_gene_id, 
+                         all_genes$ensembl_gene_id, 
+                         "BP")
+df_go_down_bp <- as.data.frame(go_result)
+if (nrow(df_go_down_bp) > 0){
+    dotplot(go_result, showCategory = 50) + ggtitle ("Biological process")
+}
+```
+
+```{r fig.width = 10, fig.height = 10}
+if (nrow(df_go_down_bp) > 0){
+    emapplot(go_result, showCategory = 50)
+}
+```
+
+```{r, fig.width = 10, fig.height = 10}
+if (nrow(df_go_down_bp) > 0){
+    foldchanges <- genes_down$log2FoldChange
+    names(foldchanges) <- genes_down$external_gene_name
+
+    cnetplot(go_result,
+         categorySize = "pvalue", 
+         showCategory = 5, 
+         foldChange = foldchanges, 
+         vertex.label.font = 6)
+}
+```
+
+### Cellular compartment
+
+```{r go_enrichment_down_cc, fig.width = 10, fig.height = 10}
+go_result <- go_analysis(genes_down$ensembl_gene_id, 
+                         all_genes$ensembl_gene_id, 
+                         "CC")
+df_go_down_cc <- as.data.frame(go_result)
+if (nrow(df_go_down_cc) > 0){
+    dotplot(go_result, showCategory = 50) + ggtitle ("Cellulcar compartment")
+}
+```
+
+```{r fig.width = 10, fig.height = 10}
+if (nrow(df_go_down_cc) > 0){
+    emapplot(go_result, showCategory = 50)
+}
+```
+
+```{r, fig.width = 10, fig.height = 10}
+if (nrow(df_go_down_cc) > 0){
+    foldchanges <- genes_down$log2FoldChange
+    names(foldchanges) <- genes_down$external_gene_name
+
+    cnetplot(go_result,
+         categorySize="pvalue", 
+         showCategory = 5, 
+         foldChange = foldchanges, 
+         vertex.label.font = 6)
+}
+```
+
+### Molecular function
+
+```{r go_enrichment_down_mf, fig.width = 10, fig.height = 10}
+go_result <- go_analysis(genes_down$ensembl_gene_id, all_genes$ensembl_gene_id, "MF")
+df_go_down_mf <- as.data.frame(go_result)
+if (nrow(df_go_down_mf) > 0){
+    dotplot(go_result, showCategory = 50) + ggtitle ("Molecular function")
+}
+```
+
+```{r fig.width = 10, fig.height = 10}
+if (nrow(df_go_down_mf) > 0){
+    emapplot(go_result, showCategory = 50)
+}
+```
+
+```{r, fig.width = 10, fig.height = 10}
+if (nrow(df_go_down_mf) > 0){
+    foldchanges <- genes_down$log2FoldChange
+    names(foldchanges) <- genes_down$external_gene_name
+
+    cnetplot(go_result,
+         categorySize="pvalue", 
+         showCategory = 5, 
+         foldChange = foldchanges, 
+         vertex.label.font = 6)
+}
+```
+
+```{r}
+write_xlsx(list(df_go_up_bp, df_go_up_cc, df_go_up_mf,
+                df_go_down_bp, df_go_down_cc, df_go_down_mf), 
+       "tables/go_enrichment.xlsx")
+```
+
+# Gene set enrichment analysis
+```{r}
+## Remove any NA values (reduces the data by quite a bit)
+res_entrez <- all_genes %>% 
+            drop_na(entrezgene_id) %>% 
+            distinct(entrezgene_id, .keep_all = TRUE)
+
+foldchanges <- res_entrez$log2FoldChange
+names(foldchanges) <- res_entrez$entrezgene_id
+foldchanges <- sort(foldchanges, decreasing = TRUE)
+
+gseaKEGG <- gseKEGG(geneList = foldchanges, 
+                    organism = "hsa", 
+                    nPerm = 1000, 
+                    minGSSize = 10,
+                    verbose = FALSE,
+                    )
+
+gseaKEGG <- setReadable(gseaKEGG, org.Hs.eg.db, keyType = "ENTREZID")
+
+## Extract the GSEA results
+gseaKEGG_results <- gseaKEGG@result
+
+write_xlsx(gseaKEGG_results, "tables/gsea_kegg.xlsx")
+View(gseaKEGG_results)
+```
+
+## Top enriched set
+
+```{r}
+gseaplot(gseaKEGG, "hsa04080")
+```
+
+```{r}
+detach("package:dplyr", unload=TRUE) # first unload dplyr to avoid conflicts
+
+## Output images for a single significant KEGG pathway
+pathview(gene.data = foldchanges,
+              pathway.id = "hsa04080",
+              species = "hsa",
+              limit = list(gene = 2, # value gives the max/min limit for foldchanges
+              cpd = 1))
+```
+
+```{r}
+all_genes_gsea <- all_genes %>% dplyr::select(external_gene_name, ensembl_gene_id, 
+                                       SK7A2, SK7A3, SK7A4, 
+                                       SK8A2, SK8A3, SK8A4) %>% 
+                            tidyr::drop_na(external_gene_name) %>% 
+                            dplyr::distinct(external_gene_name, .keep_all = TRUE) %>% 
+                            dplyr::rename(NAME = external_gene_name,
+                                          DESCRIPTION = ensembl_gene_id)
+write_tsv(all_genes_gsea, "tables/all_genes_gsea.txt")
+                            
+#ewp_df <- gsea_analysis(genes_up)
+#ewp_df <- gsea_analysis(genes_down)
+```
+
+# R Session
+```{r}
+sessionInfo()
+```

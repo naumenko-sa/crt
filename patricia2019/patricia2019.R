@@ -2,6 +2,7 @@ init <- function(){
     setwd("~/Desktop/code/patricia")
     library(tidyverse)
     library(edgeR)
+    library(org.Hs.eg.db)
     source("~/Desktop/code/crt/scripts/crt.utils.R")
 }
 
@@ -64,7 +65,6 @@ rpkm_table <- function(){
     # remove suffix
     counts$Ensembl_gene_id <- str_replace(counts$Ensembl_gene_id,"\\.\\d+","")
     
-    protein_coding_genes <- read_csv("protein_coding_genes.list")
     counts <- inner_join(counts, protein_coding_genes, by = c("Ensembl_gene_id" = "ENS_GENE_ID")) 
     counts <- column_to_rownames(counts, var = "Ensembl_gene_id")
     
@@ -129,19 +129,23 @@ differential_expression <- function(){
          # dplyr::select(Ensembl_gene_id, HCNSM_EV, EN2, EN3, HCNSM_K27M, KN2, KN3)
 
     # contrast 1
-    # select(Ensembl_gene_id, HCGM_WT, WG2, WG3, HCGM_K27M, KG2, KG3)
+    #prefix = "contrast1"
+    #counts <- counts %>% dplyr::select(ensembl_gene_id, HCGM_WT, WG2, WG3, HCGM_K27M, KG2, KG3)
     
     # contrast 2
-    # select(Ensembl_gene_id, WG2, WG3, KG2, KG3)
+    # prefix = "contrast2"
+    # counts <- counts %>% dplyr::select(ensembl_gene_id, WG2, WG3, KG2, KG3)
     
     # contrast 3
-    # select(Ensembl_gene_id, HCGM_EV, EG2, EG3, HCGM_K27M, KG2, KG3)
+    #prefix = "contrast3"
+    #counts <- counts %>% dplyr::select(ensembl_gene_id, HCGM_EV, EG2, EG3, HCGM_K27M, KG2, KG3)
     
     # contrast 4
     # select(Ensembl_gene_id, HCGM_EV, EG3, HCGM_K27M, KG2, KG3)
     
     # contrast 5
-    # select(Ensembl_gene_id, HCGM_K27M, KG2, KG3, HCNSM_K27M, KN2, KN3)
+    # prefix = "contrast5"
+    # counts <- counts %>% dplyr::select(ensembl_gene_id, HCGM_K27M, KG2, KG3, HCNSM_K27M, KN2, KN3)
     
     # contrast 6
     # select(Ensembl_gene_id, KG2, KG3, KN2, KN3)
@@ -149,8 +153,9 @@ differential_expression <- function(){
     # contrast 7
     # select(Ensembl_gene_id, GLINS1, HCNSM_K27M, KN2, KN3)
     
-    # contrast 8
-    # select(Ensembl_gene_id, HCNSM_EV, EN2, EN3, HCNSM_K27M, KN2, KN3)
+    # contrast 8 
+    # prefix <- "contrast8"
+    # counts <- counts %>% dplyr::select(ensembl_gene_id, HCNSM_EV, EN2, EN3, HCNSM_K27M, KN2, KN3)
     
     # contrast 9
     # prefix <- "contrast9"

@@ -378,11 +378,17 @@ prepare_file_4gsea <- function(counts, samples, prefix)
   
     result_file = paste0(prefix,".4gsea.txt")
   
-    t_cpm <- merge(t_cpm, ensembl_w_description, by.x = "row.names", by.y = "row.names", all.x = T, all.y = F)
+    t_cpm <- merge(t_cpm, 
+                   ensembl_w_description, 
+                   by.x = "row.names", 
+                   by.y = "ensembl_gene_id", 
+                   all.x = T, 
+                   all.y = F)
+    
     colnames(t_cpm)[1] <- "ensembl_gene_id"
     
-    t_cpm = t_cpm[c("external_gene_name","ensembl_gene_id",paste0(samples))]
-    colnames(t_cpm)[1:2]=c("NAME","DESCRIPTION")
+    t_cpm = t_cpm[c("external_gene_name", "ensembl_gene_id", paste0(samples))]
+    colnames(t_cpm)[1:2] = c("NAME", "DESCRIPTION")
   
     o = order(rowSums(t_cpm[,c(samples)]),decreasing = T)
     t_cpm = t_cpm[o,]
@@ -390,7 +396,7 @@ prepare_file_4gsea <- function(counts, samples, prefix)
     dy = t_cpm[d,]$NAME
     t_cpm = t_cpm[!d,]
     nrow(t_cpm)
-    write.table(t_cpm,result_file,quote=F,row.names = F,sep = "\t")
+    write.table(t_cpm, result_file, quote=F, row.names = F, sep = "\t")
 }
 
 # usually heatmap is a part of a bigger figure - we don't need a title
