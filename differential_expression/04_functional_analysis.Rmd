@@ -18,9 +18,9 @@ output:
 
 # Overview
 
-- Principal Investigator: Konstantina Stankovic
-- Researcher: Minjin Jeong
-- Experiment: RNAseq and drug repurposing analysis of mutant TMPRSS3 iPSC line [hbc03750]
+- Principal Investigator: 
+- Researcher: 
+- Experiment: 
 - more about functional analysis: https://hbctraining.github.io/DGE_workshop_salmon/lessons/functional_analysis_2019.html
 
 ```{r setup, message = FALSE}
