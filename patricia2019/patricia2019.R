@@ -3,6 +3,7 @@ init <- function(){
     library(tidyverse)
     library(edgeR)
     library(org.Hs.eg.db)
+    library(pathview)
     source("~/Desktop/code/crt/scripts/crt.utils.R")
 }
 
@@ -129,22 +130,22 @@ differential_expression <- function(){
          # dplyr::select(Ensembl_gene_id, HCNSM_EV, EN2, EN3, HCNSM_K27M, KN2, KN3)
 
     # contrast 1
-    #prefix = "contrast1"
-    #counts <- counts %>% dplyr::select(ensembl_gene_id, HCGM_WT, WG2, WG3, HCGM_K27M, KG2, KG3)
+    prefix <- "contrast1"
+    counts <- counts %>% dplyr::select(ensembl_gene_id, HCGM_WT, WG2, WG3, HCGM_K27M, KG2, KG3)
     
     # contrast 2
     # prefix = "contrast2"
     # counts <- counts %>% dplyr::select(ensembl_gene_id, WG2, WG3, KG2, KG3)
     
     # contrast 3
-    #prefix = "contrast3"
-    #counts <- counts %>% dplyr::select(ensembl_gene_id, HCGM_EV, EG2, EG3, HCGM_K27M, KG2, KG3)
+    # prefix <- "contrast3"
+    # counts <- counts %>% dplyr::select(ensembl_gene_id, HCGM_EV, EG2, EG3, HCGM_K27M, KG2, KG3)
     
     # contrast 4
     # select(Ensembl_gene_id, HCGM_EV, EG3, HCGM_K27M, KG2, KG3)
     
     # contrast 5
-    # prefix = "contrast5"
+    # prefix <- "contrast5"
     # counts <- counts %>% dplyr::select(ensembl_gene_id, HCGM_K27M, KG2, KG3, HCNSM_K27M, KN2, KN3)
     
     # contrast 6
@@ -162,8 +163,12 @@ differential_expression <- function(){
     # counts <- dplyr::select(counts, ensembl_gene_id, HCGM_WT, WG2, WG3,	HCGM_EV, EG2, EG3)
     
     # contrast 10
-    prefix <- "contrast10"
-    counts <- dplyr::select(counts, ensembl_gene_id, HCGM_WT, WG2, WG3,	HCNSM_EV, EN2, EN3)
+    # prefix <- "contrast10"
+    # counts <- dplyr::select(counts, ensembl_gene_id, HCGM_WT, WG2, WG3,	HCNSM_EV, EN2, EN3)
+    
+    # contrast 11
+    #prefix <- "contrast11"
+    #counts <- dplyr::select(counts, ensembl_gene_id, HCNSM_WT, WN2, WN3, HCNSM_K27M, KN2, KN3)
     
     counts <- column_to_rownames(counts, var = "ensembl_gene_id")
     samples <- colnames(counts)
@@ -173,7 +178,7 @@ differential_expression <- function(){
     # group <- factor(c(rep(1,13),rep(2,29)))
     #group <- factor(c(1,1,2,2,2))
     #group <- factor(c(1,2,2,2))
-    filter <- 1
+    filter <- 0.5
     
     gene_lengths <- read.delim("~/Desktop/code/crt/data/gene_lengths.txt", stringsAsFactors = F)
     gene_lengths <- gene_lengths[gene_lengths$ENSEMBL_GENE_ID %in% row.names(counts),]
@@ -201,7 +206,8 @@ differential_expression <- function(){
     
     plotMDS(y)
     
-    keep <- rowSums(cpm(y)>filter) >= n_samples/10
+    #keep <- rowSums(cpm(y) > filter) >= n_samples/2
+    keep <- filterByExpr(y)
     y <- y[keep,, keep.lib.sizes = F]
     
     # necessary for goana - it uses ENTREZ gene ids
@@ -262,19 +268,61 @@ differential_expression <- function(){
     rpkm.counts$gene_description <- NULL
     
     
-    de_results <- dplyr::left_join(de_results, rpkm.counts, by = c("ensembl_gene_id" = "ensembl_gene_id")) %>% 
-                    dplyr::left_join(ensembl_w_description, by = c("ensembl_gene_id" = "ensembl_gene_id")) %>% 
-                    dplyr::select(ensembl_gene_id, external_gene_name, gene_description, Length,
-                               logFC, logCPM, LR, PValue, FDR, one_of(samples)) %>% 
-                    dplyr::filter(FDR < 0.05, abs(logFC)>=2) %>% 
-                    dplyr::arrange(logFC)
+    de_results_allgenes <- dplyr::left_join(de_results, 
+                                            rpkm.counts, 
+                                            by = c("ensembl_gene_id" = "ensembl_gene_id")) %>% 
+                           dplyr::left_join(ensembl_w_description, 
+                                            by = c("ensembl_gene_id" = "ensembl_gene_id")) %>% 
+                           dplyr::select(ensembl_gene_id, 
+                                         external_gene_name, 
+                                         gene_description, 
+                                         Length,
+                                         logFC, 
+                                         logCPM, 
+                                         LR, PValue, 
+                                         FDR, 
+                                         one_of(samples)) %>% 
+                            dplyr::arrange(logFC)
+                            
+    
+    de_results <- de_results_allgenes %>% 
+                        dplyr::filter(FDR < 0.05, 
+                                      abs(logFC)>=2)
+    
     
     write_excel_csv(de_results, efilename)
+    write_excel_csv(de_results_allgenes, paste0(prefix, ".all_genes.csv"))
     
     prepare_file_4gsea(counts, samples, prefix)
     
-    go_analysis(lrt, paste0(prefix, "_"))
+    goana_analysis(lrt, paste0(prefix, "_"))
     kegg_analysis(lrt, paste0(prefix, "_"))
+    
+    
+    # visualize pathway - all significan genes
+    ensembl_entrez <- read_csv("ensembl_entrez.csv")
+    res_entrez <- de_results_allgenes %>% 
+        filter(FDR < 0.05) %>% 
+        left_join(ensembl_entrez, by = c("ensembl_gene_id" = "ensembl_gene_id")) %>% 
+        drop_na(entrezgene_id) %>% 
+        distinct(entrezgene_id, .keep_all = TRUE)
+    
+    foldchanges <- res_entrez$logFC
+    names(foldchanges) <- res_entrez$entrezgene_id
+    foldchanges <- sort(foldchanges, decreasing = TRUE)
+    
+    # RAP1
+    #pathway <- "hsa04015"
+    # focal adhesion
+    pathway <- "hsa04510"
+    pathview(gene.data = foldchanges,
+             pathway.id = pathway,
+             species = "hsa",
+             limit = list(gene = 1, cpd = 1),
+             kegg.native = TRUE,
+             out.suffix = prefix,
+             low = list(gene = "blue", cpd = "blue"),
+             high = list(gene = "orange", cpd = "orange"))
     
     #plot_heatmap_separate (counts,samples,de_results,prefix)
     #plot_heatmap_separate (counts,samples,de_results,paste0(prefix,".top50genes"),50)

@@ -740,7 +740,7 @@ splicing.read_novel_splice_events = function(file){
 # http://cbl-gorilla.cs.technion.ac.il/GOrilla
 # UP means upregulated in the second group, i.e. WT WT WT vs MUT MUT MUT, 
 # up is up in MUT
-go_analysis = function (lrt, prefix="")
+goana_analysis = function (lrt, prefix = "")
 {
     go <- goana(lrt, species = "Hs", geneid = "ENTREZID")
     top_go <- 50
