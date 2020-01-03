@@ -1,26 +1,29 @@
 # from Lorena Pantano's original template: hbc_kressler_sRNAseq_anxiety_brain_mouse_hbc02185
+
+# run:
+# cd to project/final/project
+# conda activate r
+# Rscript 01.bcbio2sse.R
+
 library(SingleCellExperiment)
 library(Matrix)
 library(AnnotationHub)
 library(tidyverse)
 
-replicate="km1"
-
-final_project = "~/cluster/final/2019-08-20_sc-mouse/"
 species = "Mus musculus"
-counts = readMM(file.path(final_project, "tagcounts.mtx"))
-dupcounts = readMM(file.path(final_project, "tagcounts-dupes.mtx"))
-rownames = read.csv(file.path(final_project, "tagcounts.mtx.rownames"), header = F)[["V1"]]
+counts = readMM(file.path("tagcounts.mtx"))
+dupcounts = readMM(file.path("tagcounts-dupes.mtx"))
+rownames = read.csv(file.path("tagcounts.mtx.rownames"), header = F)[["V1"]]
 rownames = as.character(rownames)
-colnames = read.csv(file.path(final_project, "tagcounts.mtx.colnames"), header = F)[["V1"]]
+colnames = read.csv(file.path("tagcounts.mtx.colnames"), header = F)[["V1"]]
 colnames = make.names(as.character(colnames))
-reads = read.csv(file.path(final_project, "cb-histogram.txt"), header = F, sep="\t", row.names = 1)
+reads = read.csv(file.path("cb-histogram.txt"), header = F, sep="\t", row.names = 1)
 rownames(reads) = make.names(rownames(reads))
 
 counts =  as(counts, "dgCMatrix")
 rownames(counts) = rownames
 colnames(counts) = colnames
-metadata = read.csv(file.path(final_project, "tagcounts.mtx.metadata"))
+metadata = read.csv(file.path("tagcounts.mtx.metadata"))
 rownames(metadata) = colnames
 metadata[["nUMI"]] = colSums(counts)
 metadata[["nGenes"]] = colSums(counts>0)
@@ -53,7 +56,6 @@ rows = genes(ahEdb) %>%
     mutate(gene_name=ifelse(gene_name=="", gene_id, gene_name)) %>%
     as.data.frame()
 
-saveRDS(rows[rows$gene_id  %in% rownames,], paste0("data/", replicate, "/rowData.RDS"))
 # mit
 rrna = rows %>% dplyr::filter(chrom == "MT") %>% .[["gene_id"]] %>% intersect(., rownames)
 
@@ -61,5 +63,5 @@ metadata[["mtUMI"]] = colSums(counts[rrna,], na.rm = T)
 metadata[["mtUMI"]][is.na(metadata[["mtUMI"]])] = 0
 metadata[["mitoRatio"]] = metadata$mtUMI/metadata$nUMI
 
-se = SingleCellExperiment(assays=list(raw=counts), colData = metadata)
-saveRDS(se, paste0("data/", replicate,"/se.RDS"))
+se = SingleCellExperiment(assays=list(raw = counts), colData = metadata)
+saveRDS(se, "se.RDS")
