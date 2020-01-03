@@ -5,6 +5,8 @@
 # Rscript 00_create_seurat_object.R
 # conda deactivate
 # should have 3 files from bcbio
+library(R.utils)
+
 file.rename("tagcounts.mtx", "matrix.mtx")
 file.rename("tagcounts.mtx.rownames", "features.tsv")
 file.rename("tagcounts.mtx.colnames", "barcodes.tsv")
