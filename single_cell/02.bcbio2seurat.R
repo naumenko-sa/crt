@@ -1,4 +1,4 @@
-# O2: use interact job with 20G RAM
+# O2: use interactive job with 20G RAM
 # sometimes Rscript is not working but works from R
 # conda activate r
 # which R

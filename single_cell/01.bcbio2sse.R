@@ -1,6 +1,7 @@
 # from Lorena Pantano's original template: hbc_kressler_sRNAseq_anxiety_brain_mouse_hbc02185
 
 # run:
+# interactive session with 20G of RAM
 # cd to project/final/project
 # conda activate r
 # Rscript 01.bcbio2sse.R
