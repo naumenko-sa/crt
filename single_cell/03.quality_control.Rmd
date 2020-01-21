@@ -271,8 +271,11 @@ cell_counts <- seurat_filtered@meta.data %>%
                rename(n_cells = n)
 ```
 - Total cells:`r sum(cell_counts$n_cells)`
+- Mean cells: `r mean(cell_counts$n_cells)`
+- Median cells: `r median(cell_counts$n_cells)`
 
 ```{r include = TRUE}
+y_max <- max(cell_counts$n_cells) + 500
 cell_counts %>% ggplot(aes(x = reorder(sample_n, -n_cells), 
                            y = n_cells, 
                            fill = condition)) + 
@@ -281,7 +284,7 @@ cell_counts %>% ggplot(aes(x = reorder(sample_n, -n_cells),
                 theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
                 xlab("sample_id") +
                 ylab("Number of cells") +
-                ylim(0, 20000) +
+                ylim(0, ymax) +
                 coord_flip() +
                 geom_text(aes(label = n_cells), hjust = "left") +
                 theme(plot.title = element_text(hjust = 0.5, face = "bold")) +
