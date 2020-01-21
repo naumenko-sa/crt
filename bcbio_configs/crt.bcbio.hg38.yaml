@@ -1,6 +1,7 @@
+# variant calling in RNA-seq using gatk3.x
 details:
 - algorithm:
-    aligner: hisat2
+    aligner: star
     variantcaller: gatk-haplotype
     tools_off:
     - gatk4
