@@ -2,8 +2,8 @@
 
 # https://slurm.schedmd.com/sbatch.html
 
-#SBATCH --partition=short        # Partition (queue)
-#SBATCH --time=12:00:00             # Runtime in D-HH:MM format
+#SBATCH --partition=medium        # Partition (queue)
+#SBATCH --time=5-00:00             # Runtime in D-HH:MM format
 #SBATCH --job-name=sc_step1         # Job name
 #SBATCH -c 16			    # cores
 #SBATCH --mem-per-cpu=3G            # Memory needed per CPU or --mem
