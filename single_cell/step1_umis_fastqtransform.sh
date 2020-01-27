@@ -11,6 +11,11 @@
 #SBATCH --error=project_%j.err      # File to which STDERR will be written, including job ID
 #SBATCH --mail-type=ALL             # Type of email notification (BEGIN, END, FAIL, ALL)
 
+# shift barcodes to read name
+# 4.5bln reads = 41h
+# 2.2bln reads = 30h
+# 9991mln reads = 12h
+
 date
 export sample=$1
 export LC_ALL=en_US.utf8 && export LANG=en_US.utf8 &&  \
