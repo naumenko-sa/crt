@@ -1,0 +1,289 @@
+---
+title: "Differential expression"
+author: "Sergey Naumenko"
+date: "`r Sys.Date()`"
+output:
+    html_document:
+        code_folding: hide
+        df_print: paged
+        highlight: tango
+        theme: default
+        number_sections: true
+        toc: true
+        toc_float:
+            collapsed: true
+            smooth_scroll: false
+params:
+    variable_features: 3000
+    npcs: 30
+---
+
+
+```{r setup, include=FALSE}
+library(knitr)
+library(tidyverse)
+library(readxl)
+library(writexl)
+library(Seurat)
+
+library(ExperimentHub)
+library(tidyverse)
+library(magrittr)
+library(Matrix)
+library(reshape2)
+library(S4Vectors)
+
+library(ComplexHeatmap)
+library(pheatmap)
+library(scales)
+library(scater)
+library(Matrix.utils)
+library(data.table)
+library(edgeR)
+library(limma)
+library(UpSetR)
+
+library(org.Mm.eg.db)
+library(singleCellTK)
+
+
+ggplot2::theme_set(theme_light(base_size = 14))
+
+opts_chunk[["set"]](
+    cache = FALSE,
+    dev = c("png", "pdf"),
+    error = TRUE,
+    highlight = TRUE,
+    message = FALSE,
+    prompt = FALSE,
+    tidy = FALSE,
+    warning = FALSE)
+
+```
+
+# Overview
+- Principal Investigator: 
+- Researcher: 
+- Experiment: 
+- collapsing resilient and susceptible
+
+- http://biocworkshops2019.bioconductor.org.s3-website-us-east-1.amazonaws.com/page/muscWorkshop__vignette/
+
+# Loading data
+
+```{r}
+sce <- readRDS("data/sce.clusters_neuronal.RDS")
+sce <- convertGeneIDs(inSCE = sce,
+                          inSymbol = "ENSEMBL",
+                          outSymbol = "SYMBOL",
+                          database = "org.Mm.eg.db")
+
+sce$sample_name <- as.factor(sce$sample_name)
+sce$condition <- fct_collapse(sce$condition, stressed = c("susceptible", "resilient"), control = "control")
+sce$group_id <- as.factor(sce$condition)
+dim(sce)
+
+nk <- length(kids <- purrr::set_names(levels(sce$ident)))
+ns <- length(sids <- purrr::set_names(levels(sce$sample_name)))
+
+m <- match(sids, sce$sample_name)
+sce$sample <- as.character(sce$sample_name)
+# cells per cluster
+n_cells <- as.numeric(table(sce$sample))
+ei <- data.frame(colData(sce)[m, ], 
+    n_cells, row.names = NULL) %>% 
+    dplyr::select(-"ident")
+```
+
+# DS analysis
+```{r}
+# aggregate by cluster-sample
+groups <- colData(sce)[, c("ident", "sample_name")]
+pb <- aggregate.Matrix(t(counts(sce)), 
+      groupings = groups, fun = "sum") 
+
+# split by cluster, transform & rename columns
+pb <- split.data.frame(pb, rep(kids, ns)) %>% 
+        lapply(function(u) set_colnames(t(u), unname(sids)))
+
+# construct SCE of pseudo-bulk counts
+# (assays = clusters, rows = genes, columns = samples)
+pb <- SingleCellExperiment(assays = pb)
+
+# split cell by cluster-sample
+cs_by_ks <- as.data.frame(colData(sce)) %>% 
+       setDT %>% 
+        split(flatten = FALSE, sorted = TRUE,
+            by = c("ident", "sample_name")) %>% 
+        map_depth(2, "cells")
+    
+# another way of generating pseudobulk counts
+# for ea. cluster-sample..
+# long
+# pb2_file <- "data/pseudobulk2/pb2.RDS"
+# if (file.exists(pb2_file)){
+#    pb2 <- readRDS(pb2_file)
+#}else{
+#  pb2 <- map_depth(cs_by_ks, 2, function(cs)
+#        rowSums(counts(sce[, cs]))) %>% # ..compute pseudobulks
+#        map(data.frame) # column-bind samples
+#  saveRDS(pb2, pb2_file)
+#}
+```
+
+# Pseudobulk level MDS plot
+```{r, fig.width = 10, fig.height = 10}
+# compute MDS coordinates
+# long
+mds_file <- "data/pseudobulk2/mds.R"
+if (file.exists(mds_file)){
+    mds <- readRDS(mds_file)
+}else{
+    mds <- as.list(assays(pb)) %>% 
+      lapply(as.data.frame.matrix) %>% 
+      bind_cols %>% 
+      DGEList(remove.zeros = TRUE) %>% 
+      calcNormFactors %>% 
+      plotMDS.DGEList(plot = FALSE)
+    saveRDS(mds, "data/pseudobulk2/mds.RDS")
+}
+    
+# prep. data.frame for plotting
+gg_df <- data.frame(mds[c("x", "y")],
+    cluster_id = rep(kids, each = ns),
+    sample_id = rep(sids, nk),
+    group_id = ei$condition[match(sids, ei$sample_name)])
+
+ggplot(gg_df, aes(x, y, col = cluster_id, shape = group_id)) + 
+    geom_point(size = 3, alpha = 0.8) +
+    labs(x = "MDS dim. 1", y = "MDS dim. 2") + 
+    theme(panel.grid.minor = element_blank()) +
+    coord_fixed() + theme_bw()
+```
+
+# Cluster-sample cell-counts
+```{r}
+options(width = 100)
+table(sce$ident, sce$sample_name)
+```
+
+# Testing for DS - resilient vs control
+```{r}
+design <- model.matrix(~ 0 + ei$group_id) %>% 
+    set_rownames(ei$sample_id) %>% 
+    set_colnames(levels(ei$group_id))    
+contrast <- makeContrasts("stressed-control", levels = design)
+
+#long
+res_file <- "data/pseudobulk2/res.RDS"
+if (file.exists(res_file)){
+    res <- readRDS(res_file)
+}else{
+  res <- lapply(kids, function(k) {
+      y <- assays(pb)[[k]]
+      y <- DGEList(y, remove.zeros = TRUE)
+      y <- calcNormFactors(y)
+      y <- estimateDisp(y, design)
+      fit <- glmQLFit(y, design)
+      fit <- glmQLFTest(fit, contrast = contrast)
+      topTags(fit, n = Inf, sort.by = "none")$table %>% 
+        dplyr::mutate(gene = rownames(.), cluster_id = k) %>% 
+        dplyr::rename(p_val = PValue, p_adj = FDR)
+  })
+  saveRDS(res, res_file)
+}
+  
+
+```
+# Results filtering and overview
+```{r}
+# filter FDR < 0.05, |logFC| > 1 & sort by FDR
+genes <- read_csv("tables/ensembl_w_description.mouse.csv")
+res_fil <- lapply(res, 
+    function(u)  u %>% 
+        dplyr::filter(p_adj < 0.05, abs(logFC) > 0.25) %>% 
+        dplyr::arrange(p_adj))
+
+result_table <- bind_rows(res_fil) %>% left_join(genes, by = c("gene" = "external_gene_name")) %>% 
+       dplyr::select(cluster_id,  gene, ensembl_gene_id, logFC, logCPM, `F`, p_val, p_adj, description)
+
+write_csv(result_table, "tables/de.pseudobulk.stressed_vs_control.csv")
+result_table
+```
+
+# nb. & % of DE genes per cluster
+```{r}
+n_de <- vapply(res_fil, nrow, numeric(1))
+cbind(n_de, p_gs = n_de / nrow(sce) * 100)
+```
+
+# Cell-level visualization
+
+# cluster 5
+```{r, fig.width = 10, fig.height = 10}
+top_gs <- lapply(res_fil, function(u) u$gene[seq_len(9)])  
+# split cells by cluster
+cs_by_k <- split(colnames(sce), sce$seurat_clusters)
+
+cluster <- "5"
+gs <- top_gs[[cluster]]  # get top gene-hits for cluster k
+cs <- cs_by_k[[cluster]] # subset cells assigned to cluster k
+plotExpression(sce[, cs], 
+               features = gs, 
+               x = "sample_name", 
+               colour_by = "group_id", 
+               ncol = 3) +
+        guides(fill = guide_legend(override.aes = list(size = 5, alpha = 1))) +
+        theme_classic() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+# Cluster 17
+```{r}
+cluster <- "17"
+gs <- top_gs[[cluster]] # get top gene-hits for cluster k
+gs <- head(gs, 1)
+cs <- cs_by_k[[cluster]] # subset cells assigned to cluster k
+plotExpression(sce[, cs], 
+               features = gs, 
+               x = "sample_name", 
+               colour_by = "group_id", 
+               ncol = 3) +
+        guides(fill = guide_legend(override.aes = list(size = 5, alpha = 1))) +
+        theme_classic() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+# Cluster 6
+```{r, fig.width = 10, fig.height = 10}
+cluster <- "6"
+gs <- top_gs[[cluster]] # get top gene-hits for cluster k
+gs <- head(gs, 2)
+cs <- cs_by_k[[cluster]] # subset cells assigned to cluster k
+plotExpression(sce[, cs], 
+               features = gs, 
+               x = "sample_name", 
+               colour_by = "group_id", 
+               ncol = 3) +
+        guides(fill = guide_legend(override.aes = list(size = 5, alpha = 1))) +
+        theme_classic() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+# Cluster 20
+```{r, fig.width = 10, fig.height = 10}
+cluster <- "20"
+gs <- top_gs[[cluster]] # get top gene-hits for cluster k
+gs <- head(gs, 1)
+cs <- cs_by_k[[cluster]] # subset cells assigned to cluster k
+plotExpression(sce[, cs], 
+               features = gs, 
+               x = "sample_name", 
+               colour_by = "group_id", 
+               ncol = 3) +
+        guides(fill = guide_legend(override.aes = list(size = 5, alpha = 1))) +
+        theme_classic() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+# Session
+```{r}
+sessionInfo()
+```
