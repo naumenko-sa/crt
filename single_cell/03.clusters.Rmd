@@ -62,6 +62,19 @@ if (file.exists("data/seurat.clusters.RDS")){
 DimPlot(seurat, label = TRUE) + NoLegend()
 ```
 
+# Number of cells in clusters
+```{r}
+n_cells <- FetchData(seurat,
+     vars = c("ident")) %>% 
+     dplyr::count(ident) 
+    
+     n_cells %>% ggplot(aes(x = ident, y = n)) + geom_col() +
+             geom_text(aes(label = n), hjust = 0) +
+             coord_flip() +
+             xlab("Cluster ID") +
+             ylab("Number of cells")
+```
+
 # UMAP clusters colored by condition
 ```{r umap_condition}
 DimPlot(seurat,
