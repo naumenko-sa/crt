@@ -13,24 +13,13 @@
 #SBATCH --mail-type=ALL             # Type of email notification (BEGIN, END, FAIL, ALL)
 
 date
+which kallisto
 
-#conda activate kbenv
-which kb
+# killed with 60G of ram
+# passed with 100G
 
 # https://bustools.github.io/BUS_notebooks_R/velocity.html
 
-kreference_prefix=/n/data1/cores/bcbio/naumenko/velocity_test/output/neuron10k_velocity
-
-# 100G ram
-kb count \
--i ${kreference_prefix}/mm_cDNA_introns_97.idx \
--g ${kreference_prefix}/neuron10k_velocity/tr2g.tsv \
--x INDROPSV3 \
--o kallisto_bus_output \
--c1 ${kreference_prefix}/cDNA_tx_to_capture.txt \
--c2 ${kreference_prefix}/introns_tx_to_capture.txt \
---lamanno \
--t 8 \
-${1}_2.fq.gz ${1}_4.fq.gz ${1}_1.fq.gz
+kallisto index -i mm_cDNA_introns_97.idx cDNA_introns.fa
 
 date
