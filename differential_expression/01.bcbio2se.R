@@ -1,4 +1,5 @@
-# Rscript bcbio2se.R /bcbio/result/final/project
+# create SummarizedExperiment object (se) from bcbio output
+# usage: Rscript bcbio2se.R /bcbio/result/final/project
 
 library(tidyverse)
 library(tximport)
@@ -8,14 +9,17 @@ library(DESeq2)
 
 args <- commandArgs(trailingOnly = T)
 project_dir <- args[1]
-#project_dir <- "/n/data1/cores/bcbio/PIs/konstantina_stankovic/rnaseq_and_drug_repurposing_analysis_of_mutant_TMPRSS3_iPSC_line_hbc03750/2_bcbio/final/2019-12-04_metadata"
 
 metadata <- read_csv(file.path(project_dir, "metadata.csv"))
+colnames(metadata)[0] <- "sample"
 
-metadata$genotype <- as.factor(metadata$genotype)
+# metadata$genotype <- as.factor(metadata$genotype)
 
-metrics <- read_tsv(file.path(project_dir, "multiqc", "multiqc_data", "multiqc_bcbio_metrics.txt")) %>% 
-    clean_names(case = "snake")
+metrics <- read_tsv(file.path(project_dir, 
+			      "multiqc", 
+			      "multiqc_data", 
+			      "multiqc_bcbio_metrics.txt")) %>% 
+	   clean_names(case = "snake")
 
 sample_dirs <- file.path(project_dir, "..", metadata$sample)
 salmon_files <- file.path(sample_dirs, "salmon", "quant.sf")
