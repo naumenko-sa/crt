@@ -3,7 +3,7 @@
 # https://slurm.schedmd.com/sbatch.html
 # https://wiki.rc.hms.harvard.edu/display/O2
 
-#SBATCH --partition=priority        # Partition (queue) priority
+#SBATCH --partition=medium        # Partition (queue) priority
 #SBATCH --time=2-00:00              # Runtime in D-HH:MM format, 10:00:00 for hours
 #SBATCH --job-name=kallisto          # Job name
 #SBATCH -c 8			    # cores
@@ -14,23 +14,26 @@
 
 date
 
-#conda activate kbenv
+source activate r
 which kb
 
 # https://bustools.github.io/BUS_notebooks_R/velocity.html
 
-kreference_prefix=/n/data1/cores/bcbio/naumenko/velocity_test/output/neuron10k_velocity
+kreference_prefix=/n/data1/cores/bcbio/naumenko/velocity_test/veloindex_indrops3
 
 # 100G ram
 kb count \
 -i ${kreference_prefix}/mm_cDNA_introns_97.idx \
--g ${kreference_prefix}/neuron10k_velocity/tr2g.tsv \
+-g ${kreference_prefix}/tr2g.tsv \
 -x INDROPSV3 \
 -o kallisto_bus_output \
 -c1 ${kreference_prefix}/cDNA_tx_to_capture.txt \
 -c2 ${kreference_prefix}/introns_tx_to_capture.txt \
 --lamanno \
+--verbose \
 -t 8 \
 ${1}_2.fq.gz ${1}_4.fq.gz ${1}_1.fq.gz
+
+source deactivate
 
 date

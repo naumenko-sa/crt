@@ -1,12 +1,14 @@
 # Rscript bcbio2se.R /bcbio/result/final/project
+
 library(tidyverse)
 library(tximport)
 library(SummarizedExperiment)
 library(janitor)
 library(DESeq2)
 
-#project_dir <- args[1]
-project_dir <- "/n/data1/cores/bcbio/PIs/konstantina_stankovic/rnaseq_and_drug_repurposing_analysis_of_mutant_TMPRSS3_iPSC_line_hbc03750/2_bcbio/final/2019-12-04_metadata"
+args <- commandArgs(trailingOnly = T)
+project_dir <- args[1]
+#project_dir <- "/n/data1/cores/bcbio/PIs/konstantina_stankovic/rnaseq_and_drug_repurposing_analysis_of_mutant_TMPRSS3_iPSC_line_hbc03750/2_bcbio/final/2019-12-04_metadata"
 
 metadata <- read_csv(file.path(project_dir, "metadata.csv"))
 
