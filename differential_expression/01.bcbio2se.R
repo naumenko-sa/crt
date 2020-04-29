@@ -1,5 +1,7 @@
 # create SummarizedExperiment object (se) from bcbio output
-# usage: Rscript bcbio2se.R /bcbio/result/final/project
+# usage: 
+# Rscript bcbio2se.R /bcbio/result/final/project
+# output: bcbio.se.RDS
 
 library(tidyverse)
 library(tximport)
@@ -11,7 +13,7 @@ args <- commandArgs(trailingOnly = T)
 project_dir <- args[1]
 
 metadata <- read_csv(file.path(project_dir, "metadata.csv"))
-colnames(metadata)[0] <- "sample"
+colnames(metadata)[1] <- "sample"
 
 # metadata$genotype <- as.factor(metadata$genotype)
 
@@ -28,8 +30,9 @@ names(salmon_files) <- metadata$sample
 transcripts2genes_file <- file.path(project_dir, "tx2gene.csv")
 transcripts2genes <- read_csv(transcripts2genes_file, col_names = c("ensembl_transcript_id", "ensembl_gene_id"))
 
-txi_salmon <- tximport(salmon_files, type = "salmon", tx2gene = transcripts2genes,
-                      countsFromAbundance = "lengthScaledTPM")
+txi_salmon <- tximport(salmon_files, type = "salmon", 
+                       tx2gene = transcripts2genes,
+                       countsFromAbundance = "lengthScaledTPM")
 
 col_data <- metadata %>% column_to_rownames(var = "sample")
 col_data$sample <- rownames(col_data)
