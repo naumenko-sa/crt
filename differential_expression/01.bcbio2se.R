@@ -1,7 +1,7 @@
 # create SummarizedExperiment object (se) from bcbio output
 # usage: 
 # Rscript bcbio2se.R /bcbio/result/final/project
-# output: bcbio.se.RDS
+# output: data/bcbio.se.RDS
 
 library(tidyverse)
 library(tximport)
@@ -45,6 +45,8 @@ se_metadata <- list(metrics = metrics,
                  countsFromAbundance = txi_salmon$countsFromAbundance)
 
 vst <- vst(raw_counts)
+
+dir.create("data")
 
 se <- SummarizedExperiment(assays = list(raw = raw_counts,
                                          tpm = txi_salmon$abundance,
