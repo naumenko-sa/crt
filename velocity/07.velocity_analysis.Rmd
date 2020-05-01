@@ -1,0 +1,214 @@
+---
+title: "RNA velocity analysis"
+author: "Sergey Naumenko"
+date: "`r Sys.Date()`"
+output:
+    html_document:
+        code_folding: hide
+        df_print: paged
+        highlight: tango
+        theme: default
+        number_sections: true
+        toc: true
+        toc_float:
+            collapsed: true
+            smooth_scroll: false
+params:
+    variable_features: 3000
+    npcs: 30
+    sample: N6_3_4
+---
+
+
+```{r setup, include=FALSE}
+library(knitr)
+library(tidyverse)
+library(readxl)
+library(writexl)
+
+library(BUSpaRse)
+library(Seurat)
+library(SeuratWrappers)
+#library(BSgenome.Mmusculus.UCSC.mm10)
+library(AnnotationHub)
+library(zeallot) # For %<-% that unpacks lists in the Python manner
+library(DropletUtils) # barcodeRanks
+library(GGally) # For ggpairs
+library(velocyto.R)
+#library(SingleR)
+library(scales)
+library(plotly)
+
+ggplot2::theme_set(theme_light(base_size = 14))
+
+opts_chunk[["set"]](
+    cache = FALSE,
+    dev = c("png", "pdf"),
+    error = TRUE,
+    highlight = TRUE,
+    message = FALSE,
+    prompt = FALSE,
+    tidy = FALSE,
+    warning = FALSE)
+```
+
+
+
+# Read merged Seurat object
+```{r}
+merged_seurat <- "data/velocity/seurat.RDS"
+seurat <- readRDS("merged_seurat")
+```
+
+UMAP
+```{r}
+seurat_umap_file <- paste0("data/velocity/seurat.umap.RDS")
+if (file.exists(seurat_umap_file)){
+    seurat <- readRDS(seurat_umap_file)
+}else{
+    DefaultAssay(seurat) <- "spliced"
+    seurat <- RunPCA(seurat, 
+                 verbose = FALSE, 
+                 npcs = 70,
+                 assay = "spliced")
+    seurat <- RunTSNE(seurat, dims = 1:50, verbose = FALSE)
+    seurat <- RunUMAP(seurat, dims = 1:50, umap.method = "uwot")
+    seurat <- FindNeighbors(seurat, 
+                        verbose = TRUE) %>% 
+          FindClusters(resolution = 1, verbose = TRUE) # Louvain
+    saveRDS(seurat, seurat_umap_file)  
+}
+```
+
+# PCA - spliced
+```{r}
+DimPlot(seurat, 
+        reduction = "pca",
+        pt.size = 0.5, 
+        label = TRUE, 
+        repel = TRUE,
+        group.by = "age") +
+  scale_color_brewer(type = "qual", palette = "Set2")
+
+
+  cols_use <- c("nCount_sf", "nFeature_sf", "nCount_uf", "nFeature_uf")
+  VlnPlot(seurat,
+        cols_use, 
+        assay = "spliced",
+        ncol = 2,
+        pt.size = 0.1,
+        group.by = "sample")
+ElbowPlot(seurat, ndims = 70)
+```
+
+```{r}
+# Helper functions for ggpairs
+log10_diagonal <- function(data, mapping, ...) {
+  ggally_densityDiag(data, mapping, ...) + scale_x_log10()
+}
+log10_points <- function(data, mapping, ...) {
+  ggally_points(data, mapping, ...) + scale_x_log10() + scale_y_log10()
+}
+
+ggpairs(seurat@meta.data, columns = cols_use,
+        upper = list(continuous = "cor"),
+        diag = list(continuous = log10_diagonal),
+        lower = list(continuous = wrap(log10_points, alpha = 0.1, size=0.3)),
+        progress = FALSE)
+
+```
+
+# TSNE
+```{r, fig.width = 10}
+DimPlot(seurat, reduction = "tsne",
+        pt.size = 0.5, label = TRUE, repel = TRUE,
+        group.by = "age") +
+        scale_color_brewer(type = "qual", palette = "Set2")
+```
+
+# UMAP
+```{r, fig.width  = 10}
+DimPlot(seurat, reduction = "umap",
+        pt.size = 0.5, label = TRUE, repel = TRUE,
+        group.by = "age") +
+  scale_color_brewer(type = "qual", palette = "Set2")
+```
+
+```{r, fig.width = 10}
+DimPlot(seurat, pt.size = 0.5, reduction = "umap", label = TRUE)
+
+```
+```{r}
+seurat_velocity_file <- paste0("data/velocity/seurat.velocity.RDS")
+if (file.exists(seurat_velocity_file)){
+    seurat <- readRDS(seurat_velocity_file)
+}else{
+    seurat <- RunVelocity(seurat, 
+                      ncores = 5, 
+                      reduction = "pca", 
+                      verbose = TRUE)    
+    saveRDS(seurat, seurat_velocity_file)  
+}
+```
+
+```{r}
+cell_pal <- function(cell_cats, pal_fun) {
+  categories <- sort(unique(cell_cats))
+  pal <- setNames(pal_fun(length(categories)), categories)
+  pal[cell_cats]
+}
+
+label_clusters <- function(labels, coords, ...) {
+  df <- tibble(label = labels, x = coords[,1], y = coords[,2])
+  df <- df %>% 
+    group_by(label) %>% 
+    summarize(x = median(x), y = median(y))
+  text(df$x, df$y, df$label, ...)
+}
+```
+
+# Velocity visualization is too heavy - use separate script 08.plot_velocity.Rmd
+```{r, fig.width = 10, fig.keep = "all", echo = TRUE}
+cell_colors <- cell_pal(seurat$orig.ident, brewer_pal("qual", "Set2"))
+cell_colors_clust <- cell_pal(seurat$seurat_clusters, hue_pal())
+names(cell_colors) <- names(cell_colors_clust) <- Cells(seurat)
+
+#cc_umap <- show.velocity.on.embedding.cor(emb = Embeddings(seurat, "umap"),
+#                                          vel = Tool(seurat, slot = "RunVelocity"),
+#                                          n.cores = 1, 
+#                                          show.grid.flow = TRUE,
+#                                          grid.n = 50, 
+#                                          cell.colors = cell_colors,
+#                                          cex = 0.5, 
+#                                          cell.border.alpha = 0,
+#                                          arrow.scale = 2, 
+#                                          arrow.lwd = 0.6,
+#                                          xlab = "UMAP1", 
+#                                          ylab = "UMAP2")
+  
+#label_clusters(seurat$seurat_clusters, Embeddings(seurat, "umap"),  font = 2, col = "brown") 
+```
+# Phase portrait - Myl1
+```{r, fig.width = 20, fig.height = 15}
+ah <- AnnotationHub()
+query(ah, pattern = c("Ensembl", "97", "Mus musculus", "EnsDb"))
+edb <- ah[["AH73905"]]
+gns <- tr2g_EnsDb(edb, use_gene_version = FALSE)[,c("gene", "gene_name")] %>% 
+  distinct()
+
+gene.relative.velocity.estimates(GetAssayData(seurat, 
+                                              slot = "data", 
+                                              assay = "spliced"),
+                                 GetAssayData(seurat, 
+                                              slot = "data", 
+                                              assay = "unspliced"),
+                                 cell.emb = Embeddings(seurat, "umap"),
+                                 show.gene = gns$gene[gns$gene_name == "Myl1"],
+                                 old.fit = Tool(seurat, slot = "RunVelocity"),
+                                 cell.colors = cell_colors)
+```
+
+# R session information
+```{r}
+sessionInfo()
+```
