@@ -57,7 +57,7 @@ opts_chunk[["set"]](
 # Read merged Seurat object
 ```{r}
 merged_seurat <- "data/velocity/seurat.RDS"
-seurat <- readRDS("merged_seurat")
+seurat <- readRDS(merged_seurat)
 ```
 
 UMAP
