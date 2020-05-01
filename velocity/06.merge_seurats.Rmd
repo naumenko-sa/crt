@@ -1,0 +1,100 @@
+---
+title: "RNA velocity analysis"
+author: "Sergey Naumenko"
+date: "`r Sys.Date()`"
+output:
+    html_document:
+        code_folding: hide
+        df_print: paged
+        highlight: tango
+        theme: default
+        number_sections: true
+        toc: true
+        toc_float:
+            collapsed: true
+            smooth_scroll: false
+params:
+    variable_features: 3000
+    npcs: 30
+    sample: N6_3_4
+---
+
+
+```{r setup, include=FALSE}
+library(knitr)
+library(tidyverse)
+library(readxl)
+library(writexl)
+
+library(BUSpaRse)
+library(Seurat)
+library(SeuratWrappers)
+#library(BSgenome.Mmusculus.UCSC.mm10)
+library(AnnotationHub)
+library(zeallot) # For %<-% that unpacks lists in the Python manner
+library(DropletUtils) # barcodeRanks
+library(GGally) # For ggpairs
+library(velocyto.R)
+#library(SingleR)
+library(scales)
+library(plotly)
+
+ggplot2::theme_set(theme_light(base_size = 14))
+
+opts_chunk[["set"]](
+    cache = FALSE,
+    dev = c("png", "pdf"),
+    error = TRUE,
+    highlight = TRUE,
+    message = FALSE,
+    prompt = FALSE,
+    tidy = FALSE,
+    warning = FALSE)
+```
+
+# Overview
+- Researcher: Amber Mueller
+- PI: David Sinclair
+- Experiment: InDrops single nucleus RNA-seq [hbc03773]
+- https://bustools.github.io/BUS_notebooks_R/velocity.html
+
+
+# Merge Seurat objects from all samples
+```{r}
+merged_seurat <- "data/velocity/seurat.RDS"
+
+seurat_N111 <- readRDS("data/velocity/N1_1_1.seurat.RDS")
+seurat_N112 <- readRDS("data/velocity/N1_1_2.seurat.RDS")
+seurat_N113 <- readRDS("data/velocity/N1_1_3.seurat.RDS")
+seurat_N114 <- readRDS("data/velocity/N1_1_4.seurat.RDS")
+
+seurat <- merge(seurat_N111, 
+                y = c(seurat_N112, seurat_N113, seurat_N114),
+                add.cell.ids = c("N111", "N112", "N113", "N114"),
+                merge.data = TRUE)
+
+metadata_csv <- read_csv("data/velocity/metadata.csv", col_types = "cfc" )
+
+metadata <- seurat@meta.data
+metadata$sample <- str_split_fixed(rownames(metadata), "_", 2)[,1]
+metadata <- metadata %>% 
+          rownames_to_column(var = "cell_id") %>% 
+          left_join(metadata_csv, by = c("sample" = "sample_n")) %>% 
+          column_to_rownames(var = "cell_id")
+seurat@meta.data <- metadata
+
+seurat <- SCTransform(seurat, 
+                      verbose = FALSE, 
+                      assay = "sf", 
+                      new.assay.name = "spliced")
+
+seurat <- SCTransform(seurat,
+                      assay = "uf",
+                      new.assay.name = "unspliced")
+saveRDS(seurat, merged_seurat)
+```
+
+# R session information
+```{r}
+sessionInfo()
+```
