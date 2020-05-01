@@ -1,0 +1,100 @@
+---
+title: "Marker identification for velocity seurat"
+author: "Sergey Naumenko"
+date: "`r Sys.Date()`"
+output:
+    html_document:
+        code_folding: hide
+        df_print: paged
+        highlight: tango
+        theme: default
+        number_sections: true
+        toc: true
+        toc_float:
+            collapsed: true
+            smooth_scroll: false
+params:
+    variable_features: 3000
+    npcs: 30
+    flowcell: FC_merged
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+library(tidyverse)
+library(readxl)
+library(writexl)
+library(Seurat)
+
+ggplot2::theme_set(theme_light(base_size = 14))
+
+opts_chunk[["set"]](
+    cache = FALSE,
+    dev = c("png", "pdf"),
+    error = TRUE,
+    highlight = TRUE,
+    message = FALSE,
+    prompt = FALSE,
+    tidy = FALSE,
+    warning = FALSE)
+
+```
+
+- marker analysis for velocity seurat
+
+# All markers
+
+Description of the columns:
+
+- cluster: cluster ID
+- gene: ENSEMBL gene id
+- external_gene_name: gene name
+- description: gene_description
+- p_val_adj: Bonferroni-corrected p-value
+- p_val: raw p-value
+- avg_logFC: average log2 fold change. Positive values indicate that the gene is more highly expressed in the cluster.
+- pct.1: The percentage of cells where the gene is detected in the cluster
+- pct.2: The percentage of cells where the gene is detected on average in the other clusters
+
+```{r, rows.print = 25}
+clusters_file <- paste0(paste0("data/velocity/seurat.velocity.RDS"))
+seurat <- readRDS(clusters_file)
+Idents(seurat) <- "spliced_snn_res.1"
+markers_file <- "tables/velocity_markers.xlsx"
+markers <- FindAllMarkers(object = seurat,
+                          only.pos = TRUE,
+                          logfc.threshold = 0.1,
+                          min.pct = 0.25
+                          )
+ensembl_w_description <- read_csv("tables/ensembl_w_description.mouse.protein_coding.csv")
+
+#combine markers with gene descriptions
+ann_markers <- inner_join(x = markers,
+                  y = ensembl_w_description,
+                  by = c("gene" = "ensembl_gene_id")) %>% unique()
+
+# Order the rows by p-adjusted values
+ann_markers <- ann_markers %>%
+    dplyr::arrange(cluster, p_val_adj) %>% 
+    dplyr::select(cluster, gene, external_gene_name, description, p_val_adj, p_val, avg_logFC, pct.1, pct.2)                      
+
+write_xlsx(list(ann_markers), markers_file)
+```
+
+# GADD45
+```{r}
+FeaturePlot(seurat, features = "ENSMUSG00000036390") + ggtitle("Gadd45")
+```
+```{r}
+DimPlot(seurat,
+        reduction = "umap",
+        group.by = "age"
+        ) +
+        ggtitle("Clusters by condition")
+```
+
+
+# R session information
+```{r}
+sessionInfo()
+```
