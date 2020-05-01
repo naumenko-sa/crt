@@ -52,13 +52,6 @@ opts_chunk[["set"]](
     warning = FALSE)
 ```
 
-# Overview
-- Researcher: Amber Mueller
-- PI: David Sinclair
-- Experiment: InDrops single nucleus RNA-seq [hbc03773]
-- https://bustools.github.io/BUS_notebooks_R/velocity.html
-
-
 # Merge Seurat objects from all samples
 ```{r}
 merged_seurat <- "data/velocity/seurat.RDS"
