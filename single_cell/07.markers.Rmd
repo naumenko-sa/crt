@@ -80,11 +80,11 @@ if (!file.exists("markers_file")){
     # Order the rows by p-adjusted values
     ann_markers <- ann_markers %>%
             dplyr::arrange(cluster, p_val_adj) %>% 
-        select(cluster, gene, external_gene_name, description, p_val_adj, p_val, avg_logFC, pct.1, pct.2)                      
+        select(cluster, gene, external_gene_name, description, p_val_adj, p_val, avg_logFC, pct.1, pct.2)
 
-    write_xlsx(list(ann_markers), "markers_file")
+    write_xlsx(list(ann_markers), markers_file)
 }else{
-    ann_marders <- read_xlsx("markers_file")
+    ann_marders <- read_xlsx(markers_file)
 }
 ann_markers
 
