@@ -93,6 +93,7 @@ metrics %>%
 The genomic mapping rate represents the percentage of reads mapping to the reference genome. Low mapping rates are indicative of sample contamination, poor sequencing quality or other artifacts.
 
 ```{r plot_mapping_rate}
+metrics$mapped_reads_pct <- metrics$mapped_reads/metrics$total_reads
 metrics %>%
     ggplot(aes(x = reorder(sample, -mapped_reads_pct), 
                y = mapped_reads_pct, fill = category)) +
