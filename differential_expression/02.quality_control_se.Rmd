@@ -179,6 +179,8 @@ metrics %>%
 Samples should have a ribosomal RNA (rRNA) contamination rate below 10%.
 
 ```{r plot_rrna_mapping_rate}
+# for some bad samples it could be > 50%
+rrna_ylim <- max(round(metrics$r_rna_rate*100, 2)) + 10
 metrics %>%
     ggplot(aes(x = reorder(sample, -r_rna_rate),
                y = r_rna_rate * 100, 
@@ -187,9 +189,9 @@ metrics %>%
     geom_text(aes(label = round(r_rna_rate*100,2)), hjust = 0, nudge_y = 0.5)+
     xlab("sample") + 
     ylab("rRNA rate, %")+
-    ylim(0, 45) + 
-    ggtitle("rRNA mapping rate") + 
-    coord_flip() 
+    ylim(0, rrna_ylim) + 
+    ggtitle("rRNA mapping rate") +
+    coord_flip()
 ```
 
 ## 5'->3' bias
