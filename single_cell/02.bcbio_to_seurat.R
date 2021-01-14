@@ -19,3 +19,5 @@ library(Seurat)
 counts <- Read10X(data.dir = ".", gene.column = 1)
 seurat_object <- CreateSeuratObject(counts = counts, min.features = 100)
 saveRDS(seurat_object, "seurat.bcbio.RDS")
+
+print(sum(seurat_object$nCount_RNA))
