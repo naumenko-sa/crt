@@ -87,7 +87,8 @@ for (cluster_id in levels(seurat))
         	              subset.ident = cluster_id,
                           verbose = FALSE) %>% rownames_to_column(var = "ensembl_gene_id"), 
                           silent = TRUE)
-        if(!inherits(de_buf, "try-error"))
+        # new Seurat just returns an empty dataframe
+        if(!inherits(de_buf, "try-error") & nrow(de_buf) > 0)
         {
             de_buf$cluster <- paste(cluster_id, collapse=",")
         	de_buf$condition <- condition
