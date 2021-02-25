@@ -100,7 +100,7 @@ for (cluster_id in levels(seurat))
 genes <- read_csv("tables/ensembl_w_description.mouse.csv")
 de_results <- de_results %>% 
               left_join(genes, by = c("ensembl_gene_id" = "ensembl_gene_id")) %>% 
-              select(cluster, condition, external_gene_name, ensembl_gene_id, p_val, avg_logFC, pct.1, pct.2, p_val_adj, description)
+              select(cluster, condition, external_gene_name, ensembl_gene_id, p_val, avg_log2FC, pct.1, pct.2, p_val_adj, description)
     
 write_xlsx(list(de_results), "tables/de_susceptible_resilient_vs_control.xlsx")
 ```
@@ -119,9 +119,9 @@ for (cluster_id in levels(seurat))
         	              subset.ident = cluster_id,
                           verbose = FALSE) %>% rownames_to_column(var = "ensembl_gene_id"), 
                           silent = TRUE)
-        if(!inherits(de_buf, "try-error"))
+        if(!inherits(de_buf, "try-error") & nrow(de_buf) > 0)
         {
-            de_buf$cluster <- paste(cluster_id, collapse=",")
+        	de_buf$cluster <- paste(cluster_id, collapse=",")
         	de_buf$condition <- condition
         	de_results <- bind_rows(de_results, de_buf)
         }
@@ -131,7 +131,7 @@ for (cluster_id in levels(seurat))
 genes <- read_csv("tables/ensembl_w_description.mouse.csv")
 de_results <- de_results %>% 
               left_join(genes, by = c("ensembl_gene_id" = "ensembl_gene_id")) %>% 
-              select(cluster, condition, external_gene_name, ensembl_gene_id, p_val, avg_logFC, pct.1, pct.2, p_val_adj, description)
+              select(cluster, condition, external_gene_name, ensembl_gene_id, p_val, avg_log2FC, pct.1, pct.2, p_val_adj, description)
     
 write_xlsx(list(de_results), "tables/de_resilient_vs_susceptible.xlsx")
 ```
