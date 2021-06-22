@@ -40,9 +40,9 @@ opts_chunk[["set"]](
 ```
 
 # Overview
-- Principal Investigator: 
-- Researcher: 
-- Experiment: 
+- Principal Investigator:
+- Researcher:
+- Experiment:
 - [I used this lesson as a template](https://github.com/hbctraining/scRNA-seq/blob/master/lessons/07_SC_marker_identification.md)
 - markers annotated with [brainrnaseq](https://www.brainrnaseq.org/)
 
@@ -79,8 +79,8 @@ if (!file.exists("markers_file")){
 
     # Order the rows by p-adjusted values
     ann_markers <- ann_markers %>%
-            dplyr::arrange(cluster, p_val_adj) %>% 
-        select(cluster, gene, external_gene_name, description, p_val_adj, p_val, avg_logFC, pct.1, pct.2)
+            dplyr::arrange(cluster, p_val_adj) %>%
+        dplyr::select(cluster, gene, external_gene_name, description, p_val_adj, p_val, avg_log2FC, pct.1, pct.2)
 
     write_xlsx(list(ann_markers), markers_file)
 }else{
